@@ -1,0 +1,9 @@
+ATOMBASIS
+
+Comment
+Atomtypes=2 Charge=0 Nosymm Angstrom
+Charge=1.0 Atoms=2 Basis=cc-pVDZ
+H   11.75000   11.76000   12.82000
+H   11.71000   10.56000   13.74000
+Charge=8.0 Atoms=1 Basis=cc-pVDZ
+O   11.47000   10.84000   12.86000

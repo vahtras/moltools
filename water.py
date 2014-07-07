@@ -7,8 +7,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 import math as m
 
-from generator import *
-
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
@@ -24,18 +22,17 @@ class Atom:
         self.r = False
         self.x = None
         self.y = None
-        self.z = None
         self.resid = None
         self.inWater = False
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
-
     def __sub__(self, other ):
         """return numpy array between this and other atom"""
         return self.getArray() - other.getArray()
-
     def getArray(self):
         return np.array( [self.x , self.y, self.z ] ).copy()
+    def distToAtom(self, other):
+        return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
     def toAU(self):
         if self.AA:
             self.x /= a0
@@ -56,7 +53,6 @@ class Water:
         self.q = 0.0
         self.r_oh = False
         self.theta_hoh = False
-
 #Parameters describing water location and rotation in space
         self.r = False
         self.theta = False
@@ -236,6 +232,21 @@ class Water:
                             [ 0,    1,  0],
                             [ m.sin(theta), 0, m.cos(theta)]])
         return vec
+    def plotWater(self ):
+#Plot water molecule in green and  nice xyz axis
+        O1, H1, H2 = self.o, self.h1, self.h2
+        fig = plt.figure()
+        dip = self.getDipole()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
 
     def transformDipole( self, qmdipole, t1, t2, t3 ):
 
@@ -257,8 +268,9 @@ class Water:
             for x in range(3):
                 d_new3[i] += rz2[i][x] * d_new2[x]
         self.qmDipole = d_new3
+        return d_new3
 
-    def transfer_alpha( self, qmalpha, t1, t2 , t3 ):
+    def transformAlpha( self, qmalpha, t1, t2 , t3 ):
 
         a_new1 = np.zeros([3,3]) #will be calculated
         a_new2 = np.zeros([3,3]) #will be calculated
@@ -288,9 +300,9 @@ class Water:
                 for x in range(3):
                     for y in range(3):
                         a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
-        self.qmAlpha = a_new3
+        return a_new3
 
-    def transferBeta( self, qmbeta, t1, t2, t3 ):
+    def transformBeta( self, qmbeta, t1, t2, t3 ):
 
         b_new1 = np.zeros([3,3,3]) #will be calculated
         b_new2 = np.zeros([3,3,3]) #will be calculated
@@ -322,7 +334,7 @@ class Water:
                             for z in range(3):
                                 b_new3[i][j][k] += rz2[i][x] * rz2[j][y] * rz2[k][z] * b_new2[x][y][z]
 
-        self.qmBeta = b_new3
+        return b_new3
 
     def beta_par(self):
         """
@@ -384,7 +396,7 @@ class Water:
             self.h2.toAA()
             self.o.toAA()
             self.AA = True
-
+            
 if __name__ == '__main__':
 
     g = Generator()
