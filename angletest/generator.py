@@ -26,74 +26,6 @@ class Generator:
             self.options = { "isAA" : True  }
         self.dic = Dic()
 
-        self.r_oh = 0.97167
-        self.theta_hoh = np.pi * 104.5/ 180.0
-
-        self.varyR = False
-        self.varyTheta = False
-        self.varyTau = False
-        self.varyRho1 = False
-        self.varyRho2 = False
-        self.varyRho3 = False
-
-        self.optionsR = { "max" : 5.00, "min": 5.00, "points": 1 }
-        self.optionsTheta ={ "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsTau =  { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho1 = { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho2 = { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho3 = { "max" : 0.00, "min": 0.00, "points": 1 }
-    def genMols(self):
-        r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
-                complex( "%sj"%self.optionsR[ "points" ] ) ]
-        theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
-                complex( "%sj"%self.optionsTheta[ "points" ] ) ]
-        tau = np.r_[ self.optionsTau[ "min" ] : self.optionsTau[ "max" ] : \
-                complex( "%sj"%self.optionsTau[ "points" ] ) ]
-        rho1 = np.r_[ self.optionsRho1[ "min" ] : self.optionsRho1[ "max" ] : \
-                complex( "%sj"%self.optionsRho1[ "points" ] ) ]
-        rho2 = np.r_[ self.optionsRho2[ "min" ] : self.optionsRho2[ "max" ] : \
-                complex( "%sj"%self.optionsRho2[ "points" ] ) ]
-        rho3 = np.r_[ self.optionsRho3[ "min" ] : self.optionsRho3[ "max" ] : \
-                complex( "%sj"%self.optionsRho3[ "points" ] ) ]
-        for i in r:
-            for j in theta:
-                for k in tau:
-                    for l in rho1:
-                        for m in rho2:
-                            for n in rho3:
-                                w1 = self.getWater( [0, 0, 0], self.r_oh, self.theta_hoh)
-                                x, y, z = self.getCartesianFromDegree( i, j, k )
-                                w2 = self.getWater( [x,y,z], self.r_oh, self.theta_hoh)
-                                w2.rotate( l, m, n )
-                                name = ""
-                                name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
-                                name += ".mol"
-                                self.writeMol( [w1, w2], name )
-
-    def varyParameters( self, *args ):
-        """Given two parameters, for e.g. r and theta, keeps all other static"""
-        if args:
-            for j in args:
-                for i in j:
-                    if i == "r":
-                        self.varyR = True
-                        self.optionsR = j[i]
-                    if i == "theta":
-                        self.varyTheta = True
-                        self.optionsTheta = j[i]
-                    if i == "tau":
-                        self.varyTau = True
-                        self.optionsTau = j[i]
-                    if i == "rho1":
-                        self.varyRho1 = True
-                        self.optionsRho1 = j[i]
-                    if i == "rho2":
-                        self.varyRho2 = True
-                        self.optionsRho2 = j[i]
-                    if i == "rho3":
-                        self.varyRho3 = True
-                        self.optionsRho3 = j[i]
-
     def getWater(self, origin, r, theta, AA = True ):
         h1 = Atom() ; h2 = Atom() ; o = Atom()
         d = (m.pi/2 - theta/2)
@@ -280,8 +212,14 @@ class Generator:
                 cnt += 1
                 waters.append( tmp )
         return waters
-    def writeMol(self, wlist, name = "tmp.mol" ):
-        f_ = open (name, 'w')
+    def writeMol(self, wlist ):
+        b = ""
+        for i in wlist:
+            if i.resId == 1:
+                continue
+            b += "-".join( map( str, [i.r, "%3.2f"%i.theta, "%3.2f"%i.tau, i.euler1, i.euler2, i.euler3] ) )
+            b += ".mol"
+        f_ = open (b, 'w')
         f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Angstrom Nosymm\n")
         f_.write("Charge=1.0 Atoms=4 Basis=cc-pVDZ\n")
         for i in wlist:
@@ -296,15 +234,13 @@ class Generator:
                     continue
                 f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
         f_.close()
-
     def getCartesianFromDegree(self, r, theta, tau):
-        return r* m.sin( m.pi*theta/180.0 )*m.cos( m.pi*tau/180.0) \
-               , r* m.sin( m.pi*theta/180.0 )*m.sin( m.pi*tau/180.0)  \
+        return r* m.sin( m.pi*theta/180.0 )*cos( m.pi*tau/180.0) \
+               , r* m.sin( m.pi*theta/180.0 )*sin( m.pi*tau/180.0)  \
                , r* m.cos( m.pi*theta/180.0 )
+
 
 if __name__ == '__main__':
     g = Generator()
     w1 = g.getWater( [0,1,1], 1.0, 101.4 )
     w1.plotWater()
-
-
