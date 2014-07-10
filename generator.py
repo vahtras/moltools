@@ -20,10 +20,20 @@ class Generator:
     And to write xmgrace data from dalton output
     """
     def __init__(self, *args, **kwargs):
+
         if kwargs is not None:
             self.options = kwargs
         else:
             self.options = { "isAA" : True  }
+
+        opts = { "r" : {"min":2.30, "max":5.00,  "points":100} ,
+             "theta" : {"max": np.pi , "min": 0.00 , "points":10},
+             "tau" : {"max": np.pi/2 , "min": 0.00 , "points":10},
+             "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
+             "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
+             "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
+             }
+        self.varyParameters( opts )
         self.dic = Dic()
 
         self.r_oh = 0.97167

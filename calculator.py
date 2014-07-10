@@ -24,10 +24,48 @@ class Calculator:
     """
 
     def __init__(self):
+
+        self.opts = { 
+             "r" : {"constant" : "3.15"} ,
+             "theta" : {"constant": "0.00"},
+             "tau" : {"constant": "0.00"},
+             "rho1" : {"vary" : True },
+             "rho2" : {"constant" : "0.00"},
+             "rho3" : {"constant" : "0.00"}
+             }
+
         self.Dict = Dic()
 
-    def getRelError( self, param = True ):
+    def getXandY( self ):
+        x = []
+        y = []
+        for i in self.getMatchingOutAndMol():
+            r, theta, tau, rho1, rho2, rho3 = i.split('-')
 
+            if self.opts["r"].has_key( "constant" ):
+                if r != self.opts["r"]["constant"]:
+                    continue
+            if self.opts["theta"].has_key( "constant" ):
+                if theta != self.opts["theta"]["constant"]:
+                    continue
+            if self.opts["tau"].has_key( "constant" ):
+                if tau != self.opts["theta"]["constant"]:
+                    continue
+            if self.opts["rho1"].has_key( "constant" ):
+                if rho1 != self.opts["rho1"]["constant"]:
+                    continue
+            if self.opts["rho2"].has_key( "constant" ):
+                if rho2 != self.opts["rho2"]["constant"]:
+                    continue
+            if self.opts["rho3"].has_key( "constant" ):
+                if rho3 != self.opts["rho3"]["constant"]:
+                    continue
+            if self.opts["rho1"].has_key( "vary" ):
+                x.append( rho1 )
+                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+        return   x , y 
+
+    def getRelError( self, param = True ):
         for i in self.getMatchingOutAndMol():
             qmDipole = self.getQmDipole( "hfqua_" + i + ".out" )
             qmAlpha = self.getQmAlpha(  "hfqua_" + i + ".out" )
@@ -415,55 +453,15 @@ class Calculator:
         rel_hyp_beta =  [(this-ref)/ref for this, ref in zip( [ self.hyperpolarizable.beta()[i, j, k] for i, j, k in select], reference  ) ] 
 
         return rel_hyp_beta
+
     def writeLog(self):
-        p = subprocess.Popen( 'rm *.log', shell=True )
-        for i in self.files:
-            theta , tau = i.split('-')[1] , i.split('-')[2]
-            f = open( "rel_%s.log" % tau , 'a' )
+        #p = subprocess.Popen( 'rm *.log', shell=True )
 
-            atoms, dip_qm , alpha_qm , beta_qm =  self.getQM( "hfqua_" + i + ".out" )
-            self.ref = range(3)
-            self.ref[0] = dip_qm
-            self.ref[1] = alpha_qm
-            self.ref[2] = beta_qm
-
-            tmp = Templates().getBeta( "CENTERED", "HF", "PVDZ" )
-            dipole = np.array( tmp[0] )
-            alpha = np.array(  tmp[1] )
-            beta = np.array(   tmp[2] )
-
-            waters =  self.getWaters( i + ".mol" )
-            for i in waters:
-
-                i.dipole = dipole
-                i.alpha = alpha
-                i.beta = beta
-                i.getEuler()
-
-                i.transfer_dipole()
-                i.transfer_alpha()
-                i.transfer_beta()
-
-            strings = self.getStrings( waters )
-
-            self.static = PointDipoleList.from_string( strings[0] )
-            self.polarizable = PointDipoleList.from_string( strings[1] )
-            self.hyperpolarizable = PointDipoleList.from_string( strings[2] )
-            self.static.solve_scf()
-            self.polarizable.solve_scf()
-            self.hyperpolarizable.solve_scf()
-            rel_static_dip , rel_polar_dip , rel_hyp_dip  = self.getDipoleError()
-            rel_polar_alpha, rel_hyp_alpha = self.getAlphaError()
-            rel_hyp_beta  = self.getBetaError()
-            #self.f_.write( base + "  " + rel_static_dip[2] + "\n")
-            #self.f_.write( base + "  " + rel_polar_dip[2][2] + "\n")
-            f.write( theta + "  " + str(rel_hyp_dip[2]) +"\n" )# \
-            f.write( theta + "  " + str(rel_hyp_alpha[2]) +"\n" )# \
-                    #+  " " + \
-                    #str(rel_hyp_alpha[2]) + " " + \
-                    #str(rel_hyp_beta[2]) + " " + \
-                    #"\n") 
-            f.close()
+        f = open( "rel_error.log" , 'w' )
+        x, y = self.getXandY()
+        for i in range(len( x )):
+            f.write( "%s %.4f\n" %( x[i], y[i][0][2] ) )
+        f.close()
 
     def getStaticString( self, waters ):
         """ Converts list of waters into Olav string for .pot"""
@@ -559,16 +557,8 @@ class Calculator:
         return waters
 
 if __name__ == '__main__':
-
     c = Calculator()
     g = Generator()
     r = R()
     w1 = g.getWater( [0, 0, 0] , 1.0 , 104.5/180 * m.pi )
-
-    for i in c.getOutFiles():
-        for j in c.getMolFiles():
-            if i.rstrip(".out").lstrip("hfqua_") == j.rstrip(".mol"):
-                base = j.rstrip(".mol")
-                for k in g.readWaters( j ):
-                    print r.obj.FloatVector( xrange(4) )
 
