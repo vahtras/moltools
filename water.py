@@ -24,6 +24,9 @@ class Atom:
         self.y = None
         self.resid = None
         self.inWater = False
+
+        self.AA = True
+
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
     def __sub__(self, other ):
@@ -69,6 +72,8 @@ class Water:
         self.center  = False
         self.resId = 0
         self.atomlist  = []
+
+        self.AA = True
     def addAtom(self, atom):
         if self.atoms > 3:
             print "tried to add additional atoms to water, exiting"

@@ -21,8 +21,8 @@ indexDict = {
         "polar" : {"dipole":{"X": [1,0] , "Y": [1,1], "Z": [1,2]},
                    "alpha":{"X": [3,0] , "Y": [3,1], "Z": [3,2]} },
         "hyper" : { "dipole":{"X": [2,0], "Y": [2,1], "Z": [2,2]},
-                   "alpha":{"X": [4,0] , "Y": [4,1], "Z": [4,2] } ,
-                   "beta":{"X": [5,0] , "Y": [5,1], "Z": [5,2]} }}
+                   "alpha":{"XX": [4,0] , "YY": [4,1], "ZZ": [4,2] } ,
+                   "beta":{"XXX": [5,0] , "YYY": [5,1], "ZZZ": [5,2]} }}
 
 class Calculator:
     """ Class container for retrieving and calculating data
@@ -37,7 +37,7 @@ class Calculator:
                 "r" : {"vary" : True},
              "theta" : {"constant": "0.00"},
              "tau" : {"constant": "0.00"},
-             "rho1" : {"constant" :"0.00"},
+             "rho1" : {"consant" :"0.00"},
              "rho2" : {"constant": "0.00"},
              "rho3" : {"constant": "0.00"}
              }
@@ -472,12 +472,12 @@ class Calculator:
             for i in range(len( x )):
                 f.write( "%s %.4f\n" %( x[i], y[i][0][2] ) )
         else:
+            f = open( "%s_%s_%s" , 'w' )
             level = kwargs.get( "level" )
             prop = kwargs.get( "prop" )
             component = kwargs.get( "component" )
             in1, in2 =  indexDict[ level ][ prop ][ component ]
 
-            f = open( "%s_%s_%s.log" %(level, prop, component) , 'w')
             for i in range(len( x )):
                 f.write( "%s %.4f\n" %( x[i], y[i][in1][in2] ))
 

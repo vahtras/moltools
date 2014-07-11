@@ -26,32 +26,34 @@ class Generator:
         else:
             self.options = { "isAA" : True  }
 
-        opts = { "r" : {"min":2.30, "max":5.00,  "points":100} ,
-             "theta" : {"max": np.pi , "min": 0.00 , "points":10},
-             "tau" : {"max": np.pi/2 , "min": 0.00 , "points":10},
-             "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
-             }
-        self.varyParameters( opts )
         self.dic = Dic()
 
         self.r_oh = 0.97167
         self.theta_hoh = np.pi * 104.5/ 180.0
 
-        self.varyR = False
+        self.varyR =     False
         self.varyTheta = False
-        self.varyTau = False
-        self.varyRho1 = False
-        self.varyRho2 = False
-        self.varyRho3 = False
+        self.varyTau =   False
+        self.varyRho1 =  False
+        self.varyRho2 =  False
+        self.varyRho3 =  False
 
-        self.optionsR = { "max" : 5.00, "min": 5.00, "points": 1 }
-        self.optionsTheta ={ "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsTau =  { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho1 = { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho2 = { "max" : 0.00, "min": 0.00, "points": 1 }
-        self.optionsRho3 = { "max" : 0.00, "min": 0.00, "points": 1 }
+        self.optionsR =     {  "min": 5.00, "max" : 5.00, "points": 1 }
+        self.optionsTheta = {  "min": 0.00, "max" : 0.00, "points": 1 }
+        self.optionsTau =   {  "min": 0.00, "max" : 0.00, "points": 1 }
+        self.optionsRho1 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
+        self.optionsRho2 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
+        self.optionsRho3 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
+
+        opts = { "r" : {"min":2.30, "max":5.00,  "points":100} ,
+             "theta" : {"max": np.pi , "min": 0.00 , "points":10},
+             "tau"  : {"max": np.pi/2 , "min": 0.00 , "points":10},
+             "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
+             "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
+             "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
+             }
+        self.varyParameters()
+
     def genMols(self):
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
