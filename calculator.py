@@ -33,13 +33,14 @@ class Calculator:
 
     def __init__(self):
 
+
         self.opts = { 
-                "r" : {"vary" : True},
-             "theta" : {"constant": "0.00"},
-             "tau" : {"constant": "0.00"},
-             "rho1" : {"constant" :"0.00"},
-             "rho2" : {"constant": "0.00"},
-             "rho3" : {"constant": "0.00"}
+             "r"      : {"constant" : "5.00"  },
+             "theta"  : {"constant" : "0.00" },
+             "tau"    : {"constant" : "0.00" },
+             "rho1"   : {"constant" : "0.00" },
+             "rho2"   : {"constant" : "0.00" },
+             "rho3"   : {"constant" : "0.00" }
              }
 
         self.Dict = Dic()
@@ -56,7 +57,7 @@ class Calculator:
                 if theta != self.opts["theta"]["constant"]:
                     continue
             if self.opts["tau"].has_key( "constant" ):
-                if tau != self.opts["theta"]["constant"]:
+                if tau != self.opts["tau"]["constant"]:
                     continue
             if self.opts["rho1"].has_key( "constant" ):
                 if rho1 != self.opts["rho1"]["constant"]:
@@ -85,6 +86,7 @@ class Calculator:
             if self.opts["rho3"].has_key( "vary" ):
                 x.append( rho3 )
                 y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+
         return  x , y 
 
     def getRelError( self, param = True ):
@@ -97,7 +99,7 @@ class Calculator:
                 if theta != self.opts["theta"]["constant"]:
                     continue
             if self.opts["tau"].has_key( "constant" ):
-                if tau != self.opts["theta"]["constant"]:
+                if tau != self.opts["tau"]["constant"]:
                     continue
             if self.opts["rho1"].has_key( "constant" ):
                 if rho1 != self.opts["rho1"]["constant"]:
@@ -325,11 +327,15 @@ class Calculator:
         return waters
     def getMatchingOutAndMol(self):
         tmp = []
+        tmpOut = self.getOutFiles()
+        tmpFound = {}
+        cnt = 0
         for j in self.getMolFiles():
-            for i in self.getOutFiles():
-                if i.rstrip(".out").lstrip("hfqua_") == j.rstrip(".mol"):
-                    tmp.append( j.rstrip(".mol") )
+            if os.path.isfile( os.path.join( os.getcwd(),  "hfqua_" + j.rstrip(".mol") + ".out" ) ):
+                tmp.append( j.rstrip( ".mol" ))
+                continue
         return tmp
+
     def getXyzFiles(self):
         xyzFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".xyz")  ]
@@ -339,6 +345,7 @@ class Calculator:
         molFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".mol")  ]
         return molFiles
+
     def getOutFiles(self):
         outFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".out")  ]
@@ -463,8 +470,6 @@ class Calculator:
 
     def writeLog(self, **kwargs):
         #p = subprocess.Popen( 'rm *.log', shell=True )
-
-
         x, y = self.getXandY()
 
         if kwargs is None:
@@ -472,15 +477,15 @@ class Calculator:
             for i in range(len( x )):
                 f.write( "%s %.4f\n" %( x[i], y[i][0][2] ) )
         else:
-            level = kwargs.get( "level" )
-            prop = kwargs.get( "prop" )
-            component = kwargs.get( "component" )
+            level = kwargs.get( "level" , "hyper" )
+            prop = kwargs.get( "prop", "dipole" )
+            component = kwargs.get( "component", "X" )
+            var = kwargs.get( "variable", "rho" )
             in1, in2 =  indexDict[ level ][ prop ][ component ]
-
-            f = open( "%s_%s_%s.log" %(level, prop, component) , 'w')
+            f = open( "%s_%s_%s_%s.log" %(level, prop, component, var) , 'w')
             for i in range(len( x )):
                 f.write( "%s %.4f\n" %( x[i], y[i][in1][in2] ))
-
+            print "wrote %s_%s_%s_%s.log" %(level, prop, component, var) 
         f.close()
 
     def getStaticString( self, waters, toAU = True ):
