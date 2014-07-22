@@ -23,14 +23,22 @@ indexDict = {
         "hyper" : { "dipole":{"X": [2,0], "Y": [2,1], "Z": [2,2]},
                    "alpha":{"X": [4,0] , "Y": [4,1], "Z": [4,2] } ,
                    "beta":{"X": [5,0] , "Y": [5,1], "Z": [5,2]} }}
-enumDict = { 
+lineThickDict = { 
         "static" : {"dipole":{"X": 0, "Y": 0, "Z": 0}},
 
         "polar" : {"dipole":{"X": 2 , "Y": 2, "Z": 2},
                    "alpha":{"X":  2 , "Y": 2, "Z": 2} },
-        "hyper" : { "dipole":{"X": 4 , "Y": 4, "Z": 4 },
-                   "alpha":{  "X": 4 , "Y": 4, "Z": 4 },
-                   "beta":{   "X": 4 , "Y": 4, "Z": 4 }}}
+        "hyper" : { "dipole":{"X": 3 , "Y": 3, "Z": 3 },
+                   "alpha":{  "X": 3 , "Y": 3, "Z": 3 },
+                   "beta":{   "X": 3 , "Y": 3, "Z": 3 }}}
+lineStyleDict = { 
+        "static" : {"dipole":{"X": 1, "Y": 1, "Z": 1}},
+
+        "polar" : {"dipole":{"X": 2 , "Y": 2, "Z": 2},
+                   "alpha":{"X":  2 , "Y": 2, "Z": 2} },
+        "hyper" : { "dipole":{"X": 3, "Y": 3, "Z": 3 },
+                   "alpha":{  "X": 3, "Y": 3, "Z": 3 },
+                   "beta":{   "X": 3, "Y": 3, "Z": 3 }}}
 
 
 class Calculator:
@@ -490,69 +498,70 @@ class Calculator:
 
                     try:
                         in1, in2 =  indexDict[ level ][ prop ][ component ]
-                        enum = enumDict[ level] [ prop ] [ component ]
+                        width = lineThickDict[ level] [ prop ] [ component ]
+                        style = lineStyleDict[ level] [ prop ] [ component ]
                     except KeyError:
                         print "Skipping (%s, %s, %s, )" %( level, prop, component )
                         continue
 
-                    if prop == "dipole":
-                        string += '@TITLE "Dipole moment error as a function of %s"\n' %var
-                    if prop == "alpha":
-                        string += '@TITLE "Alpha error as a function of %s"\n' %var 
-                    if prop == "beta":
-                        string += '@TITLE "Beta error as a function of %s"\n' %var 
+                    string += '@TITLE "Errors as a function of %s"\n' % Xms(var).makeGreek()
 
                     if args.vary_r:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  "theta", self.opts["theta"]["constant"],
-                                  "tau", self.opts["tau"]["constant"],
-                                  "rho1", self.opts["rho1"]["constant"],
-                                  "rho2", self.opts["rho2"]["constant"],
-                                  "rho3", self.opts["rho3"]["constant"])
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(),  self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
                     if args.vary_theta:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  "r", self.opts["r"]["constant"],
-                                  "tau", self.opts["tau"]["constant"],
-                                  "rho1", self.opts["rho1"]["constant"],
-                                  "rho2", self.opts["rho2"]["constant"],
-                                  "rho3", self.opts["rho3"]["constant"])
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_tau:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  "r", self.opts["r"]["constant"],
-                                  "theta", self.opts["tau"]["constant"],
-                                  "rho1", self.opts["rho1"]["constant"],
-                                  "rho2", self.opts["rho2"]["constant"],
-                                  "rho3", self.opts["rho3"]["constant"])
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho1:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  "r", self.opts["r"]["constant"],
-                                  "theta", self.opts["tau"]["constant"],
-                                  "tau", self.opts["tau"]["constant"],
-                                  "rho2", self.opts["rho2"]["constant"],
-                                  "rho3", self.opts["rho3"]["constant"])
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho2:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  "r", self.opts["r"]["constant"],
-                                  "theta", self.opts["tau"]["constant"],
-                                  "tau", self.opts["tau"]["constant"],
-                                  "rho1", self.opts["rho1"]["constant"],
-                                  "rho3", self.opts["rho3"]["constant"])
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho3:
-                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %("r", self.opts["r"]["constant"],
-                                  "theta", self.opts["theta"]["constant"],
-                                  "tau", self.opts["tau"]["constant"],
-                                  "rho1", self.opts["rho1"]["constant"],
-                                  "rho2", self.opts["rho2"]["constant"])
+                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
 
-                    string +=  '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 1.00, 0.84\n' 
+                    string +=  '@VIEW 0.05, 0.08, 1.15, 0.85\n'
+                    string +=  '@LEGEND ON\n'
+                    string +=  '@LEGEND BOX ON\n'
+                    string +=  '@LEGEND BOX FILL OFF\n'
+                    string +=  '@LEGEND LOCTYPE VIEW\n'
+                    string +=  '@LEGEND 1.00, 0.84\n' 
                     string +=  '@ s%d LEGEND "%s, %s, %s"\n' %( localCounter, level, prop, component) 
-                    string +=  '@ XAXIS LABEL "%s"\n' %var 
+                    string +=  '@ XAXIS LABEL "%s"\n' % Xms( var ).makeGreek()
                     string +=  '@ YAXIS LABEL "Absolute error"\n' 
 
 #add the actual data x and y
@@ -560,7 +569,8 @@ class Calculator:
                     for i in range(len( x )):
                         string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
                     string += '@ SORT s%d X ASCENDING\n' % localCounter
-                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, enum )
+                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
+                    string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
                     localCounter += 1
 
         return string
@@ -699,7 +709,21 @@ class Calculator:
             waters.append( tmp )
         return waters
 
+class Xms:
+    def __init__(self, char):
+        self.char = char
+    def makeGreek(self):
+        if self.char not in ["r", "theta", "tau", "rho1", "rho2", "rho3"]:
+            print "wrong char in XmgraceStyle class, exiting"; raise SystemExit
+        if self.char == "r"    :return r"r"            
+        if self.char == "theta":return r"\f{Symbol}q"  
+        if self.char == "tau"  :return r"\f{Symbol}t" 
+        if self.char == "rho1" :return r"\f{Symbol}r\s1\N" 
+        if self.char == "rho2" :return r"\f{Symbol}r\s2\N" 
+        if self.char == "rho3" :return r"\f{Symbol}r\s3\N" 
+
 if __name__ == '__main__':
+
     c = Calculator()
     g = Generator()
     r = R()
