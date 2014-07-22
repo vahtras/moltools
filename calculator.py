@@ -23,6 +23,15 @@ indexDict = {
         "hyper" : { "dipole":{"X": [2,0], "Y": [2,1], "Z": [2,2]},
                    "alpha":{"X": [4,0] , "Y": [4,1], "Z": [4,2] } ,
                    "beta":{"X": [5,0] , "Y": [5,1], "Z": [5,2]} }}
+enumDict = { 
+        "static" : {"dipole":{"X": 0, "Y": 0, "Z": 0}},
+
+        "polar" : {"dipole":{"X": 2 , "Y": 2, "Z": 2},
+                   "alpha":{"X":  2 , "Y": 2, "Z": 2} },
+        "hyper" : { "dipole":{"X": 4 , "Y": 4, "Z": 4 },
+                   "alpha":{  "X": 4 , "Y": 4, "Z": 4 },
+                   "beta":{   "X": 4 , "Y": 4, "Z": 4 }}}
+
 
 class Calculator:
     """ Class container for retrieving and calculating data
@@ -32,7 +41,6 @@ class Calculator:
     """
 
     def __init__(self):
-
 
         self.opts = { 
              "r"      : {"constant" : "5.00"  },
@@ -164,6 +172,7 @@ class Calculator:
             if param:
                 r, theta, tau, rho1, rho2, rho3 = i.split('-')
                 self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
+
     def readWaters(self, fname):
         """From file with name fname, return a list of all waters encountered"""
 #If the file is plain xyz file
@@ -335,12 +344,6 @@ class Calculator:
                 tmp.append( j.rstrip( ".mol" ))
                 continue
         return tmp
-
-    def getXyzFiles(self):
-        xyzFiles = [f for f in os.listdir( os.getcwd() ) \
-            if f.endswith( ".xyz")  ]
-        return xyzFiles
-
     def getMolFiles(self):
         molFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".mol")  ]
@@ -468,6 +471,100 @@ class Calculator:
         return beta
 #Alpha section
 
+    def getXvgString( self, args ):
+        """ kwargs is a dictionary where user specifies which components, dipole models and properties
+        will be returned and printed for a finished formatted .xvg xmgrace plot"""
+        x, y = self.getXandY()
+        localCounter = 0
+        string = ""
+
+        for level in args.l:
+            for prop in args.p:
+                for component in args.c:
+
+                    kwargs = { "level" : level, "prop" : prop,  "component" : component,"variable" : args.var }
+                    level = kwargs.get( "level" , "hyper" )
+                    prop = kwargs.get( "prop", "dipole" )
+                    component = kwargs.get( "component", "X" )
+                    var = kwargs.get( "variable", "r" )
+
+                    try:
+                        in1, in2 =  indexDict[ level ][ prop ][ component ]
+                        enum = enumDict[ level] [ prop ] [ component ]
+                    except KeyError:
+                        print "Skipping (%s, %s, %s, )" %( level, prop, component )
+                        continue
+
+                    if prop == "dipole":
+                        string += '@TITLE "Dipole moment error as a function of %s"\n' %var
+                    if prop == "alpha":
+                        string += '@TITLE "Alpha error as a function of %s"\n' %var 
+                    if prop == "beta":
+                        string += '@TITLE "Beta error as a function of %s"\n' %var 
+
+                    if args.vary_r:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  "theta", self.opts["theta"]["constant"],
+                                  "tau", self.opts["tau"]["constant"],
+                                  "rho1", self.opts["rho1"]["constant"],
+                                  "rho2", self.opts["rho2"]["constant"],
+                                  "rho3", self.opts["rho3"]["constant"])
+                    if args.vary_theta:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  "r", self.opts["r"]["constant"],
+                                  "tau", self.opts["tau"]["constant"],
+                                  "rho1", self.opts["rho1"]["constant"],
+                                  "rho2", self.opts["rho2"]["constant"],
+                                  "rho3", self.opts["rho3"]["constant"])
+                    if args.vary_tau:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  "r", self.opts["r"]["constant"],
+                                  "theta", self.opts["tau"]["constant"],
+                                  "rho1", self.opts["rho1"]["constant"],
+                                  "rho2", self.opts["rho2"]["constant"],
+                                  "rho3", self.opts["rho3"]["constant"])
+                    if args.vary_rho1:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  "r", self.opts["r"]["constant"],
+                                  "theta", self.opts["tau"]["constant"],
+                                  "tau", self.opts["tau"]["constant"],
+                                  "rho2", self.opts["rho2"]["constant"],
+                                  "rho3", self.opts["rho3"]["constant"])
+                    if args.vary_rho2:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  "r", self.opts["r"]["constant"],
+                                  "theta", self.opts["tau"]["constant"],
+                                  "tau", self.opts["tau"]["constant"],
+                                  "rho1", self.opts["rho1"]["constant"],
+                                  "rho3", self.opts["rho3"]["constant"])
+                    if args.vary_rho3:
+                        string += '@SUBTITLE "Constans %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %("r", self.opts["r"]["constant"],
+                                  "theta", self.opts["theta"]["constant"],
+                                  "tau", self.opts["tau"]["constant"],
+                                  "rho1", self.opts["rho1"]["constant"],
+                                  "rho2", self.opts["rho2"]["constant"])
+
+                    string +=  '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 1.00, 0.84\n' 
+                    string +=  '@ s%d LEGEND "%s, %s, %s"\n' %( localCounter, level, prop, component) 
+                    string +=  '@ XAXIS LABEL "%s"\n' %var 
+                    string +=  '@ YAXIS LABEL "Absolute error"\n' 
+
+#add the actual data x and y
+
+                    for i in range(len( x )):
+                        string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
+                    string += '@ SORT s%d X ASCENDING\n' % localCounter
+                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, enum )
+                    localCounter += 1
+
+        return string
+
     def writeLog(self, **kwargs):
         #p = subprocess.Popen( 'rm *.log', shell=True )
         x, y = self.getXandY()
@@ -480,12 +577,31 @@ class Calculator:
             level = kwargs.get( "level" , "hyper" )
             prop = kwargs.get( "prop", "dipole" )
             component = kwargs.get( "component", "X" )
-            var = kwargs.get( "variable", "rho" )
+            var = kwargs.get( "variable", "r" )
             in1, in2 =  indexDict[ level ][ prop ][ component ]
             f = open( "%s_%s_%s_%s.log" %(level, prop, component, var) , 'w')
+
+            if prop == "dipole":
+                f.write('@TITLE "Dipole moment error as a function of %s"\n' %var )
+            if prop == "alpha":
+                f.write('@TITLE "Alpha error as a function of %s"\n' %var )
+            if prop == "beta":
+                f.write('@TITLE "Beta error as a function of %s"\n' %var )
+
+            f.write( '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 0.80, 0.80\n' )
+            f.write( '@ s0 LEGEND "%s, %s"\n' %(level, prop) )
+            f.write( '@ XAXIS LABEL "%s"\n' %var )
+            f.write( '@ YAXIS LABEL "Absolute error"\n' )
+
+
+#Write out the actual data x and y
             for i in range(len( x )):
                 f.write( "%s %.4f\n" %( x[i], y[i][in1][in2] ))
+
+            f.write( '@ SORT s0 X ASCENDING\n' )
+
             print "wrote %s_%s_%s_%s.log" %(level, prop, component, var) 
+
         f.close()
 
     def getStaticString( self, waters, toAU = True ):
