@@ -504,7 +504,7 @@ class Calculator:
                         print "Skipping (%s, %s, %s, )" %( level, prop, component )
                         continue
 
-                    string += '@TITLE "Errors as a function of %s"\n' % Xms(var).makeGreek()
+                    string += '@TITLE "Relative errors as a function of %s"\n' % Xms(var).makeGreek()
 
                     if args.vary_r:
                         string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
