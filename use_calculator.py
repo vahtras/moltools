@@ -9,6 +9,12 @@ import argparse
 if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
+
+    A.add_argument( "-model"  , type = str, default = "dipole", choices = [ "dipole", "quadrupole", "gaussian"] )
+    A.add_argument( "-stdev"  , type = str, default = "0.00001" )
+    A.add_argument( "-param"  , default = True )
+
+
     A.add_argument( "-l", nargs = "*", default = ["static"] )
     A.add_argument( "-p", nargs = "*", default = ["dipole"] )
     A.add_argument( "-c", nargs = "*", default = ["Z"] )
@@ -61,10 +67,10 @@ if __name__ == '__main__':
     if args.vary_rho3:
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
-    c.getRelError()
+    c.getRelError( args )
 
     string = c.getXvgString( args )
-    open('tmp.xvg', 'w').write(string )
+    open('tmp.xvg', 'w').write( string )
 
     #c.writeLog( level = args.l , prop = args.p,  component = args.c, variable = var )
 

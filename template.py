@@ -50,6 +50,13 @@ class Template:
 
 
 
+        """ 
+        
+        Coordinates for this model: 
+        theta = 104.5
+        r = 0.972
+
+        """
         olav_hf_cc_pVDZ =  \
         [
 #Dipole

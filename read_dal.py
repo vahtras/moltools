@@ -6,7 +6,7 @@ import fractions as fr
 import math as m
 
 from particles import *
-from calc import *
+from calculator import *
 
 
 a0 = 0.52917721092
@@ -1399,7 +1399,7 @@ def main():
     #if args.op:
     #    string  =  open( args.op ).read()
 
-    print string_static
+    print string_hyperpolarizable
 
     if f_waters:
         static = PointDipoleList.from_string( string_static )
@@ -1415,7 +1415,7 @@ def main():
     select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
     ref = [ dipole_qm, alpha_qm, beta_qm ]
 
-    c =  Calc()
+    c =  Calculator()
     c.writeLog()
 
 

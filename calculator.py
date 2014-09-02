@@ -5,6 +5,8 @@ import os, re, subprocess
 import numpy as np
 import  math as m
 from particles import *
+from quadrupole import *
+from gaussian import *
 
 from generator import *
 from water import *
@@ -105,7 +107,7 @@ class Calculator:
 
         return  x , y 
 
-    def getRelError( self, param = True ):
+    def getRelError( self, args ):
         for i in self.getMatchingOutAndMol():
             r, theta, tau, rho1, rho2, rho3 = i.split('-')
             if self.opts["r"].has_key( "constant" ):
@@ -131,6 +133,7 @@ class Calculator:
             qmAlpha = self.getQmAlpha(  "hfqua_" + i + ".out" )
             qmBeta = self.getQmBeta(   "hfqua_" + i + ".out" )
             tmpWaters = []
+
             for j in self.readWaters( i + ".mol" ):
                 t1, t2, t3 =  j.getEuler()
                 tmpDipole, tmpAlpha, tmpBeta = Template().getData( "OLAV", "HF", "PVDZ" )
@@ -139,9 +142,30 @@ class Calculator:
                 j.beta = j.transformBeta( tmpBeta, t1, t2, t3 )
                 tmpWaters.append( j )
 
-            static= PointDipoleList.from_string( self.getStaticString( tmpWaters ))
-            polar = PointDipoleList.from_string( self.getPolarString(  tmpWaters ))
-            hyper = PointDipoleList.from_string( self.getHyperString(  tmpWaters ))
+#
+            if args.model == "dipole":
+                static= PointDipoleList.from_string( self.getStaticString( tmpWaters ))
+                polar = PointDipoleList.from_string( self.getPolarString(  tmpWaters ))
+                hyper = PointDipoleList.from_string( self.getHyperString(  tmpWaters ))
+
+            if args.model == "gaussian":
+                static= GaussianQuadrupoleList.from_string( self.getStaticString( tmpWaters ))
+                polar = GaussianQuadrupoleList.from_string( self.getPolarString(  tmpWaters ))
+                hyper = GaussianQuadrupoleList.from_string( self.getHyperString(  tmpWaters ))
+
+                tmp = float(args.stdev)
+                for j in static:
+                    j._R_p = tmp
+                for j in polar:
+                    j._R_p = tmp
+                for j in hyper:
+                    j._R_p = tmp
+
+            if args.model == "quadrupole":
+                static= QuadrupoleList.from_string( self.getStaticString( tmpWaters ))
+                polar = QuadrupoleList.from_string( self.getPolarString(  tmpWaters ))
+                hyper = QuadrupoleList.from_string( self.getHyperString(  tmpWaters ))
+
             try:
                 static.solve_scf()
                 polar.solve_scf()
@@ -177,7 +201,7 @@ class Calculator:
             b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
             val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-            if param:
+            if args.param:
                 r, theta, tau, rho1, rho2, rho3 = i.split('-')
                 self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
 
@@ -486,6 +510,7 @@ class Calculator:
         localCounter = 0
         string = ""
 
+
         for level in args.l:
             for prop in args.p:
                 for component in args.c:
@@ -504,10 +529,15 @@ class Calculator:
                         print "Skipping (%s, %s, %s, )" %( level, prop, component )
                         continue
 
-                    string += '@TITLE "Relative errors as a function of %s"\n' % Xms(var).makeGreek()
+                    string += '@TITLE "Relative errors as a function of %s"\n' \
+                        % Xms(var).makeGreek() 
+
+                    string += '@SUBTITLE "Using: %s (%s) ;' \
+                        %( args.model, args.stdev )
 
                     if args.vary_r:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
@@ -515,7 +545,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
                     if args.vary_theta:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
@@ -523,7 +554,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_tau:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
@@ -531,7 +563,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho1:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -539,7 +572,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho2:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -547,14 +581,15 @@ class Calculator:
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho3:
-                        string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
 
-                    string +=  '@VIEW 0.05, 0.08, 1.15, 0.85\n'
+                    string +=  '@VIEW 0.15, 0.08, 1.15, 0.85\n'
                     string +=  '@LEGEND ON\n'
                     string +=  '@LEGEND BOX ON\n'
                     string +=  '@LEGEND BOX FILL OFF\n'
@@ -562,7 +597,7 @@ class Calculator:
                     string +=  '@LEGEND 1.00, 0.84\n' 
                     string +=  '@ s%d LEGEND "%s, %s, %s"\n' %( localCounter, level, prop, component) 
                     string +=  '@ XAXIS LABEL "%s"\n' % Xms( var ).makeGreek()
-                    string +=  '@ YAXIS LABEL "Absolute error"\n' 
+                    string +=  '@ YAXIS LABEL "Relative error"\n' 
 
 #add the actual data x and y
 
@@ -575,7 +610,7 @@ class Calculator:
 
         return string
 
-    def writeLog(self, **kwargs):
+    def write_log(self, **kwargs):
         #p = subprocess.Popen( 'rm *.log', shell=True )
         x, y = self.getXandY()
 
@@ -601,7 +636,7 @@ class Calculator:
             f.write( '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 0.80, 0.80\n' )
             f.write( '@ s0 LEGEND "%s, %s"\n' %(level, prop) )
             f.write( '@ XAXIS LABEL "%s"\n' %var )
-            f.write( '@ YAXIS LABEL "Absolute error"\n' )
+            f.write( '@ YAXIS LABEL "Relative error"\n' )
 
 
 #Write out the actual data x and y
@@ -710,6 +745,7 @@ class Calculator:
         return waters
 
 class Xms:
+
     def __init__(self, char):
         self.char = char
     def makeGreek(self):
