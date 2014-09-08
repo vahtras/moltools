@@ -11,7 +11,7 @@ a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
-class Dic:
+class Dic( dict ):
     def __init__(self):
         rho3 = { 0.00 : [] }
         rho2 = { 0.00 : rho3 }
@@ -20,6 +20,7 @@ class Dic:
         theta = { 0.00 : tau }
         r = { 0.00 : theta }
         self.dic = r
+
     def getVal(self, r, theta, tau, rho1, rho2, rho3):
         if self.dic.has_key( r ):
             if self.dic[r].has_key( theta ):
@@ -28,6 +29,7 @@ class Dic:
                         if self.dic[r][theta][tau][rho1].has_key(rho2):
                             if self.dic[r][theta][tau][rho1][rho2].has_key(rho3):
                                 return self.dic[r][theta][tau][rho1][rho2][rho3]
+
     def setVal(self, r, theta, tau, rho1, rho2, rho3, val ): #, rho1, rho2, rho3, val):
         tmpr = r
         tmptheta = theta
@@ -318,10 +320,10 @@ class Generator:
                             if len(tmp.atomlist) == 3:
                                 break
                 wlist.append( tmp )
-            wlist.sort( key = lambda x: x.distToPoint( center ))
+            wlist.sort( key = lambda x: x.dist_to_point( center ))
             center_water = wlist[0]
             cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
+            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
             waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
         elif fname.endswith( ".out" ):
             for i in atoms:
@@ -396,8 +398,8 @@ class Atom:
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
     def __sub__(self, other ):
         """return numpy array between this and other atom"""
-        return self.getArray() - other.getArray()
-    def getArray(self):
+        return self.get_array() - other.get_array()
+    def get_array(self):
         return np.array( [self.x , self.y, self.z ] ).copy()
     def distToAtom(self, other):
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
@@ -477,43 +479,43 @@ class Water:
         return str("WAT") + str(self.resId) 
 
     def getAngleRho(self, other):
-        d1 = self.getDipole()
-        d2 = other.getDipole()
+        d1 = self.get_dipole()
+        d2 = other.get_dipole()
         return np.arccos( np.dot( d1, d2)/ ( np.linalg.norm(d1) * np.linalg.norm(d2) ) )
 
     def getAngleTau(self, other):
-        r1= self.getNorm()
-        r2= other.getNorm()
+        r1= self.get_norm()
+        r2= other.get_norm()
         return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
 
-    def getDipole(self):
+    def get_dipole(self):
         hq = 0.25
         oq = -0.5
-        return self.h1.getArray() * hq + self.h2.getArray() * hq + self.o.getArray() * oq
+        return self.h1.get_array() * hq + self.h2.get_array() * hq + self.o.get_array() * oq
 
-    def getNorm(self):
+    def get_norm(self):
         r1 = self.h1 - self.o
         r2 = self.h2 - self.o
         return np.cross( r1, r2 )
 
-    def distToPoint( self , point ):
+    def dist_to_point( self , point ):
         return m.sqrt( (self.center[0] - point[0])**2 +\
                 (self.center[1] - point[1])**2  + ( self.center[2] -point[2])**2 )
 
-    def distToWater(self, other):
+    def dist_to_water(self, other):
         xyz1 = self.center
         xyz2 = other.center
         return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
             (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
 
-    def getEuler(self):
+    def get_euler(self):
         """Return euler angles required to rotate water in oxygen at origo to current"""
 
-        H1 = self.h1.getArray()
-        H2 = self.h2.getArray()
-        O1 = self.o.getArray()
+        H1 = self.h1.get_array()
+        H2 = self.h2.get_array()
+        O1 = self.o.get_array()
 
-        dip = self.getDipole()
+        dip = self.get_dipole()
 
         origin = O1.copy()
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
@@ -542,12 +544,16 @@ class Water:
 
     def rotate(self, t1, t2, t3):
         """Rotate self by t1, t2 and t3
-        first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3"""
-        d1, d2, d3 = self.getEuler()
+        first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
+
+        R all in radians
+
+        """
+        d1, d2, d3 = self.get_euler()
         
 # Place water molecule in origo, and rotate it so hydrogens in xz plane
-        H1 = self.h1.getArray() ; H2 = self.h2.getArray() ; O = self.o.getArray()
-        TMP = self.o.getArray()
+        H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
+        TMP = self.o.get_array()
         H1 -= TMP ; H2 -= TMP; O -= TMP
 
         H1 = np.dot( self.getRzinv(d3) , H1 )
@@ -602,11 +608,12 @@ class Water:
                             [ 0,    1,  0],
                             [ m.sin(theta), 0, m.cos(theta)]])
         return vec
+
     def plotWater(self ):
 #Plot water molecule in green and  nice xyz axis
         O1, H1, H2 = self.o, self.h1, self.h2
         fig = plt.figure()
-        dip = self.getDipole()
+        dip = self.get_dipole()
         ax = fig.add_subplot(111, projection='3d' )
         ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
         ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")

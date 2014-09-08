@@ -63,10 +63,10 @@ class Calculator:
 
         self.Dict = Dic()
 
-    def getXandY( self ):
+    def get_x_and_y( self ):
         x = []
         y = []
-        for i in self.getMatchingOutAndMol():
+        for i in self.get_matching_out_and_mol():
             r, theta, tau, rho1, rho2, rho3 = i.split('-')
             if self.opts["r"].has_key( "constant" ):
                 if r != self.opts["r"]["constant"]:
@@ -107,8 +107,8 @@ class Calculator:
 
         return  x , y 
 
-    def getRelError( self, args ):
-        for i in self.getMatchingOutAndMol():
+    def get_rel_error( self, args ):
+        for i in self.get_matching_out_and_mol():
             r, theta, tau, rho1, rho2, rho3 = i.split('-')
             if self.opts["r"].has_key( "constant" ):
                 if r != self.opts["r"]["constant"]:
@@ -129,13 +129,13 @@ class Calculator:
                 if rho3 != self.opts["rho3"]["constant"]:
                     continue
 
-            qmDipole = self.getQmDipole( "hfqua_" + i + ".out" )
-            qmAlpha = self.getQmAlpha(  "hfqua_" + i + ".out" )
-            qmBeta = self.getQmBeta(   "hfqua_" + i + ".out" )
+            qmDipole = self.get_qm_dipole( "hfqua_" + i + ".out" )
+            qmAlpha = self.get_qm_alpha(  "hfqua_" + i + ".out" )
+            qmBeta = self.get_qm_beta(   "hfqua_" + i + ".out" )
             tmpWaters = []
 
-            for j in self.readWaters( i + ".mol" ):
-                t1, t2, t3 =  j.getEuler()
+            for j in self.read_waters( i + ".mol" ):
+                t1, t2, t3 =  j.get_euler()
                 tmpDipole, tmpAlpha, tmpBeta = Template().getData( "OLAV", "HF", "PVDZ" )
                 j.dipole = j.transformDipole( tmpDipole, t1, t2, t3 )
                 j.alpha = j.transformAlpha( tmpAlpha, t1, t2, t3 )
@@ -144,14 +144,14 @@ class Calculator:
 
 #
             if args.model == "dipole":
-                static= PointDipoleList.from_string( self.getStaticString( tmpWaters ))
-                polar = PointDipoleList.from_string( self.getPolarString(  tmpWaters ))
-                hyper = PointDipoleList.from_string( self.getHyperString(  tmpWaters ))
+                static= PointDipoleList.from_string( self.get_static_string( tmpWaters ))
+                polar = PointDipoleList.from_string( self.get_polar_string(  tmpWaters ))
+                hyper = PointDipoleList.from_string( self.get_hyper_string(  tmpWaters ))
 
             if args.model == "gaussian":
-                static= GaussianQuadrupoleList.from_string( self.getStaticString( tmpWaters ))
-                polar = GaussianQuadrupoleList.from_string( self.getPolarString(  tmpWaters ))
-                hyper = GaussianQuadrupoleList.from_string( self.getHyperString(  tmpWaters ))
+                static= GaussianQuadrupoleList.from_string( self.get_static_string( tmpWaters ))
+                polar = GaussianQuadrupoleList.from_string( self.get_polar_string(  tmpWaters ))
+                hyper = GaussianQuadrupoleList.from_string( self.get_hyper_string(  tmpWaters ))
 
                 tmp = float(args.stdev)
                 for j in static:
@@ -162,9 +162,9 @@ class Calculator:
                     j._R_p = tmp
 
             if args.model == "quadrupole":
-                static= QuadrupoleList.from_string( self.getStaticString( tmpWaters ))
-                polar = QuadrupoleList.from_string( self.getPolarString(  tmpWaters ))
-                hyper = QuadrupoleList.from_string( self.getHyperString(  tmpWaters ))
+                static= QuadrupoleList.from_string( self.get_static_string( tmpWaters ))
+                polar = QuadrupoleList.from_string( self.get_polar_string(  tmpWaters ))
+                hyper = QuadrupoleList.from_string( self.get_hyper_string(  tmpWaters ))
 
             try:
                 static.solve_scf()
@@ -172,7 +172,7 @@ class Calculator:
                 hyper.solve_scf()
             except:
                 print i
-                print self.getStaticString( tmpWaters )
+                print self.get_static_string( tmpWaters )
 
             d_static =  \
                      [(this-ref)/ref for this, ref in zip(
@@ -205,7 +205,7 @@ class Calculator:
                 r, theta, tau, rho1, rho2, rho3 = i.split('-')
                 self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
 
-    def readWaters(self, fname):
+    def read_waters(self, fname):
         """From file with name fname, return a list of all waters encountered"""
 #If the file is plain xyz file
 
@@ -366,26 +366,26 @@ class Calculator:
                 cnt += 1
                 waters.append( tmp )
         return waters
-    def getMatchingOutAndMol(self):
+    def get_matching_out_and_mol(self):
         tmp = []
-        tmpOut = self.getOutFiles()
+        tmpOut = self.get_out_files()
         tmpFound = {}
         cnt = 0
-        for j in self.getMolFiles():
+        for j in self.get_mol_files():
             if os.path.isfile( os.path.join( os.getcwd(),  "hfqua_" + j.rstrip(".mol") + ".out" ) ):
                 tmp.append( j.rstrip( ".mol" ))
                 continue
         return tmp
-    def getMolFiles(self):
+    def get_mol_files(self):
         molFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".mol")  ]
         return molFiles
 
-    def getOutFiles(self):
+    def get_out_files(self):
         outFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".out")  ]
         return outFiles
-    def getQmDipole( self, fname ):
+    def get_qm_dipole( self, fname ):
         """fname is an output file from DALTON calculation with *PROPAV"""
         nuc_dip = np.zeros(3)
         el_dip = np.zeros(3)
@@ -447,7 +447,7 @@ class Calculator:
             nuc_dip[1] += charge_dic[ i.element ] * i.y
             nuc_dip[2] += charge_dic[ i.element ] * i.z
         return nuc_dip - el_dip
-    def getQmAlpha( self, fname):
+    def get_qm_alpha( self, fname):
         alpha = np.zeros([3,3])
         lab = ["X", "Y", "Z"]
 # Reading in Alfa and Beta tensor
@@ -474,7 +474,7 @@ class Calculator:
                 if A == "Y" and B == "Z":
                     alpha[ lab.index( B ) , lab.index( A ) ]  = frac
         return alpha
-    def getQmBeta(self, fname ):
+    def get_qm_beta(self, fname ):
         tmp = []
         missing = {}
         exists = {}
@@ -503,10 +503,10 @@ class Calculator:
         return beta
 #Alpha section
 
-    def getXvgString( self, args ):
+    def get_xvg_string( self, args ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
-        x, y = self.getXandY()
+        x, y = self.get_x_and_y()
         localCounter = 0
         string = ""
 
@@ -594,7 +594,7 @@ class Calculator:
                     string +=  '@LEGEND BOX ON\n'
                     string +=  '@LEGEND BOX FILL OFF\n'
                     string +=  '@LEGEND LOCTYPE VIEW\n'
-                    string +=  '@LEGEND 1.00, 0.84\n' 
+                    string +=  '@LEGEND 0.50, 0.84\n' 
                     string +=  '@ s%d LEGEND "%s, %s, %s"\n' %( localCounter, level, prop, component) 
                     string +=  '@ XAXIS LABEL "%s"\n' % Xms( var ).makeGreek()
                     string +=  '@ YAXIS LABEL "Relative error"\n' 
@@ -612,7 +612,7 @@ class Calculator:
 
     def write_log(self, **kwargs):
         #p = subprocess.Popen( 'rm *.log', shell=True )
-        x, y = self.getXandY()
+        x, y = self.get_x_and_y()
 
         if kwargs is None:
             f = open( "rel_error.log" , 'w' )
@@ -649,7 +649,7 @@ class Calculator:
 
         f.close()
 
-    def getStaticString( self, waters, toAU = True ):
+    def get_static_string( self, waters, toAU = True ):
         """ Converts list of waters into Olav string for .pot"""
         for i in waters:
             if toAU:
@@ -670,7 +670,7 @@ class Calculator:
                                                          i.beta[1][2][2], \
                                                          i.beta[2][2][2] )) 
         return string_static
-    def getPolarString( self, waters ):
+    def get_polar_string( self, waters ):
         """ Converts list of waters into Olav string for .pot"""
         string_polarizable = "AU\n%d 1 2 1\n" %len(waters)
         for i in waters:
@@ -690,7 +690,7 @@ class Calculator:
                                                          i.beta[2][2][2] )) 
 
         return string_polarizable
-    def getHyperString( self, waters ):
+    def get_hyper_string( self, waters ):
         """ Converts list of waters into Olav string for .pot"""
         string_hyperpolarizable = "AU\n%d 1 22 1\n" %len(waters)
         for i in waters:
@@ -709,7 +709,7 @@ class Calculator:
                                                          i.beta[2][2][2] )) 
         return string_hyperpolarizable
 
-    def getWaters(self, f):
+    def get_waters(self, f):
         """ f is a .mol file, will return array of water molecules """
         atoms = []
         pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')

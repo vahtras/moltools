@@ -6,6 +6,9 @@ from water import *
 import argparse
 
 
+
+
+
 if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
@@ -67,9 +70,9 @@ if __name__ == '__main__':
     if args.vary_rho3:
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
-    c.getRelError( args )
+    c.get_rel_error( args )
 
-    string = c.getXvgString( args )
+    string = c.get_xvg_string( args )
     open('tmp.xvg', 'w').write( string )
 
     #c.writeLog( level = args.l , prop = args.p,  component = args.c, variable = var )
