@@ -974,9 +974,6 @@ def read_beta( args ):
         nuc_dip[2] += charge_dic[ i.atype ] * i.z
 
 
-
-
-
 # Reading in Alfa and Beta tensor
     pat_alpha = re.compile(r'@ QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
     for i in open( args.b ).readlines():
