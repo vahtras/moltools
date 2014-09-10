@@ -3,6 +3,15 @@
 
 class Template:
     def __init__(self):
+        olav_hf_pvdz_strings = \
+                """AU
+                3 2 2 1
+                1     0.000     0.000    -0.225    -0.651    -0.000     0.000     0.342    -3.213    -0.000     0.000    -4.362     0.000    -3.822     3.268     0.000     1.531    -0.000    -0.000     2.611     0.000     0.000    -4.016     0.000    -0.000     0.000     0.000    -0.219     0.000    -2.688
+                1     1.452     0.000     0.900     0.325    -0.167     0.000    -0.129    -0.115    -0.000     0.291    -0.446    -0.000    -0.216     1.971    -0.000     0.752     1.131    -0.000     1.308   -10.776     0.000    -7.234    -1.857     0.000    -5.512     0.000    -1.059     0.000    -4.244
+                1    -1.452     0.000     0.900     0.325     0.167     0.000    -0.129    -0.115     0.000    -0.291    -0.446    -0.000    -0.216     1.971     0.000     0.752    -1.131    -0.000     1.308    10.776     0.000    -7.234     1.857    -0.000     5.512     0.000    -1.059     0.000    -4.244
+
+                """
+
         monomer1_hf_cc_pCDZ  =  \
         [
 #Dipole
@@ -251,8 +260,16 @@ class Template:
                 "CENTERED" : centered_method_dict, \
                 "TIP3P": tip3p_method_dict, \
                 "SPC" : spc_method_dict }
+
+    # New features just return the string for potfile
+        olav_hf_strings = { "PVDZ" : olav_hf_pvdz_strings }
+        olav_method_strings = { "HF" : olav_hf_strings }
+        self.strings = { "OLAV" : olav_method_strings }
+
     def getData(self, model, method, basis):
         return self.nameDict[model][method][basis]
+    def get_string(self, model = "OLAV", method = "HF", basis ="PVDZ"):
+        return self.strings[ model ][ method ][ basis ]
 
 if __name__ == '__main__':
     #Perform tests om Tempaltes

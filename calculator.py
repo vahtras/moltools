@@ -153,13 +153,16 @@ class Calculator:
                 polar = GaussianQuadrupoleList.from_string( self.get_polar_string(  tmpWaters ))
                 hyper = GaussianQuadrupoleList.from_string( self.get_hyper_string(  tmpWaters ))
 
-                tmp = float(args.stdev)
+
+                tmp_Rq = float(args.Rq)
+                tmp_Rp = float(args.Rp)
+
                 for j in static:
-                    j._R_p = tmp
+                    j._R_q = tmp_Rq
+                    j._R_p = tmp_Rp
                 for j in polar:
-                    j._R_p = tmp
-                for j in hyper:
-                    j._R_p = tmp
+                    j._R_q = tmp_Rq
+                    j._R_p = tmp_Rp
 
             if args.model == "quadrupole":
                 static= QuadrupoleList.from_string( self.get_static_string( tmpWaters ))
@@ -532,8 +535,8 @@ class Calculator:
                     string += '@TITLE "Relative errors as a function of %s"\n' \
                         % Xms(var).makeGreek() 
 
-                    string += '@SUBTITLE "Using: %s (%s) ;' \
-                        %( args.model, args.stdev )
+                    string += '@SUBTITLE "Using Rp, Rq: (%s, %s) ;' \
+                        %( args.Rq, args.Rp )
 
                     if args.vary_r:
                         #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
