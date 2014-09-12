@@ -6,7 +6,7 @@ import fractions as fr
 import math as m
 
 from particles import *
-from calculator import *
+#from calculator import *
 
 
 a0 = 0.52917721092

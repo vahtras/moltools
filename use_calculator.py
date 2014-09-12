@@ -51,10 +51,11 @@ if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
 
-    A.add_argument( "-model"  , type = str, default = "dipole", choices = [ "dipole", "quadrupole", "gaussian"] )
+    A.add_argument( "-model"  , type = str, default = "pointdipole", choices = [ "pointdipole", "quadrupole", "gaussian"] )
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
     A.add_argument( "-param"  , default = True )
+    A.add_argument( "-dist"   , default = False , action = 'store_true' ) 
 
 
     A.add_argument( "-l", nargs = "*", default = ["static"] )
@@ -111,8 +112,6 @@ if __name__ == '__main__':
         args.var = "rho3"
 
     c.get_rel_error( args )
-
     string = c.get_xvg_string( args )
+
     open('tmp.xvg', 'w').write( string )
-
-

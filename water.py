@@ -1,384 +1,77 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
+#from matplotlib import pyplot as plt
 
 import numpy as np
 import math as m
+import ut
 
 a0 = 0.52917721092
-charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
+
+charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
-class Dic( dict ):
+def tensor_to_ut( beta ):
+# naive solution, transforms matrix B[ (x,y,z) ][ (xx, xy, xz, yy, yz, zz) ] into array
+# Symmtrized UT array    B[ (xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz) ]
+
+    new = np.array( (10) )
+    new[ 0 ] = beta[0, 0, 0]
+    new[ 1 ] = (beta[0,1] + beta[1,0] ) /2
+    new[ 2 ] = (beta[0,2] + beta[2,0] ) /2
+    new[ 3 ] = (beta[0,3] + beta[1,1] ) /2
+    new[ 4 ] = (beta[0,4] + beta[1,2] + beta[2,1] ) /3
+    new[ 5 ] = (beta[0,5] + beta[2,2] ) /2
+    new[ 6 ] = beta[1,3]
+    new[ 7 ] = (beta[1,4] + beta[2,3] ) /2
+    new[ 8 ] = (beta[1,5] + beta[2,4] ) /2
+    new[ 9 ] = beta[2,5]
+
+    return new
+
+class Property( dict ):
     def __init__(self):
-        rho3 = { 0.00 : [] }
-        rho2 = { 0.00 : rho3 }
-        rho1 = { 0.00 : rho2 }
-        tau = { 0.00 : rho1}
-        theta = { 0.00 : tau }
-        r = { 0.00 : theta }
-        self.dic = r
 
-    def getVal(self, r, theta, tau, rho1, rho2, rho3):
-        if self.dic.has_key( r ):
-            if self.dic[r].has_key( theta ):
-                if self.dic[r][theta].has_key(tau):
-                    if self.dic[r][theta][tau].has_key(rho1):
-                        if self.dic[r][theta][tau][rho1].has_key(rho2):
-                            if self.dic[r][theta][tau][rho1][rho2].has_key(rho3):
-                                return self.dic[r][theta][tau][rho1][rho2][rho3]
+        self.max_l = 2
+        self.pol = 22
+        self.hyper = 2
 
-    def setVal(self, r, theta, tau, rho1, rho2, rho3, val ): #, rho1, rho2, rho3, val):
-        tmpr = r
-        tmptheta = theta
-        tmptau = tau
-        tmprho1 = rho1
-        tmprho2 = rho2
-        tmprho3 = rho3
-        if self.dic.has_key( r ):
-            if self.dic[r].has_key( theta ):
-                if self.dic[r][theta].has_key(tau):
-                    if self.dic[r][theta][tau].has_key(rho1):
-                        if self.dic[r][theta][tau][rho1].has_key(rho2):
-                            if self.dic[r][theta][tau][rho1][rho2].has_key(rho3):
-                                self.dic[r][theta][tau][rho1][rho2][rho3] = val
-                            else:
-                                self.dic[r][theta][tau][rho1][rho2][rho3] = val
-                        else:
-                            rho3 = { tmprho3 : val }
-                            self.dic[r][theta][tau][rho1][rho2] = rho3
-                    else:
-                        rho3 = { tmprho3 : val }
-                        rho2 = { tmprho2 : rho3 }
-                        self.dic[r][theta][tau][rho1] = rho2
-                else:
-                    rho3 = { tmprho3 : val }
-                    rho2 = { tmprho2 : rho3 }
-                    rho1 = { tmprho1 : rho2 }
-                    self.dic[r][theta][tau] = rho1
-            else:
-                rho3 = { tmprho3 : val }
-                rho2 = { tmprho2 : rho3 }
-                rho1 = { tmprho1 : rho2 }
-                tau = { tmptau : rho1 }
-                self.dic[r][theta] = tau
-        else:
-            rho3 = { tmprho3 : val }
-            rho2 = { tmprho2 : rho3 }
-            rho1 = { tmprho1 : rho2 }
-            tau = { tmptau : rho1 }
-            theta = { tmptheta : tau }
-            self.dic[r] = theta
+        self.charge = None
+        self.dipole = np.array( (3,) )
+        self.quadrupole = np.array( ( 3,3 ) )
+        self.alpha = np.array( ( 3,3 ) )
+        self.beta = np.array( ( 3, 3,3 ) )
 
-class Generator:
-    """
-    General class to manipulate water molecules, write and read dalton .mol files and .out files
-    Also to plot water molecules for testing rotations.
+        self.distributed = True
 
-    And to write xmgrace data from dalton output
-    """
-    def __init__(self, *args, **kwargs):
+    def __str__(self):
+        return "%.5f %.5f %.5f %.5f  %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f \n" %(
+                self["charge"], self["dipole"][0], self["dipole"][1], self["dipole"][2],
 
-        if kwargs is not None:
-            self.options = kwargs
-        else:
-            self.options = { "isAA" : True  }
+                self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2],
+                self["quadrupole"][3],self["quadrupole"][4], self["quadrupole"][5],
 
-        self.dic = Dic()
+                self["alpha"][0], self["alpha"][1], self["alpha"][2], self["alpha"][3],
+                self["alpha"][4], self["alpha"][5],
+                
+                self["beta"][0], self["beta"][1], self["beta"][2],
+                self["beta"][3], self["beta"][4], self["beta"][5],
+                self["beta"][6], self["beta"][7], self["beta"][8],
+                self["beta"][9]
+                )
 
-        self.r_oh = 0.97167
-        self.theta_hoh = np.pi * 104.5/ 180.0
+    @staticmethod
+    def from_dist_template( **kwargs ):
+        p = Property()
+        for i, props in enumerate(kwargs):
+            p[ props ] = kwargs[ props ]
+        return p
 
-        self.varyR =     False
-        self.varyTheta = False
-        self.varyTau =   False
-        self.varyRho1 =  False
-        self.varyRho2 =  False
-        self.varyRho3 =  False
+class Atom(object):
 
-        self.optionsR =     {  "min": 5.00, "max" : 5.00, "points": 1 }
-        self.optionsTheta = {  "min": 0.00, "max" : 0.00, "points": 1 }
-        self.optionsTau =   {  "min": 0.00, "max" : 0.00, "points": 1 }
-        self.optionsRho1 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
-        self.optionsRho2 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
-        self.optionsRho3 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
-
-        opts = { "r" : {"min":2.30, "max":5.00,  "points":100} ,
-             "theta" : {"max": np.pi , "min": 0.00 , "points":10},
-             "tau"  : {"max": np.pi/2 , "min": 0.00 , "points":10},
-             "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
-             }
-        self.varyParameters()
-
-    def genMols(self):
-        r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
-                complex( "%sj"%self.optionsR[ "points" ] ) ]
-        theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
-                complex( "%sj"%self.optionsTheta[ "points" ] ) ]
-        tau = np.r_[ self.optionsTau[ "min" ] : self.optionsTau[ "max" ] : \
-                complex( "%sj"%self.optionsTau[ "points" ] ) ]
-        rho1 = np.r_[ self.optionsRho1[ "min" ] : self.optionsRho1[ "max" ] : \
-                complex( "%sj"%self.optionsRho1[ "points" ] ) ]
-        rho2 = np.r_[ self.optionsRho2[ "min" ] : self.optionsRho2[ "max" ] : \
-                complex( "%sj"%self.optionsRho2[ "points" ] ) ]
-        rho3 = np.r_[ self.optionsRho3[ "min" ] : self.optionsRho3[ "max" ] : \
-                complex( "%sj"%self.optionsRho3[ "points" ] ) ]
-        for i in r:
-            for j in theta:
-                for k in tau:
-                    for l in rho1:
-                        for m in rho2:
-                            for n in rho3:
-                                w1 = self.getWater( [0, 0, 0], self.r_oh, self.theta_hoh)
-                                x, y, z = self.getCartesianFromDegree( i, j, k )
-                                w2 = self.getWater( [x,y,z], self.r_oh, self.theta_hoh)
-                                w2.rotate( l, m, n )
-                                name = ""
-                                name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
-                                name += ".mol"
-                                self.writeMol( [w1, w2], name )
-
-    def varyParameters( self, *args ):
-        """Given two parameters, for e.g. r and theta, keeps all other static"""
-        if args:
-            for j in args:
-                for i in j:
-                    if i == "r":
-                        self.varyR = True
-                        self.optionsR = j[i]
-                    if i == "theta":
-                        self.varyTheta = True
-                        self.optionsTheta = j[i]
-                    if i == "tau":
-                        self.varyTau = True
-                        self.optionsTau = j[i]
-                    if i == "rho1":
-                        self.varyRho1 = True
-                        self.optionsRho1 = j[i]
-                    if i == "rho2":
-                        self.varyRho2 = True
-                        self.optionsRho2 = j[i]
-                    if i == "rho3":
-                        self.varyRho3 = True
-                        self.optionsRho3 = j[i]
-
-    def getWater(self, origin, r, theta, AA = True ):
-        h1 = Atom() ; h2 = Atom() ; o = Atom()
-        d = (m.pi/2 - theta/2)
-        o.element = "O" ; h1.element = "H" ; h2.element = "H"
-        o.x = origin[0] ; o.y = origin[1] ; o.z = origin[2] 
-        h1.x = (origin[0] + r * m.cos(d)) ; h1.y = origin[1] ; h1.z = (origin[2] + r*m.sin(d))
-        h2.x = (origin[0] - r * m.cos(d)) ; h2.y = origin[1] ; h2.z = (origin[2] + r*m.sin(d))
-        w = Water(); w.addAtom( o) ;w.addAtom( h2 ) ;w.addAtom( h1 ) 
-        w.theta_hoh = theta
-        w.r_oh = r
-        w.center = origin
-        w.euler1 = 0.00
-        w.euler2 = 0.00
-        w.euler3 = 0.00
-        if AA:
-            w.AA = True
-            w.h1.AA = True
-            w.h2.AA = True
-            w.o.AA  = True
-        else:
-            w.AA = False
-            w.h1.AA = False
-            w.h2.AA = False
-            w.o.AA  = False
-        return w
-    def readWaters(self, fname):
-        """From file with name fname, return a list of all waters encountered"""
-#If the file is plain xyz file
-
-        atoms = []
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom()
-                    tmpAtom.AA = True
-                    tmpAtom.x = float(f[1])
-                    tmpAtom.y = float(f[2])
-                    tmpAtom.z = float(f[3])
-                    tmpAtom.element = f[0][0]
-                    atoms.append( tmpAtom )
-
-        elif fname.endswith( ".pdb" ):
-            pat1 = re.compile(r'^(ATOM|HETATM)')
-            for i in open( fname ).readlines():
-                if pat1.search(i):
-                    #Ignore charge centers for polarizable water models
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
-                        continue
-                    tmpAtom = Atom(i[11:16].strip()[0], \
-                            float(i[30:38].strip()), \
-                            float(i[38:46].strip()), \
-                            float(i[46:54].strip()), \
-                            int(i[22:26].strip()) )
-
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-        elif fname.endswith( ".out" ):
-            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
-        waters = []
-        cnt = 1
-
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.addAtom( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if j.AA:
-                        if i.distToAtom(j) < 1.1:
-                            tmp.addAtom ( j )
-                            j.inWater = True
-                    else:
-                        if i.distToAtom(j) < 1.1/a0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        elif fname.endswith( ".pdb" ):
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            wlist = []
-            for i in atoms:
-                if i.element != "O":
-                    continue
-                tmp = Water()
-                i.inWater= True
-#__Water__.addAtom() method will update the waters residue number and center coordinate
-#When all atoms are there
-#Right now NOT center-of-mass
-                tmp.addAtom(i)
-                for j in atoms:
-                    if j.element != "H":
-                        continue
-                    if j.inWater:
-                        continue
-#1.05 because sometimes spc water lengths can be over 1.01
-                        
-                    if args.opAAorAU == "AA":
-                        if i.dist(j) <= 1.05:
-                            j.inWater = True
-                            tmp.addAtom( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                    elif args.opAAorAU == "AU":
-                        if i.dist(j) <= 1.05/a0:
-                            j.inWater = True
-                            tmp.addAtom( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.dist_to_point( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
-            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
-        elif fname.endswith( ".out" ):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.addAtom( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if i.AA:
-                        if i.dist(j) < 1.0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
-                    else:
-                        if i.dist(j) < 1.0/a0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        return waters
-    def writeMol(self, wlist, name = "tmp.mol" ):
-        f_ = open (name, 'w')
-        f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Angstrom Nosymm\n")
-        f_.write("Charge=1.0 Atoms=4 Basis=cc-pVDZ\n")
-        for i in wlist:
-            for j in i.atomlist:
-                if j.element != "H":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.write("Charge=8.0 Atoms=2 Basis=cc-pVDZ\n")
-        for i in wlist:
-            for j in i.atomlist:
-                if j.element != "O":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.close()
-
-    def getCartesianFromDegree(self, r, theta, tau):
-        return r* m.sin( m.pi*theta/180.0 )*m.cos( m.pi*tau/180.0) \
-               , r* m.sin( m.pi*theta/180.0 )*m.sin( m.pi*tau/180.0)  \
-               , r* m.cos( m.pi*theta/180.0 )
-
-
-
-
-
-class Atom:
+    """ By default in Atomic units for coordinates """
     def __init__(self, *args, **kwargs ):
 
         self.element = None
@@ -389,104 +82,148 @@ class Atom:
         self.r = False
         self.x = None
         self.y = None
-        self.resid = None
-        self.inWater = False
+        self.res_id = None
+        self.in_water = False
 
-        self.AA = True
+        self.Water = None
+        self.Property = None
+        self.AA = False
+
+    def potline(self):
+
+        return  "%d %.5f %.5f %.5f " %( 
+                self.res_id, self.x, self.y, self.z )  + str(self.Property)
 
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
     def __sub__(self, other ):
-        """return numpy array between this and other atom"""
         return self.get_array() - other.get_array()
     def get_array(self):
         return np.array( [self.x , self.y, self.z ] ).copy()
-    def distToAtom(self, other):
+    def dist_to_atom(self, other):
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
-    def toAU(self):
-        if self.AA:
-            self.x /= a0
-            self.y /= a0
-            self.z /= a0
-            self.AA = False
-    def toAA(self):
-        if not self.AA:
-            self.x *= a0
-            self.y *= a0
-            self.z *= a0
-            self.AA = True
 
-class Water:
+    def to_au(self):
+        self.x /= a0
+        self.y /= a0
+        self.z /= a0
+
+    def to_aa(self):
+        self.x *= a0
+        self.y *= a0
+        self.z *= a0
+
+    def transform_dipole( self, qm_dipole, t1, t2, t3 ):
+        d_new1 = np.zeros([3]) #will be returned
+        d_new2 = np.zeros([3]) #will be returned
+        d_new3 = np.zeros([3]) #will be returned
+
+        rz  = Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
+        for i in range(3):
+            for x in range(3):
+                d_new1[i] += rz[i][x] * qm_dipole[x]
+        for i in range(3):
+            for x in range(3):
+                d_new2[i] += ryi[i][x] * d_new1[x]
+        for i in range(3):
+            for x in range(3):
+                d_new3[i] += rz2[i][x] * d_new2[x]
+        self.qmDipole = d_new3
+        return d_new3
+
+class Water(list):
+
     def __init__(self , *args, **kwargs):
 
         self.atoms = 0
         self.q = 0.0
         self.r_oh = False
         self.theta_hoh = False
-#Parameters describing water location and rotation in space
+#Spherical coordinates
         self.r = False
         self.theta = False
         self.tau = False
+
+# Relative rotation euler angles 
+# 
+# Start with water molecule in xz plane with dipole moment pointing in z-axis
+#
+# Angles defined as:
+#
+# euler1 : clockwise rotation around z axis
+# euler2 : counter-clockwise rotation around y axis
+# euler3 : clockwise rotation around z axis
+#
         self.euler1 = False
         self.euler2 = False
         self.euler3 = False
 
-        self.bNoHydrogens = True
+        self.no_hydrogens = True
         self.h1 = False
         self.h2 = False
         self.o  = False
-#By default put center on oxygen, put center of mass if args.com
+
+#By default set center as center of nuclei charge
+
         self.center  = False
-        self.resId = 0
+        self.res_id = 0
         self.atomlist  = []
 
-        self.AA = True
-    def addAtom(self, atom):
-        if self.atoms > 3:
+        self.AA = False
+
+        self.Property = None
+
+    def append(self, atom):
+        if len(self) > 3:
             print "tried to add additional atoms to water, exiting"
             raise SystemExit
-        self.atoms += 1
+        if not isinstance( atom, Atom ):
+            print "wront class passed to water append"
+            raise SystemExit
+
         if atom.element == "H":
-            if self.bNoHydrogens:
-                self.h1 = atom
+            if self.no_hydrogens:
+                if float(atom.x ) > 0:
+                    self.h1 = atom
+                else:
+                    self.h2 = atom
                 self.bNoHydrogens = False
             else:
-                self.h2 = atom
+                if float(atom.x ) > 0:
+                    self.h1 = atom
+                else:
+                    self.h2 = atom
+
         if atom.element == "O":
             self.o = atom
-#Keep track of atomlist for easier looping
-        self.atomlist.append(atom)
-#Define water center, implement center-of mass later
+
+#Add the atom
+        super( Water, self).append(atom)
+
+#Define water center, by default set it to center of nuclei
+
         if (self.h1 and self.h2 and self.o):
             self.center = np.array([self.h1.x + self.h2.x + self.o.x,  \
                     self.h1.y + self.h2.y + self.o.y , \
                     self.h1.z + self.h2.z + self.o.z ]) / 3.0
-            hm = mass_dict[ self.h1.element ]
-            om = mass_dict[ self.h1.element ]
-            self.com = np.array([ self.h1.x * hm  + self.h2.x *hm + self.o.x *om,  \
-                self.h1.y *hm + self.h2.y *hm + self.o.y *om , \
-                self.h1.z *hm + self.h2.z *hm + self.o.z *om ]) /( 2*hm +om)
+            hc = charge_dict[ self.h1.element ]
+            oc = charge_dict[ self.h1.element ]
+            self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
+                self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
+                self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
 
-        if self.resId:
-            if self.resId != atom.resid:
+        if self.res_id:
+            if self.res_id != atom.res_id:
                 print "Tried to add %s to %s, exiting" %(atom, self)
                 raise SystemExit
         else:
-#Initialize water resId from atomic resid
-            self.resId = atom.resid
+#Initialize water res_id from atomic res_id
+            self.res_id = atom.res_id
 
     def __str__(self):
-        return str("WAT") + str(self.resId) 
-
-    def getAngleRho(self, other):
-        d1 = self.get_dipole()
-        d2 = other.get_dipole()
-        return np.arccos( np.dot( d1, d2)/ ( np.linalg.norm(d1) * np.linalg.norm(d2) ) )
-
-    def getAngleTau(self, other):
-        r1= self.get_norm()
-        r2= other.get_norm()
-        return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
+        return "WAT" + str(self.res_id) 
 
     def get_dipole(self):
         hq = 0.25
@@ -508,6 +245,17 @@ class Water:
         return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
             (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
 
+    def set_property_on_each_atom(self):
+        for i, prop in enumerate ( self.Property ):
+            pass#print prop, self.Property[prop]
+        o_props =   { prop : self.Property[prop][0] for (key , prop)  in enumerate( self.Property )  }
+        h1_props =  { prop : self.Property[prop][1] for (key , prop)  in enumerate( self.Property ) }
+        h2_props =  { prop : self.Property[prop][2] for (key , prop)  in enumerate( self.Property ) }
+
+        self.o.Property = Property.from_dist_template(  **o_props )
+        self.h1.Property = Property.from_dist_template( **h1_props )
+        self.h2.Property = Property.from_dist_template( **h2_props )
+
     def get_euler(self):
         """Return euler angles required to rotate water in oxygen at origo to current"""
 
@@ -521,16 +269,16 @@ class Water:
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
 
         theta1 = m.atan2( dip[1], dip[0])
-        H1 =  np.dot( self.getRzinv( theta1 ) , H1 )
-        H2 =  np.dot( self.getRzinv( theta1 ) , H2 )
-        O1 =  np.dot( self.getRzinv( theta1 ) , O1 )
-        dip = np.dot( self.getRzinv( theta1 ) , dip )
+        H1 =  np.dot( self.get_Rz_inv( theta1 ) , H1 )
+        H2 =  np.dot( self.get_Rz_inv( theta1 ) , H2 )
+        O1 =  np.dot( self.get_Rz_inv( theta1 ) , O1 )
+        dip = np.dot( self.get_Rz_inv( theta1 ) , dip )
 #Rotate by theta around y axis so that the dipole is in the z axis 
         theta2 = m.atan2( -dip[0], dip[2])
-        H1 =  np.dot( self.getRy( theta2 ) , H1 )
-        H2 =  np.dot( self.getRy( theta2 ) , H2 )
-        O1 =  np.dot( self.getRy( theta2 ) , O1 )
-        dip = np.dot( self.getRy( theta2 ) , dip )
+        H1 =  np.dot( self.get_Ry( theta2 ) , H1 )
+        H2 =  np.dot( self.get_Ry( theta2 ) , H2 )
+        O1 =  np.dot( self.get_Ry( theta2 ) , O1 )
+        dip = np.dot( self.get_Ry( theta2 ) , dip )
 #Rotate around Z axis so that hydrogens are in xz plane.
         if H2[1] >0:
             xc = H2[0]
@@ -556,31 +304,31 @@ class Water:
         TMP = self.o.get_array()
         H1 -= TMP ; H2 -= TMP; O -= TMP
 
-        H1 = np.dot( self.getRzinv(d3) , H1 )
-        H1 = np.dot( self.getRy(d2) , H1 )
-        H1 = np.dot( self.getRzinv(d1) , H1 )
+        H1 = np.dot( self.get_Rz_inv(d3) , H1 )
+        H1 = np.dot( self.get_Ry(d2) , H1 )
+        H1 = np.dot( self.get_Rz_inv(d1) , H1 )
 
-        H2 = np.dot( self.getRzinv(d3) , H2 )
-        H2 = np.dot( self.getRy(d2) , H2 )
-        H2 = np.dot( self.getRzinv(d1) , H2 )
+        H2 = np.dot( self.get_Rz_inv(d3) , H2 )
+        H2 = np.dot( self.get_Ry(d2) , H2 )
+        H2 = np.dot( self.get_Rz_inv(d1) , H2 )
 
-        O = np.dot( self.getRzinv(d3) , O )
-        O = np.dot( self.getRy(d2) , O )
-        O = np.dot( self.getRzinv(d1) , O )
+        O = np.dot( self.get_Rz_inv(d3) , O )
+        O = np.dot( self.get_Ry(d2) , O )
+        O = np.dot( self.get_Rz_inv(d1) , O )
 
 # Rotate with angles t1, t2, t3
 
-        H1 = np.dot( self.getRz(t1) , H1 )
-        H1 = np.dot( self.getRyinv(t2) , H1 )
-        H1 = np.dot( self.getRz(t3) , H1 )
+        H1 = np.dot( self.get_Rz(t1) , H1 )
+        H1 = np.dot( self.get_Ry_inv(t2) , H1 )
+        H1 = np.dot( self.get_Rz(t3) , H1 )
 
-        H2 = np.dot( self.getRz(t1) , H2 )
-        H2 = np.dot( self.getRyinv(t2) , H2 )
-        H2 = np.dot( self.getRz(t3) , H2 )
+        H2 = np.dot( self.get_Rz(t1) , H2 )
+        H2 = np.dot( self.get_Ry_inv(t2) , H2 )
+        H2 = np.dot( self.get_Rz(t3) , H2 )
 
-        O = np.dot( self.getRz(t1) , O )
-        O = np.dot( self.getRyinv(t2) , O )
-        O = np.dot( self.getRz(t3) , O )
+        O = np.dot( self.get_Rz(t1) , O )
+        O = np.dot( self.get_Ry_inv(t2) , O )
+        O = np.dot( self.get_Rz(t3) , O )
 
 #Put back in oxygen original point
         H1 += TMP ; H2 += TMP; O += TMP
@@ -588,85 +336,92 @@ class Water:
         self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
         self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
-    def getRz( self, theta ):
+
+    @staticmethod
+    def get_Rz( theta ):
         vec = np.array( [[ m.cos(theta), -m.sin(theta), 0],
                             [ m.sin(theta), m.cos(theta), 0],
                             [ 0,    0,  1]])
         return vec
-    def getRzinv( self, theta ):
+    @staticmethod
+    def get_Rz_inv( theta ):
         vec = np.array(     [[ m.cos(theta), m.sin(theta), 0],
                             [ -m.sin(theta), m.cos(theta), 0],
                             [ 0,             0,            1]])
         return vec
-    def getRy( self, theta ):
+    @staticmethod
+    def get_Ry( theta ):
         vec = np.array( [[ m.cos(theta),0, m.sin(theta)],
                             [ 0,    1,  0],
                             [ -m.sin(theta), 0, m.cos(theta)]])
         return vec
-    def getRyinv( self, theta ):
+    @staticmethod
+    def get_Ry_inv( theta ):
         vec = np.array( [[ m.cos(theta),0, -m.sin(theta)],
                             [ 0,    1,  0],
                             [ m.sin(theta), 0, m.cos(theta)]])
         return vec
 
-    def plotWater(self ):
-#Plot water molecule in green and  nice xyz axis
-        O1, H1, H2 = self.o, self.h1, self.h2
-        fig = plt.figure()
-        dip = self.get_dipole()
-        ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-        ax.set_zlim3d( -5,5)
-        plt.xlim(-5,5)
-        plt.ylim(-5,5)
-        plt.show()
+    #def plot_water(self ):
+#Plo#t water molecule in green and  nice xyz axis
+    #    O1, H1, H2 = self.o, self.h1, self.h2
+    #    fig = plt.figure()
+    #    dip = self.get_dipole()
+    #    ax = fig.add_subplot(111, projection='3d' )
+    #    ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+    #    ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+    #    ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+    #    ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+    #    ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+    #    ax.set_zlim3d( -5,5)
+    #    plt.xlim(-5,5)
+    #    plt.ylim(-5,5)
+    #    plt.show()
 
-    def transformDipole( self, qmdipole, t1, t2, t3 ):
+    def transform_dipole( self, qm_dipole, t1, t2, t3 ):
 
         d_new1 = np.zeros([3]) #will be returned
         d_new2 = np.zeros([3]) #will be returned
         d_new3 = np.zeros([3]) #will be returned
 
-        rz  = self.getRz( t1 )
-        ryi = self.getRyinv( t2 )
-        rz2 = self.getRz( t3 )
-
+        rz  = self.get_Rz( t1 )
+        ryi = self.get_Ry_inv( t2 )
+        rz2 = self.get_Rz( t3 )
         for i in range(3):
             for x in range(3):
-                d_new1[i] += rz[i][x] * qmdipole[x]
+                d_new1[i] += rz[i][x] * qm_dipole[x]
         for i in range(3):
             for x in range(3):
                 d_new2[i] += ryi[i][x] * d_new1[x]
         for i in range(3):
             for x in range(3):
                 d_new3[i] += rz2[i][x] * d_new2[x]
-        self.qmDipole = d_new3
         return d_new3
 
-    def transformAlpha( self, qmalpha, t1, t2 , t3 ):
+    def transform_dist_dipole( self, qm_dipole, t1, t2, t3):
+#Input qm_dipole is 3 x 3 matrix row is atom col is px, py, pz
+
+        d_new = np.zeros([3,3]) #will be returned
+        d_new[0, :] = self.transform_dipole( qm_dipole[0], t1, t2, t3 )
+        d_new[1, :] = self.transform_dipole( qm_dipole[1], t1, t2, t3 )
+        d_new[2, :] = self.transform_dipole( qm_dipole[2], t1, t2, t3 )
+        return d_new
+
+    def transform_quadrupole( self, qm_quadrupole, t1, t2 , t3 ):
 
         a_new1 = np.zeros([3,3]) #will be calculated
         a_new2 = np.zeros([3,3]) #will be calculated
         a_new3 = np.zeros([3,3]) #will be calculated
 
-        rz = self.getRz( t1 )
-        ryi = self.getRyinv( t2 )
-        rz2 = self.getRz( t3 )
-
-        #print 'inside transfer alpha, water: %d at x = %f' %( self.resId, self.o.x)
-        #print np.sqrt( (self.alpha[0][0] +self.alpha[0][1] +self.alpha[0][2] )**2 +\
-        #               (self.alpha[1][0] +self.alpha[1][1] +self.alpha[1][2] )**2 +\
-        #               (self.alpha[2][0] +self.alpha[2][1] +self.alpha[2][2] )**2 )
+        rz = self.get_Rz( t1 )
+        ryi = self.get_Ry_inv( t2 )
+        rz2 = self.get_Rz( t3 )
 
         for i in range(3):
             for j in range(3):
                 for x in range(3):
                     for y in range(3):
-                        a_new1[i][j] += rz[i][x] * rz[j][y] * qmalpha[x][y]
+                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
         for i in range(3):
             for j in range(3):
                 for x in range(3):
@@ -679,15 +434,110 @@ class Water:
                         a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
         return a_new3
 
-    def transformBeta( self, qmbeta, t1, t2, t3 ):
+    
+    def transform_dist_quadrupole( self, qm_quadrupole, t1, t2, t3 ):
+        upper0 = np.array( qm_quadrupole[0] )
+        upper1 = np.array( qm_quadrupole[1] )
+        upper2 = np.array( qm_quadrupole[2] )
+        assert upper0.shape == (6,)
+        assert upper1.shape == (6,)
+        assert upper2.shape == (6,)
+        a0 = np.zeros((3, 3))
+        a1 = np.zeros((3, 3))
+        a2 = np.zeros((3, 3))
 
+        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
+
+            aij0 = upper0[ij]
+            aij1 = upper1[ij]
+            aij2 = upper2[ij]
+
+            a0[i, j] = aij0
+            a0[j, i] = aij0
+
+            a1[i, j] = aij1
+            a1[j, i] = aij1
+
+            a2[i, j] = aij2
+            a2[j, i] = aij2
+
+        a_new = np.zeros([3,3,3]) #will be returned
+        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
+        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
+        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
+        return a_new
+
+    def transform_alpha( self, qm_alpha, t1, t2 , t3 ):
+
+        a_new1 = np.zeros([3,3]) #will be calculated
+        a_new2 = np.zeros([3,3]) #will be calculated
+        a_new3 = np.zeros([3,3]) #will be calculated
+
+        rz = self.get_Rz( t1 )
+        ryi = self.get_Ry_inv( t2 )
+        rz2 = self.get_Rz( t3 )
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
+
+        return a_new3
+
+    def transform_dist_alpha( self, qm_alpha, t1, t2, t3 ):
+        upper0 = np.array( qm_alpha[0] )
+        upper1 = np.array( qm_alpha[1] )
+        upper2 = np.array( qm_alpha[2] )
+        assert upper0.shape == (6,)
+        assert upper1.shape == (6,)
+        assert upper2.shape == (6,)
+        a0 = np.zeros((3, 3))
+        a1 = np.zeros((3, 3))
+        a2 = np.zeros((3, 3))
+
+        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
+
+            aij0 = upper0[ij]
+            aij1 = upper1[ij]
+            aij2 = upper2[ij]
+
+            a0[i, j] = aij0
+            a0[j, i] = aij0
+
+            a1[i, j] = aij1
+            a1[j, i] = aij1
+
+            a2[i, j] = aij2
+            a2[j, i] = aij2
+
+        a_new = np.zeros([3,3,3]) #will be returned
+        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
+        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
+        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
+        return a_new
+
+
+    def transform_beta( self, qm_beta, t1, t2, t3 ):
         b_new1 = np.zeros([3,3,3]) #will be calculated
         b_new2 = np.zeros([3,3,3]) #will be calculated
         b_new3 = np.zeros([3,3,3]) #will be calculated
 
-        rz =  self.getRz( t1 )
-        ryi = self.getRyinv( t2 )
-        rz2 = self.getRz( t3 )
+        rz =  self.get_Rz( t1 )
+        ryi = self.get_Ry_inv( t2 )
+        rz2 = self.get_Rz( t3 )
 
         for i in range(3):
             for j in range(3):
@@ -695,7 +545,7 @@ class Water:
                     for x in range(3):
                         for y in range(3):
                             for z in range(3):
-                                b_new1[i][j][k] += rz[i][x] * rz[j][y] * rz[k][z] * qmbeta[x][y][z]
+                                b_new1[i][j][k] += rz[i][x] * rz[j][y] * rz[k][z] * qm_beta[x][y][z]
         for i in range(3):
             for j in range(3):
                 for k in range(3):
@@ -710,8 +560,60 @@ class Water:
                         for y in range(3):
                             for z in range(3):
                                 b_new3[i][j][k] += rz2[i][x] * rz2[j][y] * rz2[k][z] * b_new2[x][y][z]
-
         return b_new3
+
+
+    def transform_dist_beta( self, qm_beta, t1, t2, t3 ):
+#Transform upper triangular to 3x3x3x form, rotate it, and transform back to ut style
+        upper0 = np.array( qm_beta[0] )
+        upper1 = np.array( qm_beta[1] )
+        upper2 = np.array( qm_beta[2] )
+        assert upper0.shape == (10,)
+        assert upper1.shape == (10,)
+        assert upper2.shape == (10,)
+
+        b0 = np.zeros( (3, 3, 3))
+        b1 = np.zeros( (3, 3, 3))
+        b2 = np.zeros( (3, 3, 3))
+        for ijk, (i, j, k) in enumerate(ut.upper_triangular(3)):
+            bijk0 = upper0[ijk]
+            bijk1 = upper1[ijk]
+            bijk2 = upper2[ijk]
+
+            b0[i, j, k] = bijk0
+            b0[k, i, j] = bijk0
+            b0[j, k, i] = bijk0
+            b0[i, k, j] = bijk0
+            b0[j, i, k] = bijk0
+            b0[k, j, i] = bijk0
+
+            b1[i, j, k] = bijk1
+            b1[k, i, j] = bijk1
+            b1[j, k, i] = bijk1
+            b1[i, k, j] = bijk1
+            b1[j, i, k] = bijk1
+            b1[k, j, i] = bijk1
+
+            b2[i, j, k] = bijk2
+            b2[k, i, j] = bijk2
+            b2[j, k, i] = bijk2
+            b2[i, k, j] = bijk2
+            b2[j, i, k] = bijk2
+            b2[k, j, i] = bijk2
+
+        b_new0 = np.zeros((3,3,3)) #will be returned
+        b_new1 = np.zeros((3,3,3)) #will be returned
+        b_new2 = np.zeros((3,3,3)) #will be returned
+        b_new0 = self.transform_beta( b0, t1, t2, t3 )
+        b_new1 = self.transform_beta( b1, t1, t2, t3 )
+        b_new2 = self.transform_beta( b2, t1, t2, t3 )
+
+        b0 = symmetrize_first_beta( b_new0 )
+        b1 = symmetrize_first_beta( b_new1 )
+        b2 = symmetrize_first_beta( b_new2 )
+
+        return [ b0, b1, b2 ]
+
 
     def beta_par(self):
         """
@@ -749,39 +651,47 @@ class Water:
         beta_par /= 5.0
         return beta_par
 
-    def getSquareDipole(self):
+    def get_square_dipole(self):
         return np.sqrt( self.qmDipole[0] **2 + self.qmDipole[1]**2 + self.qmDipole[2]**2 )
 
-    def getSquareBeta(self):
+    def get_square_beta(self):
         return np.sqrt( \
                 (self.qmBeta[0][0][0] + self.qmBeta[0][1][1] + self.qmBeta[0][2][2] )**2 + \
                 (self.qmBeta[1][0][0] + self.qmBeta[1][1][1] + self.qmBeta[1][2][2] )**2 + \
                 (self.qmBeta[2][0][0] + self.qmBeta[2][1][1] + self.qmBeta[2][2][2] )**2  )
 
-    def getAlphaTrace(self):
+    def get_alpha_trace(self):
         return  self.qmAlpha[0][0] + self.qmAlpha[1][1] + self.qmAlpha[2][2]
 
-    def toAU(self):
+    def to_au(self):
         if self.AA:
-            self.h1.toAU()
-            self.h2.toAU()
-            self.o.toAU()
+            self.h1.to_au()
+            self.h2.to_au()
+            self.o.to_au()
             self.AA = False
-    def toAA(self):
+
+    def to_aa(self):
         if not self.AA:
-            self.h1.toAA()
-            self.h2.toAA()
-            self.o.toAA()
+            self.h1.to_aa()
+            self.h2.to_aa()
+            self.o.to_aa()
             self.AA = True
+
+    def get_angle_rho(self, other):
+        d1 = self.get_dipole()
+        d2 = other.get_dipole()
+        return np.arccos( np.dot( d1, d2)/ ( np.linalg.norm(d1) * np.linalg.norm(d2) ) )
+
+    def getAngleTau(self, other):
+        r1= self.get_norm()
+        r2= other.get_norm()
+        return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
+
             
 if __name__ == '__main__':
 
-    g = Generator()
-    w1 = g.getWater( [0,0,0], 1.0, 104.5 )
-
-    raise SystemExit
 # Water bonding parameters:
-    r_oh = 0.94 ; theta_hoh = 104.5
+    r_oh = 0.97167 ; theta_hoh = 104.5
 # Water rotation parameters
     r = 5.0
     #theta = 45 ; tau = 45
@@ -800,9 +710,9 @@ if __name__ == '__main__':
             y = r * s(theta) * s(tau )
             z = r * c(theta)
             w1 = g.getWater( [ 0, 0, 0], r_oh, theta_hoh )
-            w1.resId = 1 ; w1.r = r ; w1.theta = theta ; w1.tau = tau
+            w1.res_id = 1 ; w1.r = r ; w1.theta = theta ; w1.tau = tau
             w2 = g.getWater( [ x, y, z], r_oh, theta_hoh )
-            w2.resId = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
+            w2.res_id = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
             g.writeMol( [ w1, w2 ])
 
 

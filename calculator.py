@@ -132,42 +132,68 @@ class Calculator:
             qmDipole = self.get_qm_dipole( "hfqua_" + i + ".out" )
             qmAlpha = self.get_qm_alpha(  "hfqua_" + i + ".out" )
             qmBeta = self.get_qm_beta(   "hfqua_" + i + ".out" )
-            tmpWaters = []
+            tmp_waters = []
 
             for j in self.read_waters( i + ".mol" ):
                 t1, t2, t3 =  j.get_euler()
-                tmpDipole, tmpAlpha, tmpBeta = Template().getData( "OLAV", "HF", "PVDZ" )
-                j.dipole = j.transformDipole( tmpDipole, t1, t2, t3 )
-                j.alpha = j.transformAlpha( tmpAlpha, t1, t2, t3 )
-                j.beta = j.transformBeta( tmpBeta, t1, t2, t3 )
-                tmpWaters.append( j )
 
+                kwargs = Template().get_dist_data( "OLAV", "HF", "PVDZ" )
+
+                if args.model: # == "gaussian":
+
+                    p = Property.from_dist_template( **kwargs )
+                    j.Property = p
+
+                else:
+                    j.dipole = j.transform_dist_dipole( t_dipole, t1, t2, t3 )
+                    j.quadrupole = j.transform_dist_quadrupole( t_quad, t1, t2, t3 )
+                    j.alpha = j.transform_dist_alpha( t_alpha, t1, t2, t3 )
+                    j.beta = j.transform_dist_beta( t_beta, t1, t2, t3 )
+
+                tmp_waters.append( j )
 #
-            if args.model == "dipole":
-                static= PointDipoleList.from_string( self.get_static_string( tmpWaters ))
-                polar = PointDipoleList.from_string( self.get_polar_string(  tmpWaters ))
-                hyper = PointDipoleList.from_string( self.get_hyper_string(  tmpWaters ))
+            if args.model == "pointdipole":
+                pass
+                #static= PointDipoleList.from_string( self.get_static_string( tmp_waters ),
+                #        max_l = 1, pol = 0, hyper = 0, dist = True ))
+
+                #polar = PointDipoleList.from_string( self.get_polar_string(  tmp_waters ),
+                #        max_l = 1, pol = 2, hyper = 1, dist = True ))
+
+                #hyper = PointDipoleList.from_string( self.get_hyper_string(  tmp_waters,
+                #        max_l = 1, pol = 22, hyper = 1, dist = True ))
 
             if args.model == "gaussian":
-                static= GaussianQuadrupoleList.from_string( self.get_static_string( tmpWaters ))
-                polar = GaussianQuadrupoleList.from_string( self.get_polar_string(  tmpWaters ))
-                hyper = GaussianQuadrupoleList.from_string( self.get_hyper_string(  tmpWaters ))
-
 
                 tmp_Rq = float(args.Rq)
                 tmp_Rp = float(args.Rp)
 
-                for j in static:
-                    j._R_q = tmp_Rq
-                    j._R_p = tmp_Rp
-                for j in polar:
-                    j._R_q = tmp_Rq
-                    j._R_p = tmp_Rp
+                if "static" in args.l:
+                    static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        max_l =1, pol = 0 , hyper = 0, dist = True ))
+                    for j in static:
+                        j._R_q = tmp_Rq
+                        j._R_p = tmp_Rp
+                if "polar" in args.l:
+                    polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        max_l =2, pol = 2 , hyper = 1, dist = True ))
+                    for j in polar:
+                        j._R_q = tmp_Rq
+                        j._R_p = tmp_Rp
+                if "hyper" in args.l:
+                    hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        max_l =2, pol = 22, hyper = 1, dist = True ))
+                    for j in hyper:
+                        j._R_q = tmp_Rq
+                        j._R_p = tmp_Rp
+                print hyper
+                raise SystemExit
+
 
             if args.model == "quadrupole":
-                static= QuadrupoleList.from_string( self.get_static_string( tmpWaters ))
-                polar = QuadrupoleList.from_string( self.get_polar_string(  tmpWaters ))
-                hyper = QuadrupoleList.from_string( self.get_hyper_string(  tmpWaters ))
+                static= QuadrupoleList.from_string( self.get_static_string( tmp_waters ))
+                polar = QuadrupoleList.from_string( self.get_polar_string(  tmp_waters ))
+                hyper = QuadrupoleList.from_string( self.get_hyper_string(  tmp_waters ))
 
             try:
                 static.solve_scf()
@@ -175,35 +201,48 @@ class Calculator:
                 hyper.solve_scf()
             except:
                 print i
-                print self.get_static_string( tmpWaters )
+                #print self.get_static_string( tmp_waters )
 
-            d_static =  \
-                     [(this-ref)/ref for this, ref in zip(
-                            static.total_dipole_moment(),
-                                    qmDipole )] 
-            d_polar =  \
-                     [(this-ref)/ref for this, ref in zip(
-                            polar.total_dipole_moment(),
-                                    qmDipole )] 
-            d_hyper = \
-                     [(this-ref)/ref for this, ref in zip(
-                            hyper.total_dipole_moment(),
-                                    qmDipole )] 
-            a_polar = \
-                     [(this-ref)/ref for this, ref in zip(
-                            polar.alpha().diagonal(),
-                                    qmAlpha.diagonal() )] 
-            a_hyper = \
-                     [(this-ref)/ref for this, ref in zip(
-                            hyper.alpha().diagonal(),
-                                    qmAlpha.diagonal() )] 
+            d_static = []
+            d_polar = []
+            d_hyper = []
 
-            select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-            reference = [ qmBeta[ii, jj, kk] for ii, jj, kk in select ]
+            a_polar = []
+            a_hyper = []
 
-            b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
+            b_hyper = []
+
+            if "static" in args.l:
+                d_static =  \
+                         [(this-ref)/ref for this, ref in zip(
+                                static.total_dipole_moment(),
+                                        qmDipole )] 
+            if "polar" in args.l:
+                d_polar =  \
+                         [(this-ref)/ref for this, ref in zip(
+                                polar.total_dipole_moment(),
+                                        qmDipole )] 
+                a_polar = \
+                         [(this-ref)/ref for this, ref in zip(
+                                polar.alpha().diagonal(),
+                                        qmAlpha.diagonal() )] 
+            if "hyper" in args.l:
+                d_hyper = \
+                         [(this-ref)/ref for this, ref in zip(
+                                hyper.total_dipole_moment(),
+                                        qmDipole )] 
+                a_hyper = \
+                         [(this-ref)/ref for this, ref in zip(
+                                hyper.alpha().diagonal(),
+                                        qmAlpha.diagonal() )] 
+
+                select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
+                reference = [ qmBeta[ii, jj, kk] for ii, jj, kk in select ]
+
+                b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
             val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
+
             if args.param:
                 r, theta, tau, rho1, rho2, rho3 = i.split('-')
                 self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
@@ -219,11 +258,12 @@ class Calculator:
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     tmpAtom = Atom()
-                    tmpAtom.AA = True
                     tmpAtom.x = float(f[1])
                     tmpAtom.y = float(f[2])
                     tmpAtom.z = float(f[3])
                     tmpAtom.element = f[0][0]
+                    tmpAtom.isAA = True
+                    #tmpAtom.to_au()
                     atoms.append( tmpAtom )
 
         elif fname.endswith( ".pdb" ):
@@ -244,7 +284,7 @@ class Calculator:
                             tmpAtom.toAA()
                     elif fnameAAorAU == "AA":
                         if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
+                            tmpAtom.to_au()
                     atoms.append( tmpAtom )
         elif fname.endswith( ".out" ):
             pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
@@ -257,7 +297,7 @@ class Calculator:
                             tmpAtom.toAA()
                     elif fnameAAorAU == "AA":
                         if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
+                            tmpAtom.to_au()
                     atoms.append( tmpAtom )
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
@@ -267,25 +307,25 @@ class Calculator:
             for i in atoms:
                 if i.element == "H":
                     continue
-                if i.inWater:
+                if i.in_water:
                     continue
                 tmp = Water(  )
-                i.inWater = True
-                tmp.addAtom( i )
+                i.in_water = True
+                tmp.append( i )
                 for j in atoms:
                     if j.element == "O":
                         continue
-                    if j.inWater:
+                    if j.in_water:
                         continue
 #If in cartesian:
                     if j.AA:
-                        if i.distToAtom(j) < 1.1:
-                            tmp.addAtom ( j )
-                            j.inWater = True
+                        if i.dist_to_atom(j) < 1.1:
+                            tmp.append ( j )
+                            j.in_water = True
                     else:
-                        if i.distToAtom(j) < 1.1/a0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
+                        if i.dist_to_atom(j) < 1.1/a0:
+                            tmp.append ( j )
+                            j.in_water = True
                 tmp.number = cnt
                 cnt += 1
                 waters.append( tmp )
@@ -312,28 +352,28 @@ class Calculator:
                 if i.element != "O":
                     continue
                 tmp = Water()
-                i.inWater= True
-#__Water__.addAtom() method will update the waters residue number and center coordinate
+                i.in_water= True
+#__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
-                tmp.addAtom(i)
+                tmp.append(i)
                 for j in atoms:
                     if j.element != "H":
                         continue
-                    if j.inWater:
+                    if j.in_water:
                         continue
 #1.05 because sometimes spc water lengths can be over 1.01
                         
                     if args.opAAorAU == "AA":
                         if i.dist(j) <= 1.05:
-                            j.inWater = True
-                            tmp.addAtom( j )
+                            j.in_water = True
+                            tmp.append( j )
                             if len(tmp.atomlist) == 3:
                                 break
                     elif args.opAAorAU == "AU":
                         if i.dist(j) <= 1.05/a0:
-                            j.inWater = True
-                            tmp.addAtom( j )
+                            j.in_water = True
+                            tmp.append( j )
                             if len(tmp.atomlist) == 3:
                                 break
                 wlist.append( tmp )
@@ -346,28 +386,31 @@ class Calculator:
             for i in atoms:
                 if i.element == "H":
                     continue
-                if i.inWater:
+                if i.in_water:
                     continue
                 tmp = Water(  )
-                i.inWater = True
-                tmp.addAtom( i )
+                i.in_water = True
+                tmp.append( i )
                 for j in atoms:
                     if j.element == "O":
                         continue
-                    if j.inWater:
+                    if j.in_water:
                         continue
 #If in cartesian:
                     if i.AA:
                         if i.dist(j) < 1.0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
+                            tmp.append ( j )
+                            j.in_water = True
                     else:
                         if i.dist(j) < 1.0/a0:
-                            tmp.addAtom ( j )
-                            j.inWater = True
+                            tmp.append ( j )
+                            j.in_water = True
                 tmp.number = cnt
                 cnt += 1
                 waters.append( tmp )
+        for wat in waters:
+            for atom in wat:
+                atom.res_id = wat.number
         return waters
     def get_matching_out_and_mol(self):
         tmp = []
@@ -405,7 +448,7 @@ class Calculator:
                 tmpAtom.AA = True
                 tmpAtom.element = f[0][0]
                 tmpAtom.x = float(f[1]); tmpAtom.y = float(f[2]); tmpAtom.z = float(f[3])
-                tmpAtom.toAU()
+                tmpAtom.to_au()
                 atoms.append( tmpAtom )
             if pat_pol.search(i):
                 if pat_pol.search(i).group(1) == "X":
@@ -652,26 +695,30 @@ class Calculator:
 
         f.close()
 
-    def get_static_string( self, waters, toAU = True ):
+    def get_static_string( self, waters, to_au = True, dist = False ):
         """ Converts list of waters into Olav string for .pot"""
-        for i in waters:
-            if toAU:
-                i.toAU()
-            i.center = [ i.o.x, i.o.y, i.o.z ]
-        string_static = "AU\n%d 1 0\n" %len(waters)
-        for i in waters:
-            string_static += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.center[0], 
-                i.center[1], i.center[2], \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) 
+
+        if dist:
+            pass
+        else:
+            for i in waters:
+                if to_au:
+                    i.to_au()
+                i.center = [ i.o.x, i.o.y, i.o.z ]
+            string_static = "AU\n%d 1 0\n" %len(waters)
+            for i in waters:
+                string_static += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.center[0], 
+                    i.center[1], i.center[2], \
+                               i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
+                           i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
+                                          i.alpha[1][1], i.alpha[1][2], \
+                                                         i.alpha[2][2], \
+                           i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
+                                            i.beta[0][1][1], i.beta[0][1][2], \
+                                                             i.beta[0][2][2], \
+                                            i.beta[1][1][1], i.beta[1][1][2], \
+                                                             i.beta[1][2][2], \
+                                                             i.beta[2][2][2] )) 
         return string_static
     def get_polar_string( self, waters ):
         """ Converts list of waters into Olav string for .pot"""
@@ -693,23 +740,37 @@ class Calculator:
                                                          i.beta[2][2][2] )) 
 
         return string_polarizable
-    def get_hyper_string( self, waters ):
-        """ Converts list of waters into Olav string for .pot"""
-        string_hyperpolarizable = "AU\n%d 1 22 1\n" %len(waters)
-        for i in waters:
-            i.center = [ i.o.x, i.o.y, i.o.z ]
-            string_hyperpolarizable += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, 
-                i.center[0], i.center[1], i.center[2], \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) 
+
+    def get_string( self, waters, max_l = 1, pol =22 , hyper = 2, dist = False ):
+        """ Converts list of waters into Olav string for hyperpolarizable .pot"""
+# If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
+        if dist:
+            string_hyperpolarizable = "AA\n%d %d %d %d\n" % ( len(waters)*3,
+                    max_l, pol, hyper )
+            for i in waters:
+
+                i.set_property_on_each_atom()
+                string_hyperpolarizable +=  i.o.potline()
+                string_hyperpolarizable +=  i.h1.potline()
+                string_hyperpolarizable +=  i.h2.potline()
+            return string_hyperpolarizable
+
+        else:
+            string_hyperpolarizable = "AU\n%d 1 22 2\n" %len(waters)
+            for i in waters:
+                i.center = [ i.o.x, i.o.y, i.o.z ]
+                string_hyperpolarizable += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, 
+                    i.center[0], i.center[1], i.center[2], \
+                               i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
+                           i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
+                                          i.alpha[1][1], i.alpha[1][2], \
+                                                         i.alpha[2][2], \
+                           i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
+                                            i.beta[0][1][1], i.beta[0][1][2], \
+                                                             i.beta[0][2][2], \
+                                            i.beta[1][1][1], i.beta[1][1][2], \
+                                                             i.beta[1][2][2], \
+                                                             i.beta[2][2][2] )) 
         return string_hyperpolarizable
 
     def get_waters(self, f):
@@ -720,7 +781,8 @@ class Calculator:
             if pat_xyz.match(i):
                 f = pat_xyz.match(i).groups()
                 tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                tmpAtom.toAU()
+                tmpAtom.AA = True
+                #tmpAtom.to_au()
                 atoms.append( tmpAtom )
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
@@ -728,20 +790,21 @@ class Calculator:
         for i in atoms:
             if i.element == "H":
                 continue
-            if i.inWater:
+            if i.in_water:
                 continue
             tmp = Water(  )
-            i.inWater = True
-            tmp.addAtom( i )
+            i.in_water = True
+            i.res_id = cnt
+            tmp.append( i )
             for j in atoms:
                 if j.element == "O":
                     continue
-                if j.inWater:
+                if j.in_water:
                     continue
 #If in cartesian:
                 if i.dist(j) < 1.89:
-                    tmp.addAtom ( j )
-                    j.inWater = True
+                    tmp.append ( j )
+                    j.in_water = True
             tmp.number = cnt
             cnt += 1
             waters.append( tmp )
