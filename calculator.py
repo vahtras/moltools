@@ -612,7 +612,7 @@ class Calculator:
         return beta
 
 #If data is in absolute value, format xvg string with qm method in labels
-    def get_xvg_string_abs( self, args ):
+    def get_xvg_string( self, args ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
 
@@ -637,19 +637,26 @@ class Calculator:
                         print "Skipping (%s, %s, %s, )" %( level, prop, component )
                         continue
 
-                    string += '@TITLE "Absolute values for qm method %s"\n' \
-                        % args.qm_method
+                    if args.rel:
+                        string += '@TITLE "Relative errors as a function of %s"\n' \
+                            % Xms(var).makeGreek() 
+                    else:
+                        string += '@TITLE "Absolute values for qm method %s"\n' \
+                            % args.qm_method
 
                     string += '@SUBTITLE "' \
+
+                    
+                    subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
+                        %( args.Rq, args.Rp, args.max_l )
                     
                     if args.dist:
-                        string += 'Distributed;'
+                        subtitle += 'Distributed;'
                     else:
-                        pass
-                        #string += 'Oxygen-cent;'
+                        subtitle += 'Oxygen-cent;'
 
                     if args.vary_r:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
@@ -657,7 +664,7 @@ class Calculator:
                                   Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
                     if args.vary_theta:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
@@ -665,7 +672,7 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_tau:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
@@ -673,7 +680,7 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho1:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -681,7 +688,7 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho2:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -689,12 +696,18 @@ class Calculator:
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho3:
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
+
+                                
+                    if args.no_subtitle:
+                        subtitle = '@SUBTITLE "\n' 
+                    else:
+                        string += subtitle
 
                     string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
                     string +=  '@LEGEND ON\n'
@@ -702,6 +715,7 @@ class Calculator:
                     string +=  '@LEGEND BOX FILL OFF\n'
                     string +=  '@LEGEND LOCTYPE VIEW\n'
                     string +=  '@LEGEND 0.80, 0.84\n' 
+                    string +=  '@LEGEND CHAR SIZE 1.2\n' 
 
                     xvg_label = self.input_style_to_xvg_output( level, prop, component, args.max_l)
                     if args.dist:
@@ -709,11 +723,16 @@ class Calculator:
                     else:
                         string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
                     string +=  '@ XAXIS LABEL "%s \[A.U.\]"\n' % Xms( var ).makeGreek()
-                    string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
-                    string +=  '@ XAXIS LABEL CHAR SIZE 2\n' 
-                    string +=  '@ YAXIS LABEL CHAR SIZE 2\n'
+
+                    if args.rel:
+                        string +=  '@ YAXIS LABEL "Relative error"\n' 
+                    else:
+                        string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
+
+                    string +=  '@ XAXIS LABEL CHAR SIZE 1.5\n' 
+                    string +=  '@ YAXIS LABEL CHAR SIZE 1.5\n'
                     string +=  '@ TITLE SIZE 2\n'
-                    string +=  '@ SUBTITLE SIZE 1\n'
+                    string +=  '@ SUBTITLE SIZE 1.0\n'
 
 #add the actual data x and y    
 
@@ -749,134 +768,6 @@ class Calculator:
             t_component *= 3
             t_prop = r'\xb\0'
         return t_level + t_prop + r"\s%s\N" % t_component
-
-#Alpha section
-
-    def get_xvg_string_rel( self, args ):
-        """ kwargs is a dictionary where user specifies which components, dipole models and properties
-        will be returned and printed for a finished formatted .xvg xmgrace plot"""
-        x, y = self.get_x_and_y()
-        localCounter = 0
-        string = ""
-
-
-        for level in args.l:
-            for prop in args.p:
-                for component in args.c:
-                    kwargs = { "level" : level, "prop" : prop,  "component" : component,"variable" : args.var }
-                    level = kwargs.get( "level" , "hyper" )
-                    prop = kwargs.get( "prop", "dipole" )
-                    component = kwargs.get( "component", "X" )
-                    var = kwargs.get( "variable", "r" )
-
-                    try:
-                        in1, in2 =  indexDict[ level ][ prop ][ component ]
-                        width = lineThickDict[ level] [ prop ] [ component ]
-                        style = lineStyleDict[ level] [ prop ] [ component ]
-                    except KeyError:
-                        print "Skipping (%s, %s, %s, )" %( level, prop, component )
-                        continue
-
-                    string += '@TITLE "Relative errors as a function of %s"\n' \
-                        % Xms(var).makeGreek() 
-
-                    subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
-                        %( args.Rq, args.Rp, args.max_l )
-                    
-                    if args.dist:
-                        subtitle += 'Distributed;'
-                    else:
-                        subtitle += 'Oxygen-cent;'
-
-                    if args.vary_r:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
-                                  Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
-                                  Xms("rho1").makeGreek(),  self.opts["rho1"]["constant"],
-                                  Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
-                                  Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
-                    if args.vary_theta:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
-                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
-                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
-                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
-                    if args.vary_tau:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
-                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
-                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
-                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
-                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
-                    if args.vary_rho1:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
-                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
-                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
-                    if args.vary_rho2:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
-                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
-                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
-                    if args.vary_rho3:
-                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(Xms("r").makeGreek(), self.opts["r"]["constant"],
-                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
-                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
-                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
-                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
-
-                    if args.no_subtitle:
-                        subtitle = '@SUBTITLE "\n' 
-                    else:
-                        string += subtitle
-
-                    string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
-                    string +=  '@LEGEND ON\n'
-                    string +=  '@LEGEND BOX ON\n'
-                    string +=  '@LEGEND BOX FILL OFF\n'
-                    string +=  '@LEGEND LOCTYPE VIEW\n'
-                    string +=  '@LEGEND 0.80, 0.84\n' 
-
-                    xvg_label = self.input_style_to_xvg_output( level, prop, component, args.max_l)
-
-                    if args.dist:
-                        string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, component, str(args.max_l), "LoProp") 
-                    else:
-                        string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
-
-                    string +=  '@ XAXIS LABEL "%s \[A.U.\]"\n' % Xms( var ).makeGreek()
-                    string +=  '@ YAXIS LABEL "Relative error"\n' 
-                    string +=  '@ XAXIS LABEL CHAR SIZE 2\n' 
-                    string +=  '@ YAXIS LABEL CHAR SIZE 2\n'
-                    string +=  '@ TITLE SIZE 2\n'
-                    string +=  '@ SUBTITLE SIZE 1\n'
-#add the actual data x and y    
-                    for i in range(len( x )):
-                        string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
-                    string += '@ SORT s%d X ASCENDING\n' % localCounter
-                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
-                    string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
-                    localCounter += 1
-
-        return string
-
     def write_log(self, **kwargs):
         #p = subprocess.Popen( 'rm *.log', shell=True )
         x, y = self.get_x_and_y()

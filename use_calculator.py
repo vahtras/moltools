@@ -122,8 +122,8 @@ if __name__ == '__main__':
 
     if args.rel:
         c.get_rel_error( args )
-        string = c.get_xvg_string_rel( args )
     else:
         c.get_abs_value( args )
-        string = c.get_xvg_string_abs( args )
+    string = c.get_xvg_string( args )
+
     open('tmp.xvg', 'w').write( string )
