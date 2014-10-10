@@ -24,11 +24,11 @@ class Generator:
         if kwargs is not None:
             self.options = kwargs
         else:
-            self.options = { "isAA" : True  }
+            self.options = { "isAA" : False  }
 
         self.dic = Dic()
 
-        self.r_oh = 0.97167
+        self.r_oh = 1.83681
         self.theta_hoh = np.pi * 104.5/ 180.0
 
         self.varyR =     False
@@ -38,23 +38,24 @@ class Generator:
         self.varyRho2 =  False
         self.varyRho3 =  False
 
-        self.optionsR =     {  "min": 5.00, "max" : 5.00, "points": 1 }
+        self.optionsR =     {  "min": 10.00, "max" : 10.00, "points": 1 }
         self.optionsTheta = {  "min": 0.00, "max" : 0.00, "points": 1 }
         self.optionsTau =   {  "min": 0.00, "max" : 0.00, "points": 1 }
         self.optionsRho1 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
         self.optionsRho2 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
         self.optionsRho3 =  {  "min": 0.00, "max" : 0.00, "points": 1 }
 
-        opts = { "r" : {"min":2.30, "max":5.00,  "points":100} ,
-             "theta" : {"max": np.pi , "min": 0.00 , "points":10},
-             "tau"  : {"max": np.pi/2 , "min": 0.00 , "points":10},
+        opts = { "r" : {"min": 2.30, "max": 10.00,  "points":50} ,
+             "theta" : {"max": np.pi , "min": 0.00 , "points":1 },
+             "tau"  : {"max": np.pi/2 , "min": 0.00 , "points":1 },
              "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
              "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
              "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
              }
-        self.varyParameters()
 
-    def genMols(self):
+        self.vary_parameters()
+
+    def gen_mols(self, AA = False,):
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
         theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
@@ -73,17 +74,19 @@ class Generator:
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.getWater( [0, 0, 0], self.r_oh, self.theta_hoh)
+                                w1 = self.get_water( [0, 0, 0], self.r_oh, self.theta_hoh, AA = AA)
                                 x, y, z = self.getCartesianFromDegree( i, j, k )
-                                w2 = self.getWater( [x,y,z], self.r_oh, self.theta_hoh)
+                                w2 = self.get_water( [x,y,z], self.r_oh, self.theta_hoh)
                                 w2.rotate( l, m, n )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
-                                self.writeMol( [w1, w2], name )
+                                self.write_mol( [w1, w2], name )
 
-    def varyParameters( self, *args ):
+    def vary_parameters( self, *args ):
+
         """Given two parameters, for e.g. r and theta, keeps all other static"""
+
         if args:
             for j in args:
                 for i in j:
@@ -106,20 +109,21 @@ class Generator:
                         self.varyRho3 = True
                         self.optionsRho3 = j[i]
 
-    def getWater(self, origin, r, theta, AA = True ):
+    def get_water(self, origin, r, theta, AA = True ):
         h1 = Atom() ; h2 = Atom() ; o = Atom()
         d = (m.pi/2 - theta/2)
         o.element = "O" ; h1.element = "H" ; h2.element = "H"
         o.x = origin[0] ; o.y = origin[1] ; o.z = origin[2] 
         h1.x = (origin[0] + r * m.cos(d)) ; h1.y = origin[1] ; h1.z = (origin[2] + r*m.sin(d))
         h2.x = (origin[0] - r * m.cos(d)) ; h2.y = origin[1] ; h2.z = (origin[2] + r*m.sin(d))
-        w = Water(); w.addAtom( o) ;w.addAtom( h2 ) ;w.addAtom( h1 ) 
+        w = Water(); w.append( o) ;w.append( h2 ) ;w.append( h1 ) 
         w.theta_hoh = theta
         w.r_oh = r
         w.center = origin
         w.euler1 = 0.00
         w.euler2 = 0.00
         w.euler3 = 0.00
+
         if AA:
             w.AA = True
             w.h1.AA = True
@@ -131,6 +135,8 @@ class Generator:
             w.h2.AA = False
             w.o.AA  = False
         return w
+
+
     def readWaters(self, fname):
         """From file with name fname, return a list of all waters encountered"""
 #If the file is plain xyz file
@@ -194,7 +200,7 @@ class Generator:
                     continue
                 tmp = Water(  )
                 i.inWater = True
-                tmp.addAtom( i )
+                tmp.append( i )
                 for j in atoms:
                     if j.element == "O":
                         continue
@@ -203,11 +209,11 @@ class Generator:
 #If in cartesian:
                     if j.AA:
                         if i.distToAtom(j) < 1.1:
-                            tmp.addAtom ( j )
+                            tmp.append ( j )
                             j.inWater = True
                     else:
                         if i.distToAtom(j) < 1.1/a0:
-                            tmp.addAtom ( j )
+                            tmp.append ( j )
                             j.inWater = True
                 tmp.number = cnt
                 cnt += 1
@@ -236,10 +242,10 @@ class Generator:
                     continue
                 tmp = Water()
                 i.inWater= True
-#__Water__.addAtom() method will update the waters residue number and center coordinate
+#__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
-                tmp.addAtom(i)
+                tmp.append(i)
                 for j in atoms:
                     if j.element != "H":
                         continue
@@ -250,13 +256,13 @@ class Generator:
                     if args.opAAorAU == "AA":
                         if i.dist(j) <= 1.05:
                             j.inWater = True
-                            tmp.addAtom( j )
+                            tmp.append( j )
                             if len(tmp.atomlist) == 3:
                                 break
                     elif args.opAAorAU == "AU":
                         if i.dist(j) <= 1.05/a0:
                             j.inWater = True
-                            tmp.addAtom( j )
+                            tmp.append( j )
                             if len(tmp.atomlist) == 3:
                                 break
                 wlist.append( tmp )
@@ -273,7 +279,7 @@ class Generator:
                     continue
                 tmp = Water(  )
                 i.inWater = True
-                tmp.addAtom( i )
+                tmp.append( i )
                 for j in atoms:
                     if j.element == "O":
                         continue
@@ -282,28 +288,29 @@ class Generator:
 #If in cartesian:
                     if i.AA:
                         if i.dist(j) < 1.0:
-                            tmp.addAtom ( j )
+                            tmp.append ( j )
                             j.inWater = True
                     else:
                         if i.dist(j) < 1.0/a0:
-                            tmp.addAtom ( j )
+                            tmp.append ( j )
                             j.inWater = True
                 tmp.number = cnt
                 cnt += 1
                 waters.append( tmp )
         return waters
-    def writeMol(self, wlist, name = "tmp.mol" ):
+
+    def write_mol(self, wlist, name = "tmp.mol" ):
         f_ = open (name, 'w')
-        f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Angstrom Nosymm\n")
+        f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Nosymm\n")
         f_.write("Charge=1.0 Atoms=4 Basis=cc-pVDZ\n")
         for i in wlist:
-            for j in i.atomlist:
+            for j in i:
                 if j.element != "H":
                     continue
                 f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
         f_.write("Charge=8.0 Atoms=2 Basis=cc-pVDZ\n")
         for i in wlist:
-            for j in i.atomlist:
+            for j in i:
                 if j.element != "O":
                     continue
                 f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
@@ -316,7 +323,9 @@ class Generator:
 
 if __name__ == '__main__':
     g = Generator()
-    w1 = g.getWater( [0,1,1], 1.0, 101.4 )
-    w1.plotWater()
+    w1 = g.get_water( [0,1,1], 1.0, 101.4 )
+    g.write_mol( [w1] )
+    #print w1.get_mol()
+    #w1.plotWater()
 
 

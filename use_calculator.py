@@ -51,16 +51,24 @@ if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
 
-    A.add_argument( "-model"  , type = str, default = "pointdipole", choices = [ "pointdipole", "quadrupole", "gaussian"] )
+    A.add_argument( "-model"  , type = str, default = "gaussian", choices = [ "pointdipole", "quadrupole", "gaussian"] )
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
     A.add_argument( "-param"  , default = True )
-    A.add_argument( "-dist"   , default = False , action = 'store_true' ) 
+    A.add_argument( "-dist"   , action = 'store_true', default = False )
+    A.add_argument( "-no_subtitle"  , default = False, action = 'store_true' )
 
+    A.add_argument( "-qm"   , type = str,  default = "hfqua", dest = "qm_method" )
+    A.add_argument( "-rel", action = 'store_true' , default = False)
 
     A.add_argument( "-l", nargs = "*", default = ["static"] )
     A.add_argument( "-p", nargs = "*", default = ["dipole"] )
     A.add_argument( "-c", nargs = "*", default = ["Z"] )
+
+    A.add_argument( "-max_l", type = int, default = 2, choices = [1 , 2] )
+    #A.add_argument( "-pol", type = int, default = 22, choices = [1 , 2, 22] )
+    #A.add_argument( "-hyper", type = int , default = 1, choices = [1] )
+
 
     A.add_argument( "-vary_r"   , default = False , action = 'store_true' ) 
     A.add_argument( "-vary_theta" , default = False , action = 'store_true' )
@@ -77,8 +85,9 @@ if __name__ == '__main__':
     A.add_argument( "-rho3", type = str ) 
 
     args = A.parse_args()
-
     c = Calculator()
+
+
     if args.r:
         c.opts[ "r" ] = { "constant" : args.r }
     if args.theta:
@@ -111,7 +120,10 @@ if __name__ == '__main__':
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
 
-    c.get_rel_error( args )
-    string = c.get_xvg_string( args )
-
+    if args.rel:
+        c.get_rel_error( args )
+        string = c.get_xvg_string_rel( args )
+    else:
+        c.get_abs_value( args )
+        string = c.get_xvg_string_abs( args )
     open('tmp.xvg', 'w').write( string )

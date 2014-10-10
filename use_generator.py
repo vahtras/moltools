@@ -29,13 +29,13 @@ if __name__ == '__main__':
     g = Generator()
 
     opts =  {
-             "r"        : {"min": 5.00     , "max": 5.00,  "points":1   } ,
-             "theta"    : {"max": np.pi   , "min": 0.00 , "points":10   } ,
+             "r"        : {"min": 3.00     , "max": 10.00,  "points": 50   } ,
+             "theta"    : {"max": np.pi   , "min": 0.00 , "points":1    } ,
              "tau"      : {"max": np.pi/2 , "min": 0.00 , "points":1   } ,
              "rho1"     : {"max": np.pi/2   , "min": 0.00 , "points":1   }  ,
              "rho2"     : {"max": np.pi   , "min": 0.00 , "points":1   }  ,
              "rho3"     : {"max": np.pi*2   , "min": 0.00 , "points":1   }  ,
              }
 
-    g.varyParameters( opts )
-    g.genMols()
+    g.vary_parameters( opts )
+    g.gen_mols( AA = False )

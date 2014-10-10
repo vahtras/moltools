@@ -62,8 +62,41 @@ class Property( dict ):
                 self["beta"][9]
                 )
 
+    def potline(self, max_l , pol, hyper, dist):
+
+        string = ""
+
+        if 0  <= max_l :
+            string += "%.5f " %( self["charge"] )
+
+        if max_l >= 1 :
+            string += "%.5f %.5f %.5f " %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
+
+        if max_l >= 2 :
+            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+                    self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2] ,
+                    self["quadrupole"][3], self["quadrupole"][4], self["quadrupole"][5] )
+        if pol == 2 :
+            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+                    self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
+                    self["alpha"][3], self["alpha"][4], self["alpha"][5] )
+
+        if pol == 22 :
+            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+                    self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
+                    self["alpha"][3], self["alpha"][4], self["alpha"][5] )
+
+        if hyper == 1 :
+            string += "%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f" %( 
+                    self["beta"][0], self["beta"][1], self["beta"][2] ,
+                    self["beta"][3], self["beta"][4], self["beta"][5] ,
+                    self["beta"][6], self["beta"][7], self["beta"][8] ,
+                    self["beta"][9])
+
+        return string
+
     @staticmethod
-    def from_dist_template( **kwargs ):
+    def from_template( **kwargs ):
         p = Property()
         for i, props in enumerate(kwargs):
             p[ props ] = kwargs[ props ]
@@ -82,6 +115,7 @@ class Atom(object):
         self.r = False
         self.x = None
         self.y = None
+        self.z = None
         self.res_id = None
         self.in_water = False
 
@@ -89,10 +123,15 @@ class Atom(object):
         self.Property = None
         self.AA = False
 
-    def potline(self):
+        if kwargs != {}:
+            self.x = float( kwargs.get( "x" ))
+            self.y = float( kwargs.get( "y" ))
+            self.z = float( kwargs.get( "z" ))
+            self.element = kwargs.get( "element" )
 
+    def potline(self, max_l, pol, hyper, dist):
         return  "%d %.5f %.5f %.5f " %( 
-                self.res_id, self.x, self.y, self.z )  + str(self.Property)
+                self.res_id, self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, dist ) + "\n"
 
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
@@ -222,6 +261,10 @@ class Water(list):
 #Initialize water res_id from atomic res_id
             self.res_id = atom.res_id
 
+    def potline(self, max_l, pol, hyper, dist):
+        return  "%d %.5f %.5f %.5f " %( 
+                self.res_id, self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, dist ) + "\n"
+
     def __str__(self):
         return "WAT" + str(self.res_id) 
 
@@ -252,9 +295,9 @@ class Water(list):
         h1_props =  { prop : self.Property[prop][1] for (key , prop)  in enumerate( self.Property ) }
         h2_props =  { prop : self.Property[prop][2] for (key , prop)  in enumerate( self.Property ) }
 
-        self.o.Property = Property.from_dist_template(  **o_props )
-        self.h1.Property = Property.from_dist_template( **h1_props )
-        self.h2.Property = Property.from_dist_template( **h2_props )
+        self.o.Property  = Property.from_template(  **o_props )
+        self.h1.Property = Property.from_template( **h1_props )
+        self.h2.Property = Property.from_template( **h2_props )
 
     def get_euler(self):
         """Return euler angles required to rotate water in oxygen at origo to current"""
@@ -709,9 +752,9 @@ if __name__ == '__main__':
             x = r * s(theta) * c(tau )
             y = r * s(theta) * s(tau )
             z = r * c(theta)
-            w1 = g.getWater( [ 0, 0, 0], r_oh, theta_hoh )
+            w1 = g.get_water( [ 0, 0, 0], r_oh, theta_hoh )
             w1.res_id = 1 ; w1.r = r ; w1.theta = theta ; w1.tau = tau
-            w2 = g.getWater( [ x, y, z], r_oh, theta_hoh )
+            w2 = g.get_water( [ x, y, z], r_oh, theta_hoh )
             w2.res_id = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
             g.writeMol( [ w1, w2 ])
 

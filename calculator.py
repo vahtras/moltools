@@ -4,7 +4,6 @@
 import os, re, subprocess
 import numpy as np
 import  math as m
-from particles import *
 from quadrupole import *
 from gaussian import *
 
@@ -107,8 +106,14 @@ class Calculator:
 
         return  x , y 
 
-    def get_rel_error( self, args ):
+    def get_abs_value( self, args ):
+        """write a set of defined property/components """
+
+        select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
         for i in self.get_matching_out_and_mol():
+
+            file_name = args.qm_method + "_" + i + ".out"
+
             r, theta, tau, rho1, rho2, rho3 = i.split('-')
             if self.opts["r"].has_key( "constant" ):
                 if r != self.opts["r"]["constant"]:
@@ -129,39 +134,86 @@ class Calculator:
                 if rho3 != self.opts["rho3"]["constant"]:
                     continue
 
-            qmDipole = self.get_qm_dipole( "hfqua_" + i + ".out" )
-            qmAlpha = self.get_qm_alpha(  "hfqua_" + i + ".out" )
-            qmBeta = self.get_qm_beta(   "hfqua_" + i + ".out" )
+            if args.qm_method == "ccsd":
+                qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
+            else:
+                qm_dipole = self.get_qm_dipole( file_name )
+                qm_alpha =  self.get_qm_alpha(  file_name )
+                qm_beta =   self.get_qm_beta(   file_name )
+
+            dipole = qm_dipole
+            alpha  = np.einsum('ii->i', np.array(qm_alpha))
+            #beta   = np.einsum('iij->ij', np.array(qm_beta))
+            beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
+            val = [ dipole, dipole, dipole, alpha, alpha, beta ]
+
+            if args.param:
+                r, theta, tau, rho1, rho2, rho3 = i.split('-')
+                self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
+
+
+    def get_rel_error( self, args ):
+
+        select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
+        for i in self.get_matching_out_and_mol():
+            file_name = args.qm_method + "_" + i + ".out"
+            r, theta, tau, rho1, rho2, rho3 = i.split('-')
+            if self.opts["r"].has_key( "constant" ):
+                if r != self.opts["r"]["constant"]:
+                    continue
+            if self.opts["theta"].has_key( "constant" ):
+                if theta != self.opts["theta"]["constant"]:
+                    continue
+            if self.opts["tau"].has_key( "constant" ):
+                if tau != self.opts["tau"]["constant"]:
+                    continue
+            if self.opts["rho1"].has_key( "constant" ):
+                if rho1 != self.opts["rho1"]["constant"]:
+                    continue
+            if self.opts["rho2"].has_key( "constant" ):
+                if rho2 != self.opts["rho2"]["constant"]:
+                    continue
+            if self.opts["rho3"].has_key( "constant" ):
+                if rho3 != self.opts["rho3"]["constant"]:
+                    continue
+
+            if args.qm_method == "ccsd":
+                qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
+            else:
+                qm_dipole = self.get_qm_dipole( file_name )
+                qm_alpha = self.get_qm_alpha(  file_name )
+                qm_beta = self.get_qm_beta(   file_name )
+
             tmp_waters = []
 
             for j in self.read_waters( i + ".mol" ):
                 t1, t2, t3 =  j.get_euler()
 
-                kwargs = Template().get_dist_data( "OLAV", "HF", "PVDZ" )
-
-                if args.model: # == "gaussian":
-
-                    p = Property.from_dist_template( **kwargs )
-                    j.Property = p
-
+                if args.dist:
+                    kwargs = Template().get_dist_data( "OLAV", "HF", "PVDZ" )
+                    p = Property.from_template( **kwargs )
                 else:
-                    j.dipole = j.transform_dist_dipole( t_dipole, t1, t2, t3 )
-                    j.quadrupole = j.transform_dist_quadrupole( t_quad, t1, t2, t3 )
-                    j.alpha = j.transform_dist_alpha( t_alpha, t1, t2, t3 )
-                    j.beta = j.transform_dist_beta( t_beta, t1, t2, t3 )
+                    kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
+                    p = Property.from_template( **kwargs )
+                j.Property = p
+
+                #if args.model: # == "gaussian":
+                #else:
+                #    j.dipole = j.transform_dist_dipole( t_dipole, t1, t2, t3 )
+                #    j.quadrupole = j.transform_dist_quadrupole( t_quad, t1, t2, t3 )
+                #    j.alpha = j.transform_dist_alpha( t_alpha, t1, t2, t3 )
+                #    j.beta = j.transform_dist_beta( t_beta, t1, t2, t3 )
 
                 tmp_waters.append( j )
 #
             if args.model == "pointdipole":
-                pass
-                #static= PointDipoleList.from_string( self.get_static_string( tmp_waters ),
-                #        max_l = 1, pol = 0, hyper = 0, dist = True ))
 
-                #polar = PointDipoleList.from_string( self.get_polar_string(  tmp_waters ),
-                #        max_l = 1, pol = 2, hyper = 1, dist = True ))
-
-                #hyper = PointDipoleList.from_string( self.get_hyper_string(  tmp_waters,
-                #        max_l = 1, pol = 22, hyper = 1, dist = True ))
+                static= PointDipoleList.from_string( self.get_string( tmp_waters ,
+                        max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
+                polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
+                        max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
+                hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
+                        max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
 
             if args.model == "gaussian":
 
@@ -170,38 +222,43 @@ class Calculator:
 
                 if "static" in args.l:
                     static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l =1, pol = 0 , hyper = 0, dist = True ))
+                        max_l = args.max_l , pol = 0 , hyper = 0 ,  dist = args.dist ))
                     for j in static:
                         j._R_q = tmp_Rq
                         j._R_p = tmp_Rp
+
                 if "polar" in args.l:
                     polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l =2, pol = 2 , hyper = 1, dist = True ))
+                        max_l = args.max_l, pol = 2 , hyper = 1 , dist = args.dist ))
                     for j in polar:
                         j._R_q = tmp_Rq
                         j._R_p = tmp_Rp
+
                 if "hyper" in args.l:
                     hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l =2, pol = 22, hyper = 1, dist = True ))
+                        max_l = args.max_l, pol = 22,  hyper = 1 , dist = args.dist ))
                     for j in hyper:
                         j._R_q = tmp_Rq
                         j._R_p = tmp_Rp
-                print hyper
-                raise SystemExit
 
 
             if args.model == "quadrupole":
-                static= QuadrupoleList.from_string( self.get_static_string( tmp_waters ))
-                polar = QuadrupoleList.from_string( self.get_polar_string(  tmp_waters ))
-                hyper = QuadrupoleList.from_string( self.get_hyper_string(  tmp_waters ))
+                static= QuadrupoleList.from_string( self.get_string( tmp_waters ,
+                        max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
 
+                polar = QuadrupoleList.from_string( self.get_string(  tmp_waters ,
+                        max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
+
+                hyper = QuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
             try:
                 static.solve_scf()
                 polar.solve_scf()
                 hyper.solve_scf()
-            except:
-                print i
-                #print self.get_static_string( tmp_waters )
+            except UnboundLocalError:
+                pass
+
+            #    print "Can't solve scf for: %s" %i
 
             d_static = []
             d_polar = []
@@ -215,29 +272,28 @@ class Calculator:
             if "static" in args.l:
                 d_static =  \
                          [(this-ref)/ref for this, ref in zip(
-                                static.total_dipole_moment(),
-                                        qmDipole )] 
+                                static.total_dipole_moment(args.dist),
+                                        qm_dipole )] 
             if "polar" in args.l:
                 d_polar =  \
                          [(this-ref)/ref for this, ref in zip(
-                                polar.total_dipole_moment(),
-                                        qmDipole )] 
+                                polar.total_dipole_moment(args.dist),
+                                        qm_dipole )] 
                 a_polar = \
                          [(this-ref)/ref for this, ref in zip(
                                 polar.alpha().diagonal(),
-                                        qmAlpha.diagonal() )] 
+                                        qm_alpha.diagonal() )] 
             if "hyper" in args.l:
                 d_hyper = \
                          [(this-ref)/ref for this, ref in zip(
-                                hyper.total_dipole_moment(),
-                                        qmDipole )] 
+                                hyper.total_dipole_moment(args.dist),
+                                        qm_dipole )] 
                 a_hyper = \
                          [(this-ref)/ref for this, ref in zip(
                                 hyper.alpha().diagonal(),
-                                        qmAlpha.diagonal() )] 
+                                        qm_alpha.diagonal() )] 
 
-                select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-                reference = [ qmBeta[ii, jj, kk] for ii, jj, kk in select ]
+                reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
 
                 b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
@@ -257,13 +313,10 @@ class Calculator:
             for i in open( fname ).readlines():
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom()
-                    tmpAtom.x = float(f[1])
-                    tmpAtom.y = float(f[2])
-                    tmpAtom.z = float(f[3])
-                    tmpAtom.element = f[0][0]
-                    tmpAtom.isAA = True
-                    #tmpAtom.to_au()
+                    matched = pat_xyz.match(i).groups()
+                    kwargs = { "element" :  matched[0], "x" : matched[1],
+                            "y" : matched[2], "z" : matched[3] }
+                    tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
 
         elif fname.endswith( ".pdb" ):
@@ -309,7 +362,7 @@ class Calculator:
                     continue
                 if i.in_water:
                     continue
-                tmp = Water(  )
+                tmp = Water()
                 i.in_water = True
                 tmp.append( i )
                 for j in atoms:
@@ -329,6 +382,7 @@ class Calculator:
                 tmp.number = cnt
                 cnt += 1
                 waters.append( tmp )
+
         elif fname.endswith( ".pdb" ):
 #Find out the size of the box encompassing all atoms
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
@@ -388,7 +442,7 @@ class Calculator:
                     continue
                 if i.in_water:
                     continue
-                tmp = Water(  )
+                tmp = Water()
                 i.in_water = True
                 tmp.append( i )
                 for j in atoms:
@@ -421,6 +475,14 @@ class Calculator:
             if os.path.isfile( os.path.join( os.getcwd(),  "hfqua_" + j.rstrip(".mol") + ".out" ) ):
                 tmp.append( j.rstrip( ".mol" ))
                 continue
+            elif os.path.isfile( os.path.join( os.getcwd(),  "ccsd_" + j.rstrip(".mol") + ".out" ) ):
+                tmp.append( j.rstrip( ".mol" ))
+                continue
+            elif os.path.isfile( os.path.join( os.getcwd(),  "dftqua_" + j.rstrip(".mol") + ".out" ) ):
+                tmp.append( j.rstrip( ".mol" ))
+                continue
+            else:
+                continue
         return tmp
     def get_mol_files(self):
         molFiles = [f for f in os.listdir( os.getcwd() ) \
@@ -431,6 +493,7 @@ class Calculator:
         outFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".out")  ]
         return outFiles
+
     def get_qm_dipole( self, fname ):
         """fname is an output file from DALTON calculation with *PROPAV"""
         nuc_dip = np.zeros(3)
@@ -440,15 +503,13 @@ class Calculator:
         pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
 
 # Reading in dipole
-#
         for i in open( fname ).readlines():
             if pat_xyz.match(i):
                 f = pat_xyz.match(i).groups()
-                tmpAtom = Atom()
-                tmpAtom.AA = True
-                tmpAtom.element = f[0][0]
-                tmpAtom.x = float(f[1]); tmpAtom.y = float(f[2]); tmpAtom.z = float(f[3])
-                tmpAtom.to_au()
+                matched = pat_xyz.match(i).groups()
+                kwargs = { "element" :  matched[0], "x" : matched[1],
+                        "y" : matched[2], "z" : matched[3] }
+                tmpAtom = Atom( **kwargs )
                 atoms.append( tmpAtom )
             if pat_pol.search(i):
                 if pat_pol.search(i).group(1) == "X":
@@ -492,7 +553,9 @@ class Calculator:
             nuc_dip[0] += charge_dic[ i.element ] * i.x
             nuc_dip[1] += charge_dic[ i.element ] * i.y
             nuc_dip[2] += charge_dic[ i.element ] * i.z
+
         return nuc_dip - el_dip
+
     def get_qm_alpha( self, fname):
         alpha = np.zeros([3,3])
         lab = ["X", "Y", "Z"]
@@ -547,9 +610,149 @@ class Calculator:
                         beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
 
         return beta
+
+#If data is in absolute value, format xvg string with qm method in labels
+    def get_xvg_string_abs( self, args ):
+        """ kwargs is a dictionary where user specifies which components, dipole models and properties
+        will be returned and printed for a finished formatted .xvg xmgrace plot"""
+
+        x, y = self.get_x_and_y()
+        localCounter = 0
+        string = ""
+
+        for level in args.l:
+            for prop in args.p:
+                for component in args.c:
+                    kwargs = { "level" : level, "prop" : prop,  "component" : component,"variable" : args.var }
+                    level = kwargs.get( "level" , "hyper" )
+                    prop = kwargs.get( "prop", "dipole" )
+                    component = kwargs.get( "component", "X" )
+                    var = kwargs.get( "variable", "r" )
+
+                    try:
+                        in1, in2 =  indexDict[ level ][ prop ][ component ]
+                        width = lineThickDict[ level ][ prop ][ component ]
+                        style = lineStyleDict[ level ][ prop ][ component ]
+                    except KeyError:
+                        print "Skipping (%s, %s, %s, )" %( level, prop, component )
+                        continue
+
+                    string += '@TITLE "Absolute values for qm method %s"\n' \
+                        % args.qm_method
+
+                    string += '@SUBTITLE "' \
+                    
+                    if args.dist:
+                        string += 'Distributed;'
+                    else:
+                        pass
+                        #string += 'Oxygen-cent;'
+
+                    if args.vary_r:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(),  self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
+                    if args.vary_theta:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
+                    if args.vary_tau:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
+                    if args.vary_rho1:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
+                    if args.vary_rho2:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
+                    if args.vary_rho3:
+                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(Xms("r").makeGreek(), self.opts["r"]["constant"],
+                                  Xms("theta").makeGreek(), self.opts["theta"]["constant"],
+                                  Xms("tau").makeGreek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
+
+                    string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
+                    string +=  '@LEGEND ON\n'
+                    string +=  '@LEGEND BOX ON\n'
+                    string +=  '@LEGEND BOX FILL OFF\n'
+                    string +=  '@LEGEND LOCTYPE VIEW\n'
+                    string +=  '@LEGEND 0.80, 0.84\n' 
+
+                    xvg_label = self.input_style_to_xvg_output( level, prop, component, args.max_l)
+                    if args.dist:
+                        string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, component, str(args.max_l), "LoProp") 
+                    else:
+                        string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
+                    string +=  '@ XAXIS LABEL "%s \[A.U.\]"\n' % Xms( var ).makeGreek()
+                    string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
+                    string +=  '@ XAXIS LABEL CHAR SIZE 2\n' 
+                    string +=  '@ YAXIS LABEL CHAR SIZE 2\n'
+                    string +=  '@ TITLE SIZE 2\n'
+                    string +=  '@ SUBTITLE SIZE 1\n'
+
+#add the actual data x and y    
+
+                    for i in range(len( x )):
+                        string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
+                    string += '@ SORT s%d X ASCENDING\n' % localCounter
+                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
+                    string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
+                    localCounter += 1
+
+        return string
+
+    def input_style_to_xvg_output( self, level, prop, component, max_l):
+        """level = static, polar, hyper
+        prop = dipole, alpha, beta
+        component = X, Y, Z
+        max_l = 1, 2
+        return nice label string for xmgrace"""
+        
+        t_level = "Static "
+        t_component = component
+        if level == "polar":
+            t_level = "Polarizable "
+        elif level == "hyper":
+            t_level = "Hyperpolarizable "
+
+        if prop == "dipole":
+            t_prop = 'p'
+        elif prop == "alpha":
+            t_component *= 2
+            t_prop = r'\xa\0'
+        elif prop == "beta":
+            t_component *= 3
+            t_prop = r'\xb\0'
+        return t_level + t_prop + r"\s%s\N" % t_component
+
 #Alpha section
 
-    def get_xvg_string( self, args ):
+    def get_xvg_string_rel( self, args ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
         x, y = self.get_x_and_y()
@@ -560,7 +763,6 @@ class Calculator:
         for level in args.l:
             for prop in args.p:
                 for component in args.c:
-
                     kwargs = { "level" : level, "prop" : prop,  "component" : component,"variable" : args.var }
                     level = kwargs.get( "level" , "hyper" )
                     prop = kwargs.get( "prop", "dipole" )
@@ -578,12 +780,17 @@ class Calculator:
                     string += '@TITLE "Relative errors as a function of %s"\n' \
                         % Xms(var).makeGreek() 
 
-                    string += '@SUBTITLE "Using Rp, Rq: (%s, %s) ;' \
-                        %( args.Rq, args.Rp )
+                    subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
+                        %( args.Rq, args.Rp, args.max_l )
+                    
+                    if args.dist:
+                        subtitle += 'Distributed;'
+                    else:
+                        subtitle += 'Oxygen-cent;'
 
                     if args.vary_r:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(),   self.opts["tau"]["constant"],
@@ -591,8 +798,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(),  self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(),  self.opts["rho3"]["constant"])
                     if args.vary_theta:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
@@ -600,8 +807,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_tau:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
@@ -609,8 +816,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho1:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -618,8 +825,8 @@ class Calculator:
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho2:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["tau"]["constant"],
@@ -627,26 +834,40 @@ class Calculator:
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho3").makeGreek(), self.opts["rho3"]["constant"])
                     if args.vary_rho3:
-                        #string += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                        string += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        #subtitle += '@SUBTITLE "Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(Xms("r").makeGreek(), self.opts["r"]["constant"],
                                   Xms("theta").makeGreek(), self.opts["theta"]["constant"],
                                   Xms("tau").makeGreek(), self.opts["tau"]["constant"],
                                   Xms("rho1").makeGreek(), self.opts["rho1"]["constant"],
                                   Xms("rho2").makeGreek(), self.opts["rho2"]["constant"])
 
-                    string +=  '@VIEW 0.15, 0.08, 1.15, 0.85\n'
+                    if args.no_subtitle:
+                        subtitle = '@SUBTITLE "\n' 
+                    else:
+                        string += subtitle
+
+                    string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
                     string +=  '@LEGEND ON\n'
                     string +=  '@LEGEND BOX ON\n'
                     string +=  '@LEGEND BOX FILL OFF\n'
                     string +=  '@LEGEND LOCTYPE VIEW\n'
-                    string +=  '@LEGEND 0.50, 0.84\n' 
-                    string +=  '@ s%d LEGEND "%s, %s, %s"\n' %( localCounter, level, prop, component) 
-                    string +=  '@ XAXIS LABEL "%s"\n' % Xms( var ).makeGreek()
+                    string +=  '@LEGEND 0.80, 0.84\n' 
+
+                    xvg_label = self.input_style_to_xvg_output( level, prop, component, args.max_l)
+
+                    if args.dist:
+                        string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, component, str(args.max_l), "LoProp") 
+                    else:
+                        string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
+
+                    string +=  '@ XAXIS LABEL "%s \[A.U.\]"\n' % Xms( var ).makeGreek()
                     string +=  '@ YAXIS LABEL "Relative error"\n' 
-
-#add the actual data x and y
-
+                    string +=  '@ XAXIS LABEL CHAR SIZE 2\n' 
+                    string +=  '@ YAXIS LABEL CHAR SIZE 2\n'
+                    string +=  '@ TITLE SIZE 2\n'
+                    string +=  '@ SUBTITLE SIZE 1\n'
+#add the actual data x and y    
                     for i in range(len( x )):
                         string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
                     string += '@ SORT s%d X ASCENDING\n' % localCounter
@@ -681,9 +902,8 @@ class Calculator:
 
             f.write( '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 0.80, 0.80\n' )
             f.write( '@ s0 LEGEND "%s, %s"\n' %(level, prop) )
-            f.write( '@ XAXIS LABEL "%s"\n' %var )
+            f.write( '@ XAXIS LABEL "%s"\n' %var + r"r [\cE\C]" )
             f.write( '@ YAXIS LABEL "Relative error"\n' )
-
 
 #Write out the actual data x and y
             for i in range(len( x )):
@@ -741,37 +961,25 @@ class Calculator:
 
         return string_polarizable
 
-    def get_string( self, waters, max_l = 1, pol =22 , hyper = 2, dist = False ):
+    def get_string( self, waters, max_l = 1, pol = 22 , hyper = 2, dist = False ):
         """ Converts list of waters into Olav string for hyperpolarizable .pot"""
 # If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
         if dist:
-            string_hyperpolarizable = "AA\n%d %d %d %d\n" % ( len(waters)*3,
+            string = "AU\n%d %d %d %d\n" % ( len(waters)*3,
                     max_l, pol, hyper )
             for i in waters:
-
                 i.set_property_on_each_atom()
-                string_hyperpolarizable +=  i.o.potline()
-                string_hyperpolarizable +=  i.h1.potline()
-                string_hyperpolarizable +=  i.h2.potline()
-            return string_hyperpolarizable
-
+                string +=  i.o.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+                string +=  i.h1.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+                string +=  i.h2.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+            return string
         else:
-            string_hyperpolarizable = "AU\n%d 1 22 2\n" %len(waters)
+            string = "AU\n%d %d %d %d\n" % ( len(waters),
+                    max_l, pol, hyper )
             for i in waters:
-                i.center = [ i.o.x, i.o.y, i.o.z ]
-                string_hyperpolarizable += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, 
-                    i.center[0], i.center[1], i.center[2], \
-                               i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                           i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                          i.alpha[1][1], i.alpha[1][2], \
-                                                         i.alpha[2][2], \
-                           i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                            i.beta[0][1][1], i.beta[0][1][2], \
-                                                             i.beta[0][2][2], \
-                                            i.beta[1][1][1], i.beta[1][1][2], \
-                                                             i.beta[1][2][2], \
-                                                             i.beta[2][2][2] )) 
-        return string_hyperpolarizable
+                string +=  "%d %.5f %.5f %.5f " %(
+                        i.o.res_id, i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
+            return string
 
     def get_waters(self, f):
         """ f is a .mol file, will return array of water molecules """
@@ -792,7 +1000,7 @@ class Calculator:
                 continue
             if i.in_water:
                 continue
-            tmp = Water(  )
+            tmp = Water()
             i.in_water = True
             i.res_id = cnt
             tmp.append( i )
@@ -805,10 +1013,84 @@ class Calculator:
                 if i.dist(j) < 1.89:
                     tmp.append ( j )
                     j.in_water = True
-            tmp.number = cnt
             cnt += 1
             waters.append( tmp )
         return waters
+
+    def get_props_ccsd( self, file_name ):
+
+        mol_dip = np.zeros(3)
+        alpha = np.zeros(  [3,3])
+        beta = np.zeros(   [3,3,3])
+        beta_dict = {}
+        atoms = []
+        lab = ["X", "Y", "Z"]
+
+        pat_dipole = re.compile(r'Total Molecular Dipole Moment')
+        pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+        pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
+
+        pat_alpha= re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*')
+        pat_beta=  re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+
+# Reading in dipole
+        lines = open( file_name ).readlines()
+        for i in range(len( lines )):
+            if pat_dipole.search( lines[i] ):
+                mol_dip[0] = lines[i+5].split()[1]
+                mol_dip[1] = lines[i+6].split()[1]
+                mol_dip[2] = lines[i+7].split()[1]
+
+# Reading in Alfa 
+        for i in open( file_name ).readlines():
+            if pat_alpha.search( i ):
+                if len(i.split()) < 8:
+                    try:
+                        if "D" in i.split()[-1]:
+                            frac = float( i.split()[-1].replace("D","E") )
+                        else:
+                            frac = float( i.split()[-1] )
+                    except IndexError:
+                        if "D" in i.split()[-1]:
+                            frac = float( i.split()[-1].strip("=").replace("D","E") )
+                        else:
+                            frac = float( i.split()[-1].strip("=") )
+                    A = pat_alpha.search(i).groups(1)[0]
+                    B = pat_alpha.search(i).groups(1)[1]
+                    alpha[ lab.index( A ) , lab.index( B ) ]  = frac
+                    if A == "X" and B == "Y":
+                        alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                    if A == "X" and B == "Z":
+                        alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                    if A == "Y" and B == "Z":
+                        alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+#For Beta
+        for i in open( file_name ).readlines():
+            if pat_beta.search( i ):
+                if len(i.split()) >8:
+                    try:
+                        if "D" in i.split()[-1]:
+                            frac = float( i.split()[-1].replace("D","E") )
+                        else:
+                            frac = float( i.split()[-1] )
+                    except IndexError:
+                        if "D" in i.split()[-1]:
+                            frac = float( i.split()[-1].strip("=").replace("D","E") )
+                        else:
+                            frac = float( i.split()[-1].strip("=") )
+
+                    lab1 = pat_beta.search(i).groups(1)[0]
+                    lab2 = pat_beta.search(i).groups(1)[1]
+                    lab3 = pat_beta.search(i).groups(1)[2]
+
+                    beta_dict[ lab1 + lab2 + lab3 ] = frac
+        for i, l1 in enumerate(lab):
+            for j, l2 in enumerate(lab):
+                for k, l3 in enumerate(lab):
+                    beta[i, j, k] = beta_dict[ l1 + l2 + l3 ]
+
+
+        return mol_dip, alpha , beta
 
 class Xms:
 
@@ -818,11 +1100,11 @@ class Xms:
         if self.char not in ["r", "theta", "tau", "rho1", "rho2", "rho3"]:
             print "wrong char in XmgraceStyle class, exiting"; raise SystemExit
         if self.char == "r"    :return r"r"            
-        if self.char == "theta":return r"\f{Symbol}q"  
-        if self.char == "tau"  :return r"\f{Symbol}t" 
-        if self.char == "rho1" :return r"\f{Symbol}r\s1\N" 
-        if self.char == "rho2" :return r"\f{Symbol}r\s2\N" 
-        if self.char == "rho3" :return r"\f{Symbol}r\s3\N" 
+        if self.char == "theta":return r"\xq\0"  
+        if self.char == "tau"  :return r"\xt\0" 
+        if self.char == "rho1" :return r"\xr\0\s1\N" 
+        if self.char == "rho2" :return r"\xr\0\s2\N" 
+        if self.char == "rho3" :return r"\xr\0\s3\N" 
 
 if __name__ == '__main__':
 
