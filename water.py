@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-#from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pyplot as plt
 
 import numpy as np
 import math as m
@@ -160,6 +160,7 @@ class Atom(object):
         self.AA = False
 
         if kwargs != {}:
+            self.AA = bool( kwargs.get( "AA", True ) )
             self.x = float( kwargs.get( "x" ))
             self.y = float( kwargs.get( "y" ))
             self.z = float( kwargs.get( "z" ))
@@ -787,8 +788,9 @@ class Water(list):
         r1= self.get_norm()
         r2= other.get_norm()
         return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
+
     @staticmethod
-    def read_waters( fname , AA = False ):
+    def read_waters( fname , AA = True ):
 
         """From file with name fname, return a list of all waters encountered"""
 #If the file is plain xyz file
@@ -856,13 +858,13 @@ class Water(list):
                         continue
                     if j.in_water:
                         continue
-#If in cartesian:
+#If in angstrom
                     if AA:
                         if i.dist_to_atom(j) < 1.1:
                             tmp.append ( j )
                             j.in_water = True
                     else:
-                        if i.dist_to_atom(j) < 1.2/a0:
+                        if i.dist_to_atom(j) < 1.1/a0:
                             tmp.append ( j )
                             j.in_water = True
                 tmp.number = cnt
@@ -953,9 +955,21 @@ class Water(list):
                 atom.res_id = wat.number
         return waters
 
-
-
-
+    def plot(self ):
+#Plot water molecule in green and  nice xyz axis
+        O1, H1, H2 = self.o, self.h1, self.h2
+        fig = plt.figure()
+        dip = self.get_dipole()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
             
 if __name__ == '__main__':
 

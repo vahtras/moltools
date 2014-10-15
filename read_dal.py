@@ -41,7 +41,6 @@ def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False ):
                     i.o.res_id, i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
         return string
 
-
 def hyperq(vec):
     tmp = []
     vec_new = []
@@ -50,6 +49,7 @@ def hyperq(vec):
             tmp.append(i[1])
             vec_new.append( i ) 
     return vec_new
+
 def run_argparse( args ):
     A = argparse.ArgumentParser( description = \
             "This program reads alpha and beta from dalton .out files, obtained for an ideal water molecule centered as oxygen at origo and hydrogens in the xz-plane.\n\n It also read coordinates of arbitrary water molecules and transforms the above read properties to their coordinate reference frame, and writes it to a .pot file." ,add_help= True)
@@ -58,8 +58,8 @@ def run_argparse( args ):
     A.add_argument( "-b",dest="beta", type = str,help="File that contains QUADRATIC response output with hyperpolarizabilities" ) 
     A.add_argument( "-bl", type = str, default = "1", help="Symmetry number beta [1, 2, 3]" )
     A.add_argument( "-x", type = str, help = 'Coordinate file with water molecules for the output .pot file. [ xyz , pdb ]')
-    A.add_argument( "-xAAorAU", type = str , default = "AU" ,
-            help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: "AA"')
+    A.add_argument( "-xAA", default = False ,
+            help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: "AU"')
     A.add_argument( "-dl", type = str, default = "1", help="Symmetry number dipole [0, 1]" )
     A.add_argument( "-test", action = "store_true", default = False )
     A.add_argument( "-mon", action = "store_true", default = False )
@@ -269,7 +269,7 @@ def read_beta_hf( args ):
         nuc_dip[2] += charge_dic[ i.element ] * i.z
 
 # Reading in Alfa and Beta tensor
-    pat_alpha = re.compile(r'@QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+    pat_alpha = re.compile(r'@.*QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
     for i in open( args.beta ).readlines():
         if pat_alpha.match( i ):
             try:
@@ -386,7 +386,7 @@ def main():
 #Read coordinates for water molecules where to put properties to
     f_waters = True
     if f_waters:
-        waters = Water.read_waters( args.x , AA = True )
+        waters = Water.read_waters( args.x , AA = args.xAA )
 
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if f_waters:
@@ -409,8 +409,14 @@ def main():
     polar.solve_scf()
     hyper.solve_scf()
 
-    print Water.square_3_ut( hyper.beta() )
+    print static.total_dipole_moment()
+    print polar.total_dipole_moment()
+    print hyper.total_dipole_moment()
+    #print Water.square_3_ut( hyper.beta() )
 
+    for i in waters:
+        for j in i:
+            print j
     raise SystemExit
 
 
