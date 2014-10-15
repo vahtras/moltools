@@ -9,7 +9,7 @@ import ut
 
 from particles import *
 from water import *
-from template import *
+from template import Template
 
 
 #from calculator import *
@@ -21,6 +21,25 @@ charge_dic = {"H1": 1.0 ,"H2":1.0 , "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S":
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
 
+def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False ):
+    """ Converts list of waters into Olav string for hyperpolarizable .pot"""
+# If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
+    if dist:
+        string = "AU\n%d %d %d %d\n" % ( len(waters)*3,
+                max_l, pol, hyper )
+        for i in waters:
+            i.set_property_on_each_atom()
+            string +=  i.o.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+            string +=  i.h1.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+            string +=  i.h2.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
+        return string
+    else:
+        string = "AU\n%d %d %d %d\n" % ( len(waters),
+                max_l, pol, hyper )
+        for i in waters:
+            string +=  "%d %.5f %.5f %.5f " %(
+                    i.o.res_id, i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
+        return string
 
 
 def hyperq(vec):
@@ -31,172 +50,6 @@ def hyperq(vec):
             tmp.append(i[1])
             vec_new.append( i ) 
     return vec_new
-
-def read_waters( args ):
-
-#If the file is plain xyz file
-    atoms = []
-    if args.x.endswith( ".xyz" ) or args.x.endswith(".mol"):
-        pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-        for i in open( args.x ).readlines():
-            if pat_xyz.match(i):
-                f = pat_xyz.match(i).groups()
-                tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-
-                if args.xAAorAU == "AU":
-                    if args.opAAorAU == "AA":
-                        tmpAtom.toAA()
-
-                elif args.xAAorAU == "AA":
-                    if args.opAAorAU == "AU":
-                        tmpAtom.toAU()
-
-                atoms.append( tmpAtom )
-
-    elif args.x.endswith( ".pdb" ):
-        pat1 = re.compile(r'^(ATOM|HETATM)')
-        for i in open( args.x ).readlines():
-            if pat1.search(i):
-                #Ignore charge centers for polarizable water models
-                if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
-                    continue
-                tmpAtom = Atom(i[11:16].strip()[0], \
-                        float(i[30:38].strip()), \
-                        float(i[38:46].strip()), \
-                        float(i[46:54].strip()), \
-                        int(i[22:26].strip()) )
-
-                if args.xAAorAU == "AU":
-                    if args.opAAorAU == "AA":
-                        tmpAtom.toAA()
-                elif args.xAAorAU == "AA":
-                    if args.opAAorAU == "AU":
-                        tmpAtom.toAU()
-                atoms.append( tmpAtom )
-    elif args.x.endswith( ".out" ):
-        pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-        for i in open( args.x ).readlines():
-            if pat_xyz.match(i):
-                f = pat_xyz.match(i).groups()
-                tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                if args.xAAorAU == "AU":
-                    if args.opAAorAU == "AA":
-                        tmpAtom.toAA()
-                elif args.xAAorAU == "AA":
-                    if args.opAAorAU == "AU":
-                        tmpAtom.toAU()
-                atoms.append( tmpAtom )
-#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
-    waters = []
-    cnt = 1
-
-    if args.x.endswith( ".xyz" ) or args.x.endswith(".mol"):
-        for i in atoms:
-            if i.element == "H":
-                continue
-            if i.inWater:
-                continue
-            tmp = Water(  )
-            i.inWater = True
-            tmp.addAtom( i )
-            for j in atoms:
-                if j.element == "O":
-                    continue
-                if j.inWater:
-                    continue
-#If in cartesian:
-                if args.opAAorAU == "AA":
-                    if i.dist(j) < 1.1:
-                        tmp.addAtom ( j )
-                        j.inWater = True
-                elif args.opAAorAU == "AU":
-                    if i.dist(j) < 1.1/a0:
-                        tmp.addAtom ( j )
-                        j.inWater = True
-            tmp.number = cnt
-            cnt += 1
-            waters.append( tmp )
-    elif args.x.endswith( ".pdb" ):
-#Find out the size of the box encompassing all atoms
-        xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-        xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-        for i in atoms:
-            if i.x < xmin:
-                xmin = i.x
-            if i.y < ymin:
-                ymin = i.y
-            if i.z < zmin:
-                zmin = i.z
-            if i.x > xmax:
-                xmax = i.x
-            if i.y > ymax:
-                ymax = i.y
-            if i.z > zmax:
-                zmax = i.z
-        center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-        wlist = []
-        for i in atoms:
-            if i.element != "O":
-                continue
-            tmp = Water()
-            i.inWater= True
-#__Water__.addAtom() method will update the waters residue number and center coordinate
-#When all atoms are there
-#Right now NOT center-of-mass
-            tmp.addAtom(i)
-            for j in atoms:
-                if j.element != "H":
-                    continue
-                if j.inWater:
-                    continue
-#1.05 because sometimes spc water lengths can be over 1.01
-                    
-                if args.opAAorAU == "AA":
-                    if i.dist(j) <= 1.05:
-                        j.inWater = True
-                        tmp.addAtom( j )
-                        if len(tmp.atomlist) == 3:
-                            break
-                elif args.opAAorAU == "AU":
-                    if i.dist(j) <= 1.05/a0:
-                        j.inWater = True
-                        tmp.addAtom( j )
-                        if len(tmp.atomlist) == 3:
-                            break
-            wlist.append( tmp )
-        wlist.sort( key = lambda x: x.distToPoint( center ))
-        center_water = wlist[0]
-        cent_wlist = wlist[1:]
-        cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
-        waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
-    elif args.x.endswith( ".out" ):
-        for i in atoms:
-            if i.element == "H":
-                continue
-            if i.inWater:
-                continue
-            tmp = Water(  )
-            i.inWater = True
-            tmp.addAtom( i )
-            for j in atoms:
-                if j.element == "O":
-                    continue
-                if j.inWater:
-                    continue
-#If in cartesian:
-                if args.opAAorAU == "AA":
-                    if i.dist(j) < 1.0:
-                        tmp.addAtom ( j )
-                        j.inWater = True
-                elif args.opAAorAU == "AU":
-                    if i.dist(j) < 1.0/a0:
-                        tmp.addAtom ( j )
-                        j.inWater = True
-            tmp.number = cnt
-            cnt += 1
-            waters.append( tmp )
-    return waters
-
 def run_argparse( args ):
     A = argparse.ArgumentParser( description = \
             "This program reads alpha and beta from dalton .out files, obtained for an ideal water molecule centered as oxygen at origo and hydrogens in the xz-plane.\n\n It also read coordinates of arbitrary water molecules and transforms the above read properties to their coordinate reference frame, and writes it to a .pot file." ,add_help= True)
@@ -416,7 +269,7 @@ def read_beta_hf( args ):
         nuc_dip[2] += charge_dic[ i.element ] * i.z
 
 # Reading in Alfa and Beta tensor
-    pat_alpha = re.compile(r'@ QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+    pat_alpha = re.compile(r'@QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
     for i in open( args.beta ).readlines():
         if pat_alpha.match( i ):
             try:
@@ -467,12 +320,12 @@ def main():
     """
     args = run_argparse( sys.argv )
 
+    f_waters = False
 
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
     beta = np.zeros( [3, 3, 3])
-
 
 #To be read from -b hfqua_file.out
 
@@ -483,15 +336,13 @@ def main():
     waters = np.zeros( [] )
 
 #read if linear calculation is supplied
-    #if f_alpha:
-    #    atoms, dipole_qm, alpha  = read_alpha( args )
+
     if args.alpha:
         dipole_qm = read_alpha( args )
 
 
 #read if quadratic calculation is supplied
     if args.beta:
-
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
@@ -511,8 +362,6 @@ def main():
         print "%.5f" % (beta_qm[ jk ] )
 
 
-    raise SystemExit
-
     if args.verbose:
         for i in atoms:
             print i
@@ -520,11 +369,9 @@ def main():
     if args.verbose:
         for i in range(len(dipole)):
             print "Dipole_%s: %f" %( lab[i], dipole_qm[i] )
-    if args.verbose:
         for i in range(len(alpha)):
             for j in range(len(alpha[i])):
                 print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
-    if args.verbose:
         for i in range(3):
             for j in range(3):
                 print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
@@ -534,27 +381,37 @@ def main():
                     print "Beta_%s%s%s: %f" %( lab[i], lab[j] , lab[k] , beta_qm[i][j][k] )
 
 
-    if args.template:
-        tmp = Templates().getBeta( args.tname, args.tmethod, args.tbasis )
-        dipole = np.array( tmp[0] )
-        alpha = np.array(  tmp[1] )
-        beta = np.array(   tmp[2] )
+    #if args.template:
 
 #Read coordinates for water molecules where to put properties to
-    #if f_waters:
-    #    waters = read_waters( args )
+    f_waters = True
+    if f_waters:
+        waters = Water.read_waters( args.x , AA = True )
 
-    raise SystemExit
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if f_waters:
+
+
         for i in waters:
-            i.dipole = dipole
-            i.alpha = alpha
-            i.beta = beta
-            i.get_euler()
-            i.transfer_dipole()
-            i.transfer_alpha()
-            i.transfer_beta()
+
+            kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
+            p = Property.from_template( **kwargs )
+
+            t1, t2, t3  = i.get_euler()
+            p.transform_ut_properties( t1, t2 ,t3 )
+            i.Property = p
+
+    static = PointDipoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = False ))
+    polar = PointDipoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = False ))
+    hyper = PointDipoleList.from_string( get_string( waters, dist = False ))
+
+    static.solve_scf()
+    polar.solve_scf()
+    hyper.solve_scf()
+
+    print Water.square_3_ut( hyper.beta() )
+
+    raise SystemExit
 
 
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
@@ -682,6 +539,10 @@ def main():
 
     if write_pot:
         f_ = open( args.op , "w" )
+        f_waters = True
+        d_l = "1"
+        a_l = "22"
+        b_l = "1"
         if f_waters:
 # Write different output depending on d_l, a_l, b_l
 # First way is default, which is upper triangular for alpha and beta
@@ -782,6 +643,8 @@ def main():
     #        atoms, qm_dipole = read_coords_and_dipole( args, custom_file = lin_outfile )
     #        print "Found QM dipole moment in %s" %lin_outfile
     #        print qm_dipole
+
+
 
 # Do olav calculations for the generated .pot file for the supplied .xyz/.pdb file:
     if not f_waters:

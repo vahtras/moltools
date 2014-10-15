@@ -6,6 +6,7 @@
 
 import numpy as np
 import math as m
+import re
 import ut
 
 a0 = 0.52917721092
@@ -102,12 +103,47 @@ class Property( dict ):
             p[ props ] = kwargs[ props ]
         return p
 
+    def transform_ut_properties( self, t1, t2, t3 ):
+
+        if self.has_key( "dipole" ):
+            self["dipole"] = Water.transform_dipole( self["dipole"] , t1, t2, t3 )
+
+        if self.has_key( "quadrupole" ):
+            self["quadrupole"] = self.transform_ut_quadrupole( t1, t2, t3 )
+
+        if self.has_key( "alpha" ):
+            self["alpha"] = self.transform_ut_alpha( t1, t2, t3 )
+
+        if self.has_key( "beta" ):
+            self["beta"] = self.transform_ut_beta( t1, t2, t3 )
+
+    def transform_ut_quadrupole( self, t1, t2 ,t3 ):
+        tmp_Q = Water.ut_2_to_square( self["quadrupole"] )
+        tmp_Q = Water.transform_alpha( tmp_Q , t1 ,t2 ,t3 )
+        tmp_Q = Water.square_2_ut( tmp_Q )
+        return tmp_Q
+
+    def transform_ut_alpha( self, t1, t2 ,t3 ):
+        tmp_a = Water.ut_2_to_square( self["alpha"] )
+        tmp_a = Water.transform_alpha( tmp_a , t1 ,t2 ,t3 )
+        tmp_a = Water.square_2_ut( tmp_a )
+        return tmp_a
+
+    def transform_ut_beta( self, t1, t2 ,t3 ):
+        tmp_b = Water.ut_3_to_square( self["beta"] )
+        tmp_b = Water.transform_beta( tmp_b, t1 ,t2 ,t3 )
+        tmp_b = Water.square_3_ut( tmp_b )
+        return  tmp_b
+
+
 class Atom(object):
 
     """ By default in Atomic units for coordinates """
     def __init__(self, *args, **kwargs ):
 
+#Element one-key char
         self.element = None
+
         self.polar = False
         self.cartesian = False
         self.theta = False
@@ -141,6 +177,8 @@ class Atom(object):
         return np.array( [self.x , self.y, self.z ] ).copy()
     def dist_to_atom(self, other):
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
+    def dist_to_point(self, other):
+        return np.sqrt( (self.x - other[0])**2 + (self.y -other[1])**2 + (self.z -other[2])**2 )
 
     def to_au(self):
         self.x /= a0
@@ -151,27 +189,6 @@ class Atom(object):
         self.x *= a0
         self.y *= a0
         self.z *= a0
-
-    def transform_dipole( self, qm_dipole, t1, t2, t3 ):
-        d_new1 = np.zeros([3]) #will be returned
-        d_new2 = np.zeros([3]) #will be returned
-        d_new3 = np.zeros([3]) #will be returned
-
-        rz  = Water.get_Rz( t1 )
-        ryi = Water.get_Ry_inv( t2 )
-        rz2 = Water.get_Rz( t3 )
-        for i in range(3):
-            for x in range(3):
-                d_new1[i] += rz[i][x] * qm_dipole[x]
-        for i in range(3):
-            for x in range(3):
-                d_new2[i] += ryi[i][x] * d_new1[x]
-        for i in range(3):
-            for x in range(3):
-                d_new3[i] += rz2[i][x] * d_new2[x]
-        self.qmDipole = d_new3
-        return d_new3
-
 class Water(list):
 
     def __init__(self , *args, **kwargs):
@@ -218,13 +235,14 @@ class Water(list):
         if len(self) > 3:
             print "tried to add additional atoms to water, exiting"
             raise SystemExit
+
         if not isinstance( atom, Atom ):
             print "wront class passed to water append"
             raise SystemExit
 
         if atom.element == "H":
             if self.no_hydrogens:
-                if float(atom.x ) > 0:
+                if float( atom.x ) > 0:
                     self.h1 = atom
                 else:
                     self.h2 = atom
@@ -234,10 +252,8 @@ class Water(list):
                     self.h1 = atom
                 else:
                     self.h2 = atom
-
         if atom.element == "O":
             self.o = atom
-
 #Add the atom
         super( Water, self).append(atom)
 
@@ -260,6 +276,20 @@ class Water(list):
         else:
 #Initialize water res_id from atomic res_id
             self.res_id = atom.res_id
+
+#Fix for when arbitrary rotation, let hydrogen closests to upper octant be h1, the other h2
+#The hydrogen closest to (1,1,1) gets to be h1, if they are equally close, then the one closest
+#to the x axis is h1
+        if len(self) == 3:
+            hyd1, hyd2 = [i for i in self if i.element == "H" ]
+            d1 = hyd1.dist_to_point( [1,1,1] )
+            d2 = hyd2.dist_to_point( [1,1,1] )
+            if d1 < d2:
+                self.h1 = hyd1
+                self.h2 = hyd2
+            else:
+                self.h1 = hyd2
+                self.h2 = hyd1
 
     def potline(self, max_l, pol, hyper, dist):
         return  "%d %.5f %.5f %.5f " %( 
@@ -405,31 +435,16 @@ class Water(list):
                             [ m.sin(theta), 0, m.cos(theta)]])
         return vec
 
-    #def plot_water(self ):
-#Plo#t water molecule in green and  nice xyz axis
-    #    O1, H1, H2 = self.o, self.h1, self.h2
-    #    fig = plt.figure()
-    #    dip = self.get_dipole()
-    #    ax = fig.add_subplot(111, projection='3d' )
-    #    ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-    #    ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-    #    ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-    #    ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-    #    ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-    #    ax.set_zlim3d( -5,5)
-    #    plt.xlim(-5,5)
-    #    plt.ylim(-5,5)
-    #    plt.show()
-
-    def transform_dipole( self, qm_dipole, t1, t2, t3 ):
-
+    @staticmethod
+    def transform_dipole( qm_dipole, t1, t2, t3 ):
         d_new1 = np.zeros([3]) #will be returned
         d_new2 = np.zeros([3]) #will be returned
         d_new3 = np.zeros([3]) #will be returned
 
-        rz  = self.get_Rz( t1 )
-        ryi = self.get_Ry_inv( t2 )
-        rz2 = self.get_Rz( t3 )
+        rz  = Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
+
         for i in range(3):
             for x in range(3):
                 d_new1[i] += rz[i][x] * qm_dipole[x]
@@ -441,16 +456,17 @@ class Water(list):
                 d_new3[i] += rz2[i][x] * d_new2[x]
         return d_new3
 
+    @staticmethod
     def transform_dist_dipole( self, qm_dipole, t1, t2, t3):
 #Input qm_dipole is 3 x 3 matrix row is atom col is px, py, pz
-
         d_new = np.zeros([3,3]) #will be returned
         d_new[0, :] = self.transform_dipole( qm_dipole[0], t1, t2, t3 )
         d_new[1, :] = self.transform_dipole( qm_dipole[1], t1, t2, t3 )
         d_new[2, :] = self.transform_dipole( qm_dipole[2], t1, t2, t3 )
         return d_new
 
-    def transform_quadrupole( self, qm_quadrupole, t1, t2 , t3 ):
+    @staticmethod
+    def transform_quadrupole( qm_quadrupole, t1, t2 , t3 ):
 
         a_new1 = np.zeros([3,3]) #will be calculated
         a_new2 = np.zeros([3,3]) #will be calculated
@@ -478,7 +494,8 @@ class Water(list):
         return a_new3
 
     
-    def transform_dist_quadrupole( self, qm_quadrupole, t1, t2, t3 ):
+    @staticmethod
+    def transform_dist_quadrupole( qm_quadrupole, t1, t2, t3 ):
         upper0 = np.array( qm_quadrupole[0] )
         upper1 = np.array( qm_quadrupole[1] )
         upper2 = np.array( qm_quadrupole[2] )
@@ -510,15 +527,16 @@ class Water(list):
         a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
         return a_new
 
-    def transform_alpha( self, qm_alpha, t1, t2 , t3 ):
+    @staticmethod
+    def transform_alpha( qm_alpha, t1, t2 , t3 ):
 
         a_new1 = np.zeros([3,3]) #will be calculated
         a_new2 = np.zeros([3,3]) #will be calculated
         a_new3 = np.zeros([3,3]) #will be calculated
 
-        rz = self.get_Rz( t1 )
-        ryi = self.get_Ry_inv( t2 )
-        rz2 = self.get_Rz( t3 )
+        rz  = Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
 
         for i in range(3):
             for j in range(3):
@@ -540,7 +558,8 @@ class Water(list):
 
         return a_new3
 
-    def transform_dist_alpha( self, qm_alpha, t1, t2, t3 ):
+    @staticmethod
+    def transform_dist_alpha( qm_alpha, t1, t2, t3 ):
         upper0 = np.array( qm_alpha[0] )
         upper1 = np.array( qm_alpha[1] )
         upper2 = np.array( qm_alpha[2] )
@@ -573,14 +592,15 @@ class Water(list):
         return a_new
 
 
-    def transform_beta( self, qm_beta, t1, t2, t3 ):
+    @staticmethod
+    def transform_beta( qm_beta, t1, t2, t3 ):
         b_new1 = np.zeros([3,3,3]) #will be calculated
         b_new2 = np.zeros([3,3,3]) #will be calculated
         b_new3 = np.zeros([3,3,3]) #will be calculated
 
-        rz =  self.get_Rz( t1 )
-        ryi = self.get_Ry_inv( t2 )
-        rz2 = self.get_Rz( t3 )
+        rz =  Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
 
         for i in range(3):
             for j in range(3):
@@ -606,7 +626,8 @@ class Water(list):
         return b_new3
 
 
-    def transform_dist_beta( self, qm_beta, t1, t2, t3 ):
+    @staticmethod
+    def transform_dist_beta( qm_beta, t1, t2, t3 ):
 #Transform upper triangular to 3x3x3x form, rotate it, and transform back to ut style
         upper0 = np.array( qm_beta[0] )
         upper1 = np.array( qm_beta[1] )
@@ -656,6 +677,43 @@ class Water(list):
         b2 = symmetrize_first_beta( b_new2 )
 
         return [ b0, b1, b2 ]
+
+    @staticmethod
+    def square_2_ut(alpha):
+        tmp_a = np.zeros( 6 )
+        for index, (i, j ) in enumerate( ut.upper_triangular(2) ):
+            tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
+        return tmp_a
+
+    @staticmethod
+    def square_3_ut(beta):
+        tmp_b = np.zeros( 10 )
+        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ):
+            tmp_b[ index ] = ( \
+                    beta[i, j, k] + beta[i, k, j] + \
+                    beta[j, i, k] + beta[j, k, i] + \
+                    beta[k, i, j] + beta[k, j, i] )/ 6
+        return tmp_b
+
+    @staticmethod
+    def ut_2_to_square( alpha):
+        tmp_a = np.zeros( (3,3, ))
+        for index, val in enumerate( ut.upper_triangular(2) ) :
+            tmp_a[ val[0], val[1] ] = alpha[ index ]
+            tmp_a[ val[1], val[0] ] = alpha[ index ]
+        return tmp_a
+
+    @staticmethod
+    def ut_3_to_square( beta ):
+        tmp_b = np.zeros( (3,3,3, ))
+        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ) :
+            tmp_b[ i, j ,k] = beta[ index ]
+            tmp_b[ i, k ,j] = beta[ index] 
+            tmp_b[ j, i, k] = beta [ index ]
+            tmp_b[ j, k, i] = beta [ index ]
+            tmp_b[ k, i, j] = beta [ index ]
+            tmp_b[ k, j, i] = beta [ index ]
+        return tmp_b
 
 
     def beta_par(self):
@@ -729,6 +787,174 @@ class Water(list):
         r1= self.get_norm()
         r2= other.get_norm()
         return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
+    @staticmethod
+    def read_waters( fname , AA = False ):
+
+        """From file with name fname, return a list of all waters encountered"""
+#If the file is plain xyz file
+
+        atoms = []
+        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
+            for i in open( fname ).readlines():
+                if pat_xyz.match(i):
+                    f = pat_xyz.match(i).groups()
+                    matched = pat_xyz.match(i).groups()
+                    kwargs = { "element" :  matched[0], "x" : matched[1],
+                            "y" : matched[2], "z" : matched[3] }
+                    tmpAtom = Atom( **kwargs )
+                    atoms.append( tmpAtom )
+
+        elif fname.endswith( ".pdb" ):
+            pat1 = re.compile(r'^(ATOM|HETATM)')
+            for i in open( fname ).readlines():
+                if pat1.search(i):
+                    #Ignore charge centers for polarizable water models
+                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
+                        continue
+                    tmpAtom = Atom(i[11:16].strip()[0], \
+                            float(i[30:38].strip()), \
+                            float(i[38:46].strip()), \
+                            float(i[46:54].strip()), \
+                            int(i[22:26].strip()) )
+
+                    if fnameAAorAU == "AU":
+                        if args.opAAorAU == "AA":
+                            tmpAtom.toAA()
+                    elif fnameAAorAU == "AA":
+                        if args.opAAorAU == "AU":
+                            tmpAtom.to_au()
+                    atoms.append( tmpAtom )
+        elif fname.endswith( ".out" ):
+            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
+            for i in open( fname ).readlines():
+                if pat_xyz.match(i):
+                    f = pat_xyz.match(i).groups()
+                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
+                    if fnameAAorAU == "AU":
+                        if args.opAAorAU == "AA":
+                            tmpAtom.toAA()
+                    elif fnameAAorAU == "AA":
+                        if args.opAAorAU == "AU":
+                            tmpAtom.to_au()
+                    atoms.append( tmpAtom )
+#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
+        waters = []
+        cnt = 1
+
+        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+            for i in atoms:
+                if i.element == "H":
+                    continue
+                if i.in_water:
+                    continue
+                tmp = Water()
+                i.in_water = True
+                tmp.append( i )
+                for j in atoms:
+                    if j.element == "O":
+                        continue
+                    if j.in_water:
+                        continue
+#If in cartesian:
+                    if AA:
+                        if i.dist_to_atom(j) < 1.1:
+                            tmp.append ( j )
+                            j.in_water = True
+                    else:
+                        if i.dist_to_atom(j) < 1.2/a0:
+                            tmp.append ( j )
+                            j.in_water = True
+                tmp.number = cnt
+                cnt += 1
+                waters.append( tmp )
+
+        elif fname.endswith( ".pdb" ):
+#Find out the size of the box encompassing all atoms
+            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
+            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
+            for i in atoms:
+                if i.x < xmin:
+                    xmin = i.x
+                if i.y < ymin:
+                    ymin = i.y
+                if i.z < zmin:
+                    zmin = i.z
+                if i.x > xmax:
+                    xmax = i.x
+                if i.y > ymax:
+                    ymax = i.y
+                if i.z > zmax:
+                    zmax = i.z
+            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
+            wlist = []
+            for i in atoms:
+                if i.element != "O":
+                    continue
+                tmp = Water()
+                i.in_water= True
+#__Water__.append() method will update the waters residue number and center coordinate
+#When all atoms are there
+#Right now NOT center-of-mass
+                tmp.append(i)
+                for j in atoms:
+                    if j.element != "H":
+                        continue
+                    if j.in_water:
+                        continue
+#1.05 because sometimes spc water lengths can be over 1.01
+                        
+                    if args.opAAorAU == "AA":
+                        if i.dist(j) <= 1.05:
+                            j.in_water = True
+                            tmp.append( j )
+                            if len(tmp.atomlist) == 3:
+                                break
+                    elif args.opAAorAU == "AU":
+                        if i.dist(j) <= 1.05/a0:
+                            j.in_water = True
+                            tmp.append( j )
+                            if len(tmp.atomlist) == 3:
+                                break
+                wlist.append( tmp )
+            wlist.sort( key = lambda x: x.distToPoint( center ))
+            center_water = wlist[0]
+            cent_wlist = wlist[1:]
+            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
+            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
+        elif fname.endswith( ".out" ):
+            for i in atoms:
+                if i.element == "H":
+                    continue
+                if i.in_water:
+                    continue
+                tmp = Water()
+                i.in_water = True
+                tmp.append( i )
+                for j in atoms:
+                    if j.element == "O":
+                        continue
+                    if j.in_water:
+                        continue
+#If in cartesian:
+                    if i.AA:
+                        if i.dist(j) < 1.0:
+                            tmp.append ( j )
+                            j.in_water = True
+                    else:
+                        if i.dist(j) < 1.0/a0:
+                            tmp.append ( j )
+                            j.in_water = True
+                tmp.number = cnt
+                cnt += 1
+                waters.append( tmp )
+        for wat in waters:
+            for atom in wat:
+                atom.res_id = wat.number
+        return waters
+
+
+
 
             
 if __name__ == '__main__':
@@ -757,5 +983,6 @@ if __name__ == '__main__':
             w2 = g.get_water( [ x, y, z], r_oh, theta_hoh )
             w2.res_id = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
             g.writeMol( [ w1, w2 ])
+    
 
 
