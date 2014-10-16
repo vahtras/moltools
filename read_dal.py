@@ -21,11 +21,15 @@ charge_dic = {"H1": 1.0 ,"H2":1.0 , "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S":
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
 
-def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False ):
+def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
     """ Converts list of waters into Olav string for hyperpolarizable .pot"""
 # If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
+    if AA:
+        str_ = "AA"
+    else:
+        str_ = "AU"
     if dist:
-        string = "AU\n%d %d %d %d\n" % ( len(waters)*3,
+        string = "%s\n%d %d %d %d\n" % ( str_, len(waters)*3,
                 max_l, pol, hyper )
         for i in waters:
             i.set_property_on_each_atom()
@@ -34,11 +38,11 @@ def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False ):
             string +=  i.h2.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
         return string
     else:
-        string = "AU\n%d %d %d %d\n" % ( len(waters),
+        string = "%s\n%d %d %d %d\n" % ( str_, len(waters),
                 max_l, pol, hyper )
         for i in waters:
             string +=  "%d %.5f %.5f %.5f " %(
-                    i.o.res_id, i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
+                    int(i.o.res_id), i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
         return string
 
 def hyperq(vec):
@@ -54,20 +58,20 @@ def run_argparse( args ):
     A = argparse.ArgumentParser( description = \
             "This program reads alpha and beta from dalton .out files, obtained for an ideal water molecule centered as oxygen at origo and hydrogens in the xz-plane.\n\n It also read coordinates of arbitrary water molecules and transforms the above read properties to their coordinate reference frame, and writes it to a .pot file." ,add_help= True)
     A.add_argument( "-a", dest = "alpha", type = str, help="File that contains LINEAR response output with polarizabilities" )
-    A.add_argument( "-al", type = str, default = "22", help="Symmetry number alpha [1, 2, 3]" )
+    A.add_argument( "-al", type = str, default = "22", help="Symmetry res_id alpha [1, 2, 3]" )
     A.add_argument( "-b",dest="beta", type = str,help="File that contains QUADRATIC response output with hyperpolarizabilities" ) 
-    A.add_argument( "-bl", type = str, default = "1", help="Symmetry number beta [1, 2, 3]" )
+    A.add_argument( "-bl", type = str, default = "1", help="Symmetry res_id beta [1, 2, 3]" )
     A.add_argument( "-x", type = str, help = 'Coordinate file with water molecules for the output .pot file. [ xyz , pdb ]')
-    A.add_argument( "-xAA", default = False ,
+    A.add_argument( "-xAA", default = False ,action='store_true',
             help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: "AU"')
-    A.add_argument( "-dl", type = str, default = "1", help="Symmetry number dipole [0, 1]" )
+    A.add_argument( "-dl", type = str, default = "1", help="Symmetry res_id dipole [0, 1]" )
     A.add_argument( "-test", action = "store_true", default = False )
     A.add_argument( "-mon", action = "store_true", default = False )
     A.add_argument("-v","--verbose", action='store_true' , default = False)
     A.add_argument("-write", nargs='*', default = [],  help = "Supply any which files to write from a selection: pot, xyz" )
     A.add_argument("-waters", type = int , default = 4, help = "how many waters to take closest to center atom, default: 4")
     A.add_argument( "-op", type = str, default = "conf.pot", help='output name of the .pot file, default: "conf.pot"' )
-    A.add_argument( "-opAAorAU", type = str, default = "AU" , help='Default coordinate type AA or AU for -op output potential file, default: "AU"' )
+    A.add_argument( "-oAA", default = False, action='store_true' , help='Default coordinate type AA or AU for -op output potential file, default: "AU"' )
 
     A.add_argument( "-ox", type = str, default = "conf.xyz", help='output name of the .xyz file, default: "conf.xyz"' )
 
@@ -225,6 +229,7 @@ def read_beta_hf( args ):
                     "y" : matched[2], "z" : matched[3] }
             tmpAtom = Atom( **kwargs )
             atoms.append( tmpAtom )
+
         if pat_pol.search(i):
             if pat_pol.search(i).group(1) == "X":
                 try:
@@ -310,6 +315,10 @@ def read_beta_hf( args ):
                     beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
                 except KeyError:
                     beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
+    if args.xAA:
+        nuc_dip /= a0
+    tot_dip = nuc_dip - el_dip
+
     return atoms, nuc_dip - el_dip, alpha , beta
 
 
@@ -386,14 +395,14 @@ def main():
 #Read coordinates for water molecules where to put properties to
     f_waters = True
     if f_waters:
-        waters = Water.read_waters( args.x , AA = args.xAA )
+        waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
+
+    alpha_qm = Water.square_2_ut( alpha_qm )
+    beta_qm = Water.square_3_ut( beta_qm )
 
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if f_waters:
-
-
         for i in waters:
-
             kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
             p = Property.from_template( **kwargs )
 
@@ -401,25 +410,54 @@ def main():
             p.transform_ut_properties( t1, t2 ,t3 )
             i.Property = p
 
-    static = PointDipoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = False ))
-    polar = PointDipoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = False ))
-    hyper = PointDipoleList.from_string( get_string( waters, dist = False ))
+    static = PointDipoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = False , AA = args.oAA ))
+    polar = PointDipoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = False , AA = args.oAA ))
+    hyper = PointDipoleList.from_string( get_string( waters, dist = False , AA = args.oAA ))
 
     static.solve_scf()
     polar.solve_scf()
     hyper.solve_scf()
 
-    print static.total_dipole_moment()
-    print polar.total_dipole_moment()
-    print hyper.total_dipole_moment()
-    #print Water.square_3_ut( hyper.beta() )
+    sd = static.total_dipole_moment()
+    pd = polar.total_dipole_moment()
+    hd = hyper.total_dipole_moment()
 
-    for i in waters:
-        for j in i:
-            print j
-    raise SystemExit
+    pa =  Water.square_2_ut( polar.alpha() )
+    ha =  Water.square_2_ut( hyper.alpha() )
 
+    hb =  Water.square_3_ut( hyper.beta() )
 
+    lab1 = ["X", "Y", "Z"]
+    lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
+    lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+
+    print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
+    for i in range(3):
+        print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+
+    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+    for i, j in enumerate ( ut.upper_triangular( 2 )) :
+        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                alpha_qm[i],\
+                pa[i],\
+                ha[i]  )
+
+    print "\nBeta;\t QM,\t Quadratic"
+    for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+        print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
+
+    hb = Water.ut_3_to_square(hb)
+    beta_qm = Water.ut_3_to_square( beta_qm )
+
+    hb_z = np.einsum('ijj->i' ,hb )
+    qm_z = np.einsum('ijj->i', beta_qm )
+
+    print "\n\nThe projected beta, a.k.a. beta parallel component"
+    print "Quantum mechanical:"
+    print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
+    print "Quadratic model: "
+    print np.dot( hb_z, hd ) / np.linalg.norm( hd )
+    
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if f_waters and args.mon:
         for i in waters:
@@ -455,7 +493,7 @@ def main():
 #Write to file, potential
 
 #Only write output file if input alpha, beta, and coordinates are given
-    if ("pot" in args.write) or (f_waters and f_alpha and f_beta):
+    if "pot" in args.write:
         write_pot = True
     else:
         write_pot = False
@@ -475,7 +513,7 @@ def main():
             print "Performing tests of transfers"
             for i in waters:
 
-                print "Water number %d \nSquare dipole:" % i.number
+                print "Water res_id %d \nSquare dipole:" % i.res_id
                 print i.square_dipole()
 
                 print "alpha trace: "
@@ -489,119 +527,25 @@ def main():
 
 
 #Inline temporary code to generate static, polarizable and hyperpolarizable string
-    
-
-    if f_waters:
-#put tensors as centered in center of mass instead of on oxygen
-        if args.com:
-            for i in waters:
-                i.center = i.com
-        else:
-            for i in waters:
-                i.center = [ i.o.x, i.o.y, i.o.z ]
-        string_static = "AU\n%d 1 0\n" %len(waters)
-        string_polarizable = "AU\n%d 1 2 1\n" %len(waters)
-        string_hyperpolarizable = "AU\n%d 1 22 1\n" %len(waters)
-        for i in waters:
-            string_static += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.center[0], 
-                i.center[1], i.center[2], \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) 
-            string_polarizable += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.center[0],
-                i.center[1], i.center[2] , \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) 
-            string_hyperpolarizable += "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, 
-                i.center[0], i.center[1], i.center[2], \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) 
-
-
-# Here start writing the .pot file
-
-    if write_pot:
-        f_ = open( args.op , "w" )
-        f_waters = True
-        d_l = "1"
-        a_l = "22"
-        b_l = "1"
-        if f_waters:
-# Write different output depending on d_l, a_l, b_l
-# First way is default, which is upper triangular for alpha and beta
-            if d_l == "1" and a_l == "22" and b_l == "1":
-                f_.write( "%s\n" %args.opAAorAU + str(len(waters)) + " %s %s %s\n" \
-                        %( d_l, a_l, b_l) )
-                for i in waters:
-                    f_.write( "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.o.x, i.o.y, i.o.z, \
-                           i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                                      i.alpha[1][1], i.alpha[1][2], \
-                                                     i.alpha[2][2], \
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                                        i.beta[0][1][1], i.beta[0][1][2], \
-                                                         i.beta[0][2][2], \
-                                        i.beta[1][1][1], i.beta[1][1][2], \
-                                                         i.beta[1][2][2], \
-                                                         i.beta[2][2][2] )) )
-# If dipole, full alpha, and full tensor beta, (1, 3, 3) OLD ROUTINE 
-            if d_l == "1" and a_l == "3" and b_l == "3":
-                f_.write( "AA\n" + str(len(waters)) + " %s %s %s\n" \
-                        %( d_l, a_l, b_l) )
-                for i in waters:
-                    f_.write( "%d %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n" %((i.number, i.o.x, i.o.y, i.o.z, \
-
-                       i.q, i.dipole[0], i.dipole[1], i.dipole[2], \
-
-                       i.alpha[0][0], i.alpha[0][1], i.alpha[0][2], \
-                       i.alpha[1][0], i.alpha[1][1], i.alpha[1][2], \
-                       i.alpha[2][0], i.alpha[2][1], i.alpha[2][2], \
-
-                       i.beta[0][0][0], i.beta[0][0][1], i.beta[0][0][2], \
-                       i.beta[0][1][0], i.beta[0][1][1], i.beta[0][1][2], \
-                       i.beta[0][2][0], i.beta[0][2][1], i.beta[0][2][2], \
-                       i.beta[1][0][0], i.beta[1][0][1], i.beta[1][0][2], \
-                       i.beta[1][1][0], i.beta[1][1][1], i.beta[1][1][2], \
-                       i.beta[1][2][0], i.beta[1][2][1], i.beta[1][2][2], \
-                       i.beta[2][0][0], i.beta[2][0][1], i.beta[2][0][2], \
-                       i.beta[2][1][0], i.beta[2][1][1], i.beta[2][1][2], \
-                       i.beta[2][2][0], i.beta[2][2][1], i.beta[2][2][2] )) )
-        f_.close()
-
 #Write the mol file for target cluster, if the corresponding qua_ file
 #already exist( i.e. calculation has been run, perform analysis on those)
 
     if write_mol:
+
         if args.x.endswith(".pdb"):
             name = args.x.split(".")[0] + "_" + str(args.waters) + ".mol"
+
         elif args.x.endswith( ".xyz" ):
             name = args.x.split(".")[0] + ".mol"
 
         f_ = open( name , "w" )
-        f_.write( "ATOMBASIS\n\nComment\nAtomtypes=2 Charge=0 Nosymm Angstrom\n")
+
+        if args.oAA:
+            str_ = "Angstrom"
+        else:
+            str_ = ""
+        f_.write( "ATOMBASIS\n\nComment\nAtomtypes=2 Charge=0 Nosymm %s\n" %str_)
+
         if not f_waters:
             "Can't write to .mol file, didn't read water molecules"
             raise SystemExit
@@ -611,19 +555,15 @@ def main():
         f_.write( "Charge=1.0 Atoms=%d Basis=cc-pVDZ\n" % hCnt)
 
         for i in waters:
-            for j in i.atomlist:
+            for j in i:
                 if j.element == "H":
-                    j.toAA()
                     f_.write( "%s   %.5f   %.5f   %.5f\n" %( j.element, j.x, j.y, j.z ))
-                    j.toAU()
 
         f_.write( "Charge=8.0 Atoms=%d Basis=cc-pVDZ\n" % oCnt)
         for i in waters:
-            for j in i.atomlist:
+            for j in i:
                 if j.element == "O":
-                    j.toAA()
                     f_.write( "%s   %.5f   %.5f   %.5f\n" %( j.element, j.x, j.y, j.z ))
-                    j.toAU()
         raise SystemExit
 
 #Write the xyz file for target cluster
@@ -651,6 +591,7 @@ def main():
     #        print qm_dipole
 
 
+    raise SystemExit
 
 # Do olav calculations for the generated .pot file for the supplied .xyz/.pdb file:
     if not f_waters:
@@ -658,8 +599,6 @@ def main():
 
     #if args.op:
     #    string  =  open( args.op ).read()
-
-    print string_hyperpolarizable
 
     if f_waters:
         static = PointDipoleList.from_string( string_static )

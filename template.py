@@ -4,7 +4,6 @@
 class Template:
     def __init__(self):
 
-
         self.olav_hf_cc_pVDZ_dist = \
         {
 #Distributed Dipole for O, H1, H2
@@ -32,7 +31,31 @@ class Template:
           [ 7.465,     0.000,    -4.959,     1.692,     0.000,     4.101,     0.000,    -0.982,     0.000,    -3.583]]
 
         }
+        self.olav_dft_cc_pVDZ_dist = \
+        {
+#Distributed Dipole for O, H1, H2
+#Charge
+"charge" : [-0.634,
+             0.317,
+             0.317 ],
 
+#Dipx     Dipy       Dipz
+"dipole" :  [[-0.000,     0.000,     0.324],
+             [-0.18, 0.0, -0.142],
+             [0.18, 0.0, -0.142]],
+#Quadxx    Quadxy    Quadxz    Quadyy     Quadyz    Quadzz
+"quadrupole" : [[-3.172, -0.0, 0.0, -4.294, 0.0, -3.766],
+               [-0.141, -0.0, 0.285, -0.459, -0.0, -0.232],
+               [-0.141, 0.0, -0.285, -0.459, -0.0, -0.232]],
+#Alphaxx   Alphaxy   Alphaxz   Alphayy   Alphayz   Alphazz
+"alpha" :   [[3.456, 0.0, 0.0, 1.558,  -0.0, 2.777],
+             [2.039, -0.0, 1.174, 0.821,  -0.0, 1.383],
+             [2.039, 0.0, -1.174, 0.821,  -0.0, 1.383]],
+          #Betaxxx    Betaxxy    Betaxxz    Betaxyy     Betaxyz   Betaxzz   Betayyy     Betayyz    Betayzz    Betazzz
+"beta" : [[ -0.0, 0.0, -9.813, -0.0, -0.0, -0.0, -0.0, -0.845, 0.0, -5.888],
+          [-7.579, 0.0, -5.101, -2.172, 0.0, -4.493, 0.0, -1.334, 0.0, -4.064],
+          [ 7.579, 0.0, -5.101, 2.172, -0.0, 4.493, 0.0, -1.334, 0.0, -4.064]]
+        }
         self.olav_hf_cc_pVDZ = \
         {
 #Charge
@@ -60,8 +83,8 @@ class Template:
          [ 0.0 , 3.034600 , 0.0  ] ,
          [ 0.0 , 0.0 , 5.223948 ]] ,
 #Beta
-        [[[ 0.0 , 0.0, -18.452810 ],
-          [ 0.0 , 0.0, 0.0],
+        [[[  0.0 , 0.0, -18.452810 ],
+          [  0.0 , 0.0, 0.0],
           [ -18.452810 , 0.0, 0.0 ]],
 
          [[ 0.0 , 0.0, 0.0 ],

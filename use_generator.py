@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-import argparse, re
+import argparse, re, fractions
 
 import numpy as np
 import math as m
 
 from water import Water, Atom, Property
 from owndict import *
-
 
 class Generator:
     """
@@ -53,28 +52,35 @@ class Generator:
 
         self.vary_parameters()
 
-    def gen_mols(self, AA = False,):
+    def gen_mols_params(self, AA = False,):
+
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
-        theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
-                complex( "%sj"%self.optionsTheta[ "points" ] ) ]
+
         tau = np.r_[ self.optionsTau[ "min" ] : self.optionsTau[ "max" ] : \
                 complex( "%sj"%self.optionsTau[ "points" ] ) ]
+
+        theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
+                complex( "%sj"%self.optionsTheta[ "points" ] ) ]
+
         rho1 = np.r_[ self.optionsRho1[ "min" ] : self.optionsRho1[ "max" ] : \
                 complex( "%sj"%self.optionsRho1[ "points" ] ) ]
+
         rho2 = np.r_[ self.optionsRho2[ "min" ] : self.optionsRho2[ "max" ] : \
                 complex( "%sj"%self.optionsRho2[ "points" ] ) ]
+
         rho3 = np.r_[ self.optionsRho3[ "min" ] : self.optionsRho3[ "max" ] : \
                 complex( "%sj"%self.optionsRho3[ "points" ] ) ]
+
         for i in r:
-            for j in theta:
-                for k in tau:
+            for j in tau:
+                for k in theta:
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
                                 w1 = self.get_water_params( [0, 0, 0], self.r_oh, self.theta_hoh, AA = AA)
-                                x, y, z = self.getCartesianFromDegree( i, j, k )
-                                w2 = self.get_water( [x,y,z], self.r_oh, self.theta_hoh)
+                                x, y, z = self.polar_to_cartesian( i, j, k )
+                                w2 = self.get_water_params( [x,y,z], self.r_oh, self.theta_hoh)
                                 w2.rotate( l, m, n )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
@@ -89,12 +95,12 @@ class Generator:
                     if i == "r":
                         self.varyR = True
                         self.optionsR = j[i]
-                    if i == "theta":
-                        self.varyTheta = True
-                        self.optionsTheta = j[i]
                     if i == "tau":
                         self.varyTau = True
                         self.optionsTau = j[i]
+                    if i == "theta":
+                        self.varyTheta = True
+                        self.optionsTheta = j[i]
                     if i == "rho1":
                         self.varyRho1 = True
                         self.optionsRho1 = j[i]
@@ -352,10 +358,12 @@ class Generator:
                 f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
         f_.close()
 
-    def getCartesianFromDegree(self, r, theta, tau):
-        return r* m.sin( m.pi*theta/180.0 )*m.cos( m.pi*tau/180.0) \
-               , r* m.sin( m.pi*theta/180.0 )*m.sin( m.pi*tau/180.0)  \
-               , r* m.cos( m.pi*theta/180.0 )
+    def polar_to_cartesian(self, r, tau, theta):
+        x, y, z = r* m.sin( theta )*m.cos( tau ) \
+               , r* m.sin(  theta )*m.sin( tau )  \
+               , r* m.cos(  theta ) 
+
+        return x , y , z
 
 if __name__ == '__main__':
 
@@ -364,44 +372,59 @@ if __name__ == '__main__':
 
 #Related to generating two water molecules with specified 6 parameters
     A.add_argument( "-params"   , default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_r"   , default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_theta" , default = False , action = 'store_true' )
-    A.add_argument( "-vary_tau"   , default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_rho1", default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_rho2", default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_rho3", default = False , action = 'store_true' ) 
+    #A.add_argument( "-vary_r"   , default = False , action = 'store_true' ) 
+    #A.add_argument( "-vary_theta" , default = False , action = 'store_true' )
+    #A.add_argument( "-vary_tau"   , default = False , action = 'store_true' ) 
+    #A.add_argument( "-vary_rho1", default = False , action = 'store_true' ) 
+    #A.add_argument( "-vary_rho2", default = False , action = 'store_true' ) 
+    #A.add_argument( "-vary_rho3", default = False , action = 'store_true' ) 
 
-    A.add_argument( "-r_min"     ,   type = float ) 
-    A.add_argument( "-theta_min" ,   type = float ) 
-    A.add_argument( "-tau_min"   ,   type = float ) 
-    A.add_argument( "-rho1_min"  ,   type = float ) 
-    A.add_argument( "-rho2_min"  ,   type = float ) 
-    A.add_argument( "-rho3_min"  ,   type = float ) 
+    A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
+    A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
+    A.add_argument( "-tau"   ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho1"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho2"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho3"  ,   type = float , default = 0.00  ) 
 
-#Related to generating one water
+    A.add_argument( "-r_max"     ,   type = float , default = 10.0 ) 
+    A.add_argument( "-theta_max" ,   type = float , default = np.pi/2    ) 
+    A.add_argument( "-tau_max"   ,   type = float , default = np.pi/2    ) 
+    A.add_argument( "-rho1_max"  ,   type = float , default = np.pi/2    ) 
+    A.add_argument( "-rho2_max"  ,   type = float , default = np.pi      ) 
+    A.add_argument( "-rho3_max"  ,   type = float , default = np.pi/2    ) 
+
+    A.add_argument( "-r_points"     ,   type = int , default = 1) 
+    A.add_argument( "-theta_points" ,   type = int , default = 1) 
+    A.add_argument( "-tau_points"   ,   type = int , default = 1) 
+    A.add_argument( "-rho1_points"  ,   type = int , default = 1) 
+    A.add_argument( "-rho2_points"  ,   type = int , default = 1) 
+    A.add_argument( "-rho3_points"  ,   type = int , default = 1) 
+
+#Related to generating/getting one water
     A.add_argument( "-get_water"   , default = False , action = 'store_true' ) 
-    A.add_argument( "-r_oh" , type = float,  default = 1.83681 )
-    A.add_argument( "-t_hoh" , type = float,  default = 104.5 )
-    A.add_argument( "-rho1" , type = float,  default = 0.0 )
-    A.add_argument( "-rho2" , type = float,  default = 0.0 )
-    A.add_argument( "-rho3" , type = float,  default = 0.0 )
+    A.add_argument( "-get_r_oh" , type = float,  default = 1.83681 )
+    A.add_argument( "-get_t_hoh" , type = float,  default = 104.5 )
+    A.add_argument( "-get_rho1" , type = float,  default = 0.0 )
+    A.add_argument( "-get_rho2" , type = float,  default = 0.0 )
+    A.add_argument( "-get_rho3" , type = float,  default = 0.0 )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
     args = A.parse_args()
 
     g = Generator()
 
     opts =  {
-             "r"        : {  "min": 6.30   , "max": 10.00  ,  "points": 1  } ,
-             "theta"    : {  "min": 1.57   , "max": np.pi/2  , "points":1  } ,
-             "tau"      : {  "min": 0.00   , "max": np.pi/2  , "points":1  } ,
-             "rho1"     : {  "min": 0.00   , "max": np.pi/2  , "points":10 } ,
-             "rho2"     : {  "min": 0.00   , "max": np.pi    , "points":1  } ,
-             "rho3"     : {  "min": 0.00   , "max": np.pi/2  , "points":1  } ,
+       "r"    :{"min":args.r,    "max": args.r_max,    "points":args.r_points,    },
+       "tau"  :{"min":args.tau,  "max": args.tau_max,  "points":args.tau_points,  },
+       "theta":{"min":args.theta,"max": args.theta_max,"points":args.theta_points,},
+       "rho1" :{"min":args.rho1, "max": args.rho1_max, "points":args.rho1_points, },
+       "rho2" :{"min":args.rho2, "max": args.rho2_max, "points":args.rho2_points, },
+       "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
              }
 
     if args.params:
         g.vary_parameters( opts )
-        g.gen_mols( AA = False )
+        g.gen_mols_params( AA = False )
+
     if args.get_water:
         w = g.get_water( args.r_oh, args.t_hoh, \
                 args.rho1, args.rho2, args.rho3, AA = False )

@@ -64,15 +64,11 @@ class Property( dict ):
                 )
 
     def potline(self, max_l , pol, hyper, dist):
-
         string = ""
-
         if 0  <= max_l :
             string += "%.5f " %( self["charge"] )
-
         if max_l >= 1 :
             string += "%.5f %.5f %.5f " %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
-
         if max_l >= 2 :
             string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
                     self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2] ,
@@ -142,6 +138,7 @@ class Atom(object):
     def __init__(self, *args, **kwargs ):
 
 #Element one-key char
+
         self.element = None
 
         self.polar = False
@@ -186,10 +183,11 @@ class Atom(object):
         self.y /= a0
         self.z /= a0
 
-    def to_aa(self):
+    def to_AA(self):
         self.x *= a0
         self.y *= a0
         self.z *= a0
+
 class Water(list):
 
     def __init__(self , *args, **kwargs):
@@ -197,11 +195,11 @@ class Water(list):
         self.atoms = 0
         self.q = 0.0
         self.r_oh = False
-        self.theta_hoh = False
+        self.t_hoh = False
 #Spherical coordinates
-        self.r = False
-        self.theta = False
-        self.tau = False
+        #self.r = False
+        #self.theta = False
+        #self.tau = False
 
 # Relative rotation euler angles 
 # 
@@ -224,7 +222,7 @@ class Water(list):
 
 #By default set center as center of nuclei charge
 
-        self.center  = False
+        self.center = False
         self.res_id = 0
         self.atomlist  = []
 
@@ -243,16 +241,10 @@ class Water(list):
 
         if atom.element == "H":
             if self.no_hydrogens:
-                if float( atom.x ) > 0:
-                    self.h1 = atom
-                else:
-                    self.h2 = atom
-                self.bNoHydrogens = False
+                self.h1 = atom
+                self.no_hydrogens = False
             else:
-                if float(atom.x ) > 0:
-                    self.h1 = atom
-                else:
-                    self.h2 = atom
+                self.h2 = atom
         if atom.element == "O":
             self.o = atom
 #Add the atom
@@ -278,9 +270,12 @@ class Water(list):
 #Initialize water res_id from atomic res_id
             self.res_id = atom.res_id
 
+
 #Fix for when arbitrary rotation, let hydrogen closests to upper octant be h1, the other h2
 #The hydrogen closest to (1,1,1) gets to be h1, if they are equally close, then the one closest
 #to the x axis is h1
+
+#Also calculate center now
         if len(self) == 3:
             hyd1, hyd2 = [i for i in self if i.element == "H" ]
             d1 = hyd1.dist_to_point( [1,1,1] )
@@ -766,18 +761,14 @@ class Water(list):
         return  self.qmAlpha[0][0] + self.qmAlpha[1][1] + self.qmAlpha[2][2]
 
     def to_au(self):
-        if self.AA:
-            self.h1.to_au()
-            self.h2.to_au()
-            self.o.to_au()
-            self.AA = False
+        self.h1.to_au()
+        self.h2.to_au()
+        self.o.to_au()
 
-    def to_aa(self):
-        if not self.AA:
-            self.h1.to_aa()
-            self.h2.to_aa()
-            self.o.to_aa()
-            self.AA = True
+    def to_AA(self):
+        self.h1.to_aa()
+        self.h2.to_aa()
+        self.o.to_aa()
 
     def get_angle_rho(self, other):
         d1 = self.get_dipole()
@@ -789,12 +780,12 @@ class Water(list):
         r2= other.get_norm()
         return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
 
+# in_AA specifies if input coords are in angstrom
     @staticmethod
-    def read_waters( fname , AA = True ):
+    def read_waters( fname , in_AA = True, out_AA = True , N_waters = 1):
+
 
         """From file with name fname, return a list of all waters encountered"""
-#If the file is plain xyz file
-
         atoms = []
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
             pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
@@ -811,21 +802,15 @@ class Water(list):
             pat1 = re.compile(r'^(ATOM|HETATM)')
             for i in open( fname ).readlines():
                 if pat1.search(i):
-                    #Ignore charge centers for polarizable water models
                     if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
                         continue
-                    tmpAtom = Atom(i[11:16].strip()[0], \
-                            float(i[30:38].strip()), \
-                            float(i[38:46].strip()), \
-                            float(i[46:54].strip()), \
-                            int(i[22:26].strip()) )
-
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.to_au()
+                    kwargs = {
+                            "AA" : in_AA,
+                            "x" : float(i[30:38].strip()),
+                            "y" : float(i[38:46].strip()),
+                            "z" : float(i[46:54].strip()),
+                            "element": i[11:16].strip()[0] }
+                    tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
         elif fname.endswith( ".out" ):
             pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
@@ -833,17 +818,10 @@ class Water(list):
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.to_au()
                     atoms.append( tmpAtom )
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
         cnt = 1
-
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
             for i in atoms:
                 if i.element == "H":
@@ -859,7 +837,7 @@ class Water(list):
                     if j.in_water:
                         continue
 #If in angstrom
-                    if AA:
+                    if in_AA:
                         if i.dist_to_atom(j) < 1.1:
                             tmp.append ( j )
                             j.in_water = True
@@ -867,10 +845,9 @@ class Water(list):
                         if i.dist_to_atom(j) < 1.1/a0:
                             tmp.append ( j )
                             j.in_water = True
-                tmp.number = cnt
+                tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-
         elif fname.endswith( ".pdb" ):
 #Find out the size of the box encompassing all atoms
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
@@ -891,39 +868,43 @@ class Water(list):
             center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
             wlist = []
             for i in atoms:
-                if i.element != "O":
+                if i.element == "H":
+                    continue
+                if i.in_water:
                     continue
                 tmp = Water()
-                i.in_water= True
 #__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
+                i.in_water= True
                 tmp.append(i)
                 for j in atoms:
-                    if j.element != "H":
+                    if j.element == "O":
                         continue
                     if j.in_water:
                         continue
 #1.05 because sometimes spc water lengths can be over 1.01
-                        
-                    if args.opAAorAU == "AA":
-                        if i.dist(j) <= 1.05:
+                    if in_AA:
+                        if i.dist_to_atom(j) <= 1.05:
                             j.in_water = True
                             tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                    elif args.opAAorAU == "AU":
-                        if i.dist(j) <= 1.05/a0:
+                    else:
+                        if i.dist_to_atom(j) <= 1.05/a0:
                             j.in_water = True
                             tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
+                tmp.res_id = cnt
+                cnt += 1
                 wlist.append( tmp )
-            wlist.sort( key = lambda x: x.distToPoint( center ))
+            wlist.sort( key = lambda x: x.dist_to_point( center ))
             center_water = wlist[0]
             cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
-            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
+            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+
+            if N_waters< 1:
+                print "Please choose at least one water molecule"
+                raise SystemExit
+            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
+
         elif fname.endswith( ".out" ):
             for i in atoms:
                 if i.element == "H":
@@ -947,12 +928,15 @@ class Water(list):
                         if i.dist(j) < 1.0/a0:
                             tmp.append ( j )
                             j.in_water = True
-                tmp.number = cnt
+                tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
         for wat in waters:
             for atom in wat:
-                atom.res_id = wat.number
+                atom.res_id = wat.res_id
+        if not out_AA:
+            for wat in waters:
+                wat.to_au()
         return waters
 
     def plot(self ):

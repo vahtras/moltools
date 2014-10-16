@@ -65,8 +65,8 @@ class Calculator:
 
         self.opts = { 
              "r"      : {"constant" : "5.00"  },
-             "theta"  : {"constant" : "0.00" },
-             "tau"    : {"constant" : "0.00" },
+             "tau"  : {"constant" : "0.00" },
+             "theta"    : {"constant" : "0.00" },
              "rho1"   : {"constant" : "0.00" },
              "rho2"   : {"constant" : "0.00" },
              "rho3"   : {"constant" : "0.00" }
@@ -78,15 +78,15 @@ class Calculator:
         x = []
         y = []
         for i in self.get_matching_out_and_mol():
-            r, theta, tau, rho1, rho2, rho3 = i.split('-')
+            r, tau, theta, rho1, rho2, rho3 = i.split('-')
             if self.opts["r"].has_key( "constant" ):
                 if r != self.opts["r"]["constant"]:
                     continue
-            if self.opts["theta"].has_key( "constant" ):
-                if theta != self.opts["theta"]["constant"]:
-                    continue
             if self.opts["tau"].has_key( "constant" ):
                 if tau != self.opts["tau"]["constant"]:
+                    continue
+            if self.opts["theta"].has_key( "constant" ):
+                if theta != self.opts["theta"]["constant"]:
                     continue
             if self.opts["rho1"].has_key( "constant" ):
                 if rho1 != self.opts["rho1"]["constant"]:
@@ -99,22 +99,22 @@ class Calculator:
                     continue
             if self.opts["r"].has_key( "vary" ):
                 x.append( r )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
-            if self.opts["theta"].has_key( "vary" ):
-                x.append( theta )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
             if self.opts["tau"].has_key( "vary" ):
                 x.append( tau )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
+            if self.opts["theta"].has_key( "vary" ):
+                x.append( theta )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
             if self.opts["rho1"].has_key( "vary" ):
                 x.append( rho1 )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
             if self.opts["rho2"].has_key( "vary" ):
                 x.append( rho2 )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
             if self.opts["rho3"].has_key( "vary" ):
                 x.append( rho3 )
-                y.append( self.Dict.getVal( r, theta, tau, rho1, rho2, rho3 ) )
+                y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
 
         return  x , y 
 
@@ -128,7 +128,7 @@ class Calculator:
 #Read values obtained for the point dipole model
             if args.noqm:
                 tmp_waters = []
-                for j in self.read_waters( i + ".mol" ):
+                for j in Water.read_waters( i + ".mol", AA = False ):
                     t1, t2, t3 =  j.get_euler()
 
                     if args.dist:
@@ -138,6 +138,7 @@ class Calculator:
                         kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
                         p = Property.from_template( **kwargs )
 
+                    p.transform_ut_properties( t1, t2 , t3 )
                     j.Property = p
                     tmp_waters.append( j )
 
@@ -148,9 +149,6 @@ class Calculator:
                             max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
                     hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
                             max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
-
-                    print static
-                    raise SystemExit
 
                 if args.model == "gaussian":
                     tmp_Rq = float(args.Rq)
@@ -213,15 +211,15 @@ class Calculator:
             else:
                 file_name = args.qm_method + "_" + i + ".out"
 
-                r, theta, tau, rho1, rho2, rho3 = i.split('-')
+                r, tau, theta, rho1, rho2, rho3 = i.split('-')
                 if self.opts["r"].has_key( "constant" ):
                     if r != self.opts["r"]["constant"]:
                         continue
-                if self.opts["theta"].has_key( "constant" ):
-                    if theta != self.opts["theta"]["constant"]:
-                        continue
                 if self.opts["tau"].has_key( "constant" ):
                     if tau != self.opts["tau"]["constant"]:
+                        continue
+                if self.opts["theta"].has_key( "constant" ):
+                    if theta != self.opts["theta"]["constant"]:
                         continue
                 if self.opts["rho1"].has_key( "constant" ):
                     if rho1 != self.opts["rho1"]["constant"]:
@@ -245,35 +243,36 @@ class Calculator:
                 alpha  = np.einsum('ii->i', np.array(qm_alpha))
                 beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
                 val = [ dipole, dipole, dipole, alpha, alpha, beta ]
+
 #End of two blocks
-            if args.param:
-                r, theta, tau, rho1, rho2, rho3 = i.split('-')
-                self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
+            if args.params:
+                r, tau, theta, rho1, rho2, rho3 = i.split('-')
+                self.Dict.setVal( r, tau, theta, rho1, rho2, rho3, val)
 
     def get_rel_error( self, args ):
-
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
         for i in self.get_matching_out_and_mol():
             file_name = args.qm_method + "_" + i + ".out"
-            r, theta, tau, rho1, rho2, rho3 = i.split('-')
-            if self.opts["r"].has_key( "constant" ):
-                if r != self.opts["r"]["constant"]:
-                    continue
-            if self.opts["theta"].has_key( "constant" ):
-                if theta != self.opts["theta"]["constant"]:
-                    continue
-            if self.opts["tau"].has_key( "constant" ):
-                if tau != self.opts["tau"]["constant"]:
-                    continue
-            if self.opts["rho1"].has_key( "constant" ):
-                if rho1 != self.opts["rho1"]["constant"]:
-                    continue
-            if self.opts["rho2"].has_key( "constant" ):
-                if rho2 != self.opts["rho2"]["constant"]:
-                    continue
-            if self.opts["rho3"].has_key( "constant" ):
-                if rho3 != self.opts["rho3"]["constant"]:
-                    continue
+            if args.params:
+                r, tau, theta, rho1, rho2, rho3 = i.split('-')
+                if self.opts["r"].has_key( "constant" ):
+                    if r != self.opts["r"]["constant"]:
+                        continue
+                if self.opts["tau"].has_key( "constant" ):
+                    if tau != self.opts["tau"]["constant"]:
+                        continue
+                if self.opts["theta"].has_key( "constant" ):
+                    if theta != self.opts["theta"]["constant"]:
+                        continue
+                if self.opts["rho1"].has_key( "constant" ):
+                    if rho1 != self.opts["rho1"]["constant"]:
+                        continue
+                if self.opts["rho2"].has_key( "constant" ):
+                    if rho2 != self.opts["rho2"]["constant"]:
+                        continue
+                if self.opts["rho3"].has_key( "constant" ):
+                    if rho3 != self.opts["rho3"]["constant"]:
+                        continue
 
             if args.qm_method == "ccsd":
                 qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
@@ -284,7 +283,8 @@ class Calculator:
 
             tmp_waters = []
 
-            for j in self.read_waters( i + ".mol" ):
+#Read water molecule models from QM .mol file
+            for j in Water.read_waters( i + ".mol" , AA = False ):
 
                 t1, t2, t3 =  j.get_euler()
 
@@ -295,18 +295,14 @@ class Calculator:
                     kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
                     p = Property.from_template( **kwargs )
 
+# For each template properties, transform them to the waters euler angles
                 p.transform_ut_properties( t1, t2 , t3 )
+
+# Set the property to each water
                 j.Property = p
-
-                #if args.model: # == "gaussian":
-                #else:
-                #    j.dipole = j.transform_dist_dipole( t_dipole, t1, t2, t3 )
-                #    j.quadrupole = j.transform_dist_quadrupole( t_quad, t1, t2, t3 )
-                #    j.alpha = j.transform_dist_alpha( t_alpha, t1, t2, t3 )
-                #    j.beta = j.transform_dist_beta( t_beta, t1, t2, t3 )
-
                 tmp_waters.append( j )
-#
+
+#Defaults to this model
             if args.model == "pointdipole":
 
                 static= PointDipoleList.from_string( self.get_string( tmp_waters ,
@@ -375,197 +371,39 @@ class Calculator:
                          [(this-ref)/ref for this, ref in zip(
                                 static.total_dipole_moment(args.dist),
                                         qm_dipole )] 
+
             if "polar" in args.l:
                 d_polar =  \
                          [(this-ref)/ref for this, ref in zip(
                                 polar.total_dipole_moment(args.dist),
                                         qm_dipole )] 
+
                 a_polar = \
                          [(this-ref)/ref for this, ref in zip(
                                 polar.alpha().diagonal(),
                                         qm_alpha.diagonal() )] 
+
             if "hyper" in args.l:
                 d_hyper = \
                          [(this-ref)/ref for this, ref in zip(
                                 hyper.total_dipole_moment(args.dist),
                                         qm_dipole )] 
+
                 a_hyper = \
                          [(this-ref)/ref for this, ref in zip(
                                 hyper.alpha().diagonal(),
                                         qm_alpha.diagonal() )] 
 
-                reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
+            reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
 
-                b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
+            b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
             val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
 
-            if args.param:
-                r, theta, tau, rho1, rho2, rho3 = i.split('-')
-                self.Dict.setVal( r, theta, tau, rho1, rho2, rho3, val)
+            if args.params:
+                r, tau, theta, rho1, rho2, rho3 = i.split('-')
+                self.Dict.setVal( r, tau, theta, rho1, rho2, rho3, val)
 
-    def read_waters(self, fname):
-        """From file with name fname, return a list of all waters encountered"""
-#If the file is plain xyz file
-        atoms = []
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    matched = pat_xyz.match(i).groups()
-                    kwargs = { "element" :  matched[0], "x" : matched[1],
-                            "y" : matched[2], "z" : matched[3] }
-                    tmpAtom = Atom( **kwargs )
-                    atoms.append( tmpAtom )
-
-        elif fname.endswith( ".pdb" ):
-            pat1 = re.compile(r'^(ATOM|HETATM)')
-            for i in open( fname ).readlines():
-                if pat1.search(i):
-                    #Ignore charge centers for polarizable water models
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
-                        continue
-                    tmpAtom = Atom(i[11:16].strip()[0], \
-                            float(i[30:38].strip()), \
-                            float(i[38:46].strip()), \
-                            float(i[46:54].strip()), \
-                            int(i[22:26].strip()) )
-
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.to_au()
-                    atoms.append( tmpAtom )
-        elif fname.endswith( ".out" ):
-            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.to_au()
-                    atoms.append( tmpAtom )
-#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
-        waters = []
-        cnt = 1
-
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water()
-                i.in_water = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
-#If in cartesian:
-                    if j.AA:
-                        if i.dist_to_atom(j) < 1.1:
-                            tmp.append ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist_to_atom(j) < 1.1/a0:
-                            tmp.append ( j )
-                            j.in_water = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-
-        elif fname.endswith( ".pdb" ):
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            wlist = []
-            for i in atoms:
-                if i.element != "O":
-                    continue
-                tmp = Water()
-                i.in_water= True
-#__Water__.append() method will update the waters residue number and center coordinate
-#When all atoms are there
-#Right now NOT center-of-mass
-                tmp.append(i)
-                for j in atoms:
-                    if j.element != "H":
-                        continue
-                    if j.in_water:
-                        continue
-#1.05 because sometimes spc water lengths can be over 1.01
-                        
-                    if args.opAAorAU == "AA":
-                        if i.dist(j) <= 1.05:
-                            j.in_water = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                    elif args.opAAorAU == "AU":
-                        if i.dist(j) <= 1.05/a0:
-                            j.in_water = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.distToPoint( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
-            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
-        elif fname.endswith( ".out" ):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water()
-                i.in_water = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
-#If in cartesian:
-                    if i.AA:
-                        if i.dist(j) < 1.0:
-                            tmp.append ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist(j) < 1.0/a0:
-                            tmp.append ( j )
-                            j.in_water = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        for wat in waters:
-            for atom in wat:
-                atom.res_id = wat.number
-        return waters
     def get_matching_out_and_mol(self):
         tmp = []
         tmpOut = self.get_out_files()
@@ -584,6 +422,8 @@ class Calculator:
             else:
                 continue
         return tmp
+
+
     def get_mol_files(self):
         molFiles = [f for f in os.listdir( os.getcwd() ) \
             if f.endswith( ".mol")  ]
@@ -660,7 +500,7 @@ class Calculator:
         alpha = np.zeros([3,3])
         lab = ["X", "Y", "Z"]
 # Reading in Alfa and Beta tensor
-        pat_alpha = re.compile(r'@ QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+        pat_alpha = re.compile(r'@.*QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
         for i in open( fname ).readlines():
             if pat_alpha.match( i ):
                 try:
@@ -755,19 +595,11 @@ class Calculator:
                     if args.vary_r:
                         subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
-                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                  Xms("tau").make_greek(),   self.opts["tau"]["constant"],
+                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                  Xms("theta").make_greek(),   self.opts["theta"]["constant"],
                                   Xms("rho1").make_greek(),  self.opts["rho1"]["constant"],
                                   Xms("rho2").make_greek(),  self.opts["rho2"]["constant"],
                                   Xms("rho3").make_greek(),  self.opts["rho3"]["constant"])
-                    if args.vary_theta:
-                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                %(
-                                  Xms("r").make_greek(), self.opts["r"]["constant"],
-                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
                     if args.vary_tau:
                         subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
@@ -776,27 +608,35 @@ class Calculator:
                                   Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
                                   Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                    if args.vary_theta:
+                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                %(
+                                  Xms("r").make_greek(), self.opts["r"]["constant"],
+                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
                     if args.vary_rho1:
                         subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").make_greek(), self.opts["r"]["constant"],
-                                  Xms("theta").make_greek(), self.opts["tau"]["constant"],
-                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                  Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
                                   Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
                                   Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
                     if args.vary_rho2:
                         subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(
                                   Xms("r").make_greek(), self.opts["r"]["constant"],
-                                  Xms("theta").make_greek(), self.opts["tau"]["constant"],
-                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                  Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
                                   Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
                                   Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
                     if args.vary_rho3:
                         subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
                                 %(Xms("r").make_greek(), self.opts["r"]["constant"],
-                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
                                   Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
                                   Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
                                   Xms("rho2").make_greek(), self.opts["rho2"]["constant"])
                                 
@@ -1084,11 +924,11 @@ class Xms:
     def __init__(self, char):
         self.char = char
     def make_greek(self):
-        if self.char not in ["r", "theta", "tau", "rho1", "rho2", "rho3"]:
+        if self.char not in ["r", "tau", "theta", "rho1", "rho2", "rho3"]:
             print "wrong char in XmgraceStyle class, exiting"; raise SystemExit
         if self.char == "r"    :return r"r"            
-        if self.char == "theta":return r"\xq\0"  
-        if self.char == "tau"  :return r"\xt\0" 
+        if self.char == "tau":return r"\xt\0"  
+        if self.char == "theta"  :return r"\xq\0" 
         if self.char == "rho1" :return r"\xr\0\s1\N" 
         if self.char == "rho2" :return r"\xr\0\s2\N" 
         if self.char == "rho3" :return r"\xr\0\s3\N" 
@@ -1101,8 +941,8 @@ if __name__ == '__main__':
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
 
-#Param analyzez 6 variables r, theta, tau, rho_{1,2,3}, so far only parameter
-    A.add_argument( "-param"  , default = True )
+#Param analyzez 6 variables r, tau, theta, rho_{1,2,3}, so far only parameter
+    A.add_argument( "-params"  , default = True )
 
     A.add_argument( "-dist"   , action = 'store_true', default = False )
     A.add_argument( "-no_subtitle"  , default = False, action = 'store_true' )
@@ -1124,15 +964,15 @@ if __name__ == '__main__':
     A.add_argument( "-o", dest = "output" , default = "tmp.xvg" , help = "Name of output xmgrace file" )
 
     A.add_argument( "-vary_r"   , default = False , action = 'store_true' ) 
-    A.add_argument( "-vary_theta" , default = False , action = 'store_true' )
-    A.add_argument( "-vary_tau"   , default = False , action = 'store_true' ) 
+    A.add_argument( "-vary_tau" , default = False , action = 'store_true' )
+    A.add_argument( "-vary_theta"   , default = False , action = 'store_true' ) 
     A.add_argument( "-vary_rho1", default = False , action = 'store_true' ) 
     A.add_argument( "-vary_rho2", default = False , action = 'store_true' ) 
     A.add_argument( "-vary_rho3", default = False , action = 'store_true' ) 
 
     A.add_argument( "-r"   ,   type = str ) 
-    A.add_argument( "-theta" , type = str ) 
-    A.add_argument( "-tau"   , type = str ) 
+    A.add_argument( "-tau" , type = str ) 
+    A.add_argument( "-theta"   , type = str ) 
     A.add_argument( "-rho1",   type = str ) 
     A.add_argument( "-rho2",   type = str ) 
     A.add_argument( "-rho3",   type = str ) 
@@ -1143,10 +983,10 @@ if __name__ == '__main__':
 
     if args.r:
         c.opts[ "r" ] = { "constant" : args.r }
-    if args.theta:
-        c.opts[ "theta" ] = { "constant" : args.theta }
     if args.tau:
         c.opts[ "tau" ] = { "constant" : args.tau }
+    if args.theta:
+        c.opts[ "theta" ] = { "constant" : args.theta }
     if args.rho1:
         c.opts[ "rho1" ] = { "constant" : args.rho1 }
     if args.rho2:
@@ -1157,12 +997,12 @@ if __name__ == '__main__':
     if args.vary_r:
         c.opts[ "r" ] = { "vary" : True }
         args.var = "r"
-    if args.vary_theta:
-        c.opts[ "theta" ] = { "vary" : True }
-        args.var = "theta"
     if args.vary_tau:
         c.opts[ "tau" ] = { "vary" : True }
         args.var = "tau"
+    if args.vary_theta:
+        c.opts[ "theta" ] = { "vary" : True }
+        args.var = "theta"
     if args.vary_rho1:
         c.opts[ "rho1" ] = { "vary" : True }
         args.var = "rho1"
