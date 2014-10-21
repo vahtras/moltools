@@ -8,7 +8,9 @@ import math as m
 import ut
 
 from particles import *
-from water import *
+from gaussian import *
+
+from molecules import Atom, Water, Property
 from template import Template
 
 
@@ -17,7 +19,11 @@ from template import Template
 
 a0 = 0.52917721092
 lab = [ "X", "Y", "Z"]
-charge_dic = {"H1": 1.0 ,"H2":1.0 , "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
+charge_dic = {"H1": 1.0 ,"H2":1.0 , "C1":6.0, "C7":6.0, "H3":1.0,
+            "H4":1.0, "H6": 1.0, "H8":1.0, 
+            "H9":1.0, "H10": 1.0, "H12":1.0, 
+            "O5":8.0, "O11": 8.0,
+"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
 
@@ -66,6 +72,7 @@ def run_argparse( args ):
             help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: "AU"')
     A.add_argument( "-dl", type = str, default = "1", help="Symmetry res_id dipole [0, 1]" )
     A.add_argument( "-test", action = "store_true", default = False )
+    A.add_argument( "-dist", action = "store_true", default = False )
     A.add_argument( "-mon", action = "store_true", default = False )
     A.add_argument("-v","--verbose", action='store_true' , default = False)
     A.add_argument("-write", nargs='*', default = [],  help = "Supply any which files to write from a selection: pot, xyz" )
@@ -88,6 +95,7 @@ def run_argparse( args ):
     A.add_argument( "-tbasis", type = str, default = "PVDZ",
             help = "available choices: PVDZ (default, is actually cc-pVDZ), \
                     MIDDLE (ano type) [O: 5s3p2d, H: 3s1p]")
+    A.add_argument( "-w", action = 'store_true' , default=  False )
 
     a = A.parse_args( args[1:] )
     return a
@@ -358,17 +366,18 @@ def main():
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
-    print "Dipole: "
-    for i in range(3):
-        print "%.5f" % (dipole_qm[ i ] )
+    if args.verbose:
+        print "Dipole: "
+        for i in range(3):
+            print "%.5f" % (dipole_qm[ i ] )
 
-    print "\nAlpha: "
-    for i, j in enumerate ( ut.upper_triangular( 2 )) :
-        print "%.5f" % (alpha_qm[ j ] )
+        print "\nAlpha: "
+        for i, j in enumerate ( ut.upper_triangular( 2 )) :
+            print "%.5f" % (alpha_qm[ j ] )
 
-    print "\nBeta: "
-    for i, jk in enumerate ( ut.upper_triangular( 3 )) :
-        print "%.5f" % (beta_qm[ jk ] )
+        print "\nBeta: "
+        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+            print "%.5f" % (beta_qm[ jk ] )
 
 
     if args.verbose:
@@ -393,7 +402,9 @@ def main():
     #if args.template:
 
 #Read coordinates for water molecules where to put properties to
-    f_waters = True
+    
+    f_waters = args.w
+
     if f_waters:
         waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
 
@@ -403,16 +414,30 @@ def main():
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if f_waters:
         for i in waters:
-            kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
+            if args.dist:
+                kwargs = Template().get_dist_data( "TIP3P", "HF", "PVDZ" )
+            else:
+                kwargs = Template().get_data( "TIP3P", "HF", "PVDZ" )
+
             p = Property.from_template( **kwargs )
 
             t1, t2, t3  = i.get_euler()
-            p.transform_ut_properties( t1, t2 ,t3 )
+            p.transform_ut_properties( t1, t2 ,t3 , dist = args.dist )
             i.Property = p
 
-    static = PointDipoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = False , AA = args.oAA ))
-    polar = PointDipoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = False , AA = args.oAA ))
-    hyper = PointDipoleList.from_string( get_string( waters, dist = False , AA = args.oAA ))
+    #print "\n\nThe projected beta, a.k.a. beta parallel component"
+    #print "Quantum mechanical:"
+
+    #beta_qm = Water.ut_3_square( beta_qm )
+    #qm_z = np.einsum('ijj->i', beta_qm )
+
+    #print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
+
+    static = GaussianQuadrupoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
+    polar = GaussianQuadrupoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
+    hyper = GaussianQuadrupoleList.from_string( get_string( waters, dist = args.dist , AA = args.oAA ))
+
+    hyper.set_damp( 3.5, 3.5 )
 
     static.solve_scf()
     polar.solve_scf()
@@ -446,8 +471,12 @@ def main():
     for i, jk in enumerate ( ut.upper_triangular( 3 )) :
         print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
 
-    hb = Water.ut_3_to_square(hb)
-    beta_qm = Water.ut_3_to_square( beta_qm )
+    norm = np.sqrt( np.sum(  (beta_qm - hb)**2 ) )
+    print "Norm"
+    print norm
+
+    hb = Water.ut_3_square(hb)
+    beta_qm = Water.ut_3_square( beta_qm )
 
     hb_z = np.einsum('ijj->i' ,hb )
     qm_z = np.einsum('ijj->i', beta_qm )
@@ -458,40 +487,6 @@ def main():
     print "Quadratic model: "
     print np.dot( hb_z, hd ) / np.linalg.norm( hd )
     
-# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
-    if f_waters and args.mon:
-        for i in waters:
-            tmp1 = Templates().getBeta( "MON1" , args.tmethod, args.tbasis )
-            dipole1 = np.array( tmp1[0] )
-            alpha1 = np.array(  tmp1[1] )
-            beta1 = np.array(   tmp1[2] )
-
-            tmp2 = Templates().getBeta( "MON2" , args.tmethod, args.tbasis )
-            dipole2 = np.array( tmp2[0] )
-            alpha2 = np.array(  tmp2[1] )
-            beta2 = np.array(   tmp2[2] )
-
-            i.o.toAA()
-            if i.o.x < 0.1:
-                dipole = dipole2
-                alpha = alpha2
-                beta = beta2
-            else:
-                dipole = dipole1
-                alpha = alpha1
-                beta = beta1
-            i.o.toAU()
-
-            i.dipole = dipole
-            i.alpha = alpha
-            i.beta = beta
-            i.get_euler()
-            #i.transfer_dipole()
-            #i.transfer_alpha()
-            #i.transfer_beta()
-
-#Write to file, potential
-
 #Only write output file if input alpha, beta, and coordinates are given
     if "pot" in args.write:
         write_pot = True
@@ -507,24 +502,6 @@ def main():
         write_mol = True
     else:
         write_mol = False
-#Perform some tests
-    if args.test:
-        if f_waters:
-            print "Performing tests of transfers"
-            for i in waters:
-
-                print "Water res_id %d \nSquare dipole:" % i.res_id
-                print i.square_dipole()
-
-                print "alpha trace: "
-                print i.alpha_trace()
-
-                print "Square beta:"
-                print i.square_beta()
-
-                print "alpha projected on dipole:"
-                print i.alpha_par()
-
 
 #Inline temporary code to generate static, polarizable and hyperpolarizable string
 #Write the mol file for target cluster, if the corresponding qua_ file

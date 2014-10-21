@@ -31,6 +31,7 @@ class Template:
           [ 7.465,     0.000,    -4.959,     1.692,     0.000,     4.101,     0.000,    -0.982,     0.000,    -3.583]]
 
         }
+
         self.olav_dft_cc_pVDZ_dist = \
         {
 #Distributed Dipole for O, H1, H2
@@ -40,7 +41,7 @@ class Template:
              0.317 ],
 
 #Dipx     Dipy       Dipz
-"dipole" :  [[-0.000,     0.000,     0.324],
+"dipole" :  [[-0.000,0.000,0.324],
              [-0.18, 0.0, -0.142],
              [0.18, 0.0, -0.142]],
 #Quadxx    Quadxy    Quadxz    Quadyy     Quadyz    Quadzz
@@ -56,6 +57,8 @@ class Template:
           [-7.579, 0.0, -5.101, -2.172, 0.0, -4.493, 0.0, -1.334, 0.0, -4.064],
           [ 7.579, 0.0, -5.101, 2.172, -0.0, 4.493, 0.0, -1.334, 0.0, -4.064]]
         }
+
+
         self.olav_hf_cc_pVDZ = \
         {
 #Charge
@@ -73,6 +76,25 @@ class Template:
           #Betaxxx    Betaxxy    Betaxxz    Betaxyy     Betaxyz   Betaxzz   Betayyy     Betayyz    Betayzz    Betazzz
 "beta" : [0.00000, 0.00000, -18.48240, -0.00000, -0.00000, -0.00000, 0.00000, -2.33726, 0.00000, -11.17619]
         }
+
+        self.tip3p_hf_cc_pVDZ = \
+        {
+#Charge
+"charge" : 0.000, 
+
+#Dipx     Dipy       Dipz
+"dipole" :  [0.000, 0.000, 0.80897], 
+
+#Quadxx    Quadxy    Quadxz    Quadyy     Quadyz    Quadzz
+"quadrupole" : [ -3.443 , 0.000, 0.000, -5.254, 0.00 , -4.254],
+
+#Alphaxx   Alphaxy   Alphaxz   Alphayy   Alphayz   Alphazz
+"alpha" :   [6.90654, 0.00000, -0.00000, 3.04034,  -0.00000, 5.08449],
+
+          #Betaxxx    Betaxxy    Betaxxz    Betaxyy     Betaxyz   Betaxzz   Betayyy     Betayyz    Betayzz    Betazzz
+"beta" : [0.00000, 0.00000, -17.14425, -0.00000, -0.00000, -0.00000, 0.00000, -2.33892, 0.00000, -10.64030]
+        }
+
 
         olav_hf_cc_pVDZ =  \
         [
@@ -112,6 +134,8 @@ class Template:
         return self.olav_hf_cc_pVDZ_dist
 
     def get_data(self, model = "OLAV", method = "HF", basis ="PVDZ"):
+        if model == "TIP3P":
+            return self.tip3p_hf_cc_pVDZ
         return self.olav_hf_cc_pVDZ
 
 if __name__ == '__main__':

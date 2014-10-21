@@ -17,7 +17,6 @@ mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 def tensor_to_ut( beta ):
 # naive solution, transforms matrix B[ (x,y,z) ][ (xx, xy, xz, yy, yz, zz) ] into array
 # Symmtrized UT array    B[ (xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz) ]
-
     new = np.array( (10) )
     new[ 0 ] = beta[0, 0, 0]
     new[ 1 ] = (beta[0,1] + beta[1,0] ) /2
@@ -29,7 +28,6 @@ def tensor_to_ut( beta ):
     new[ 7 ] = (beta[1,4] + beta[2,3] ) /2
     new[ 8 ] = (beta[1,5] + beta[2,4] ) /2
     new[ 9 ] = beta[2,5]
-
     return new
 
 class Property( dict ):
@@ -98,7 +96,6 @@ class Property( dict ):
         for i, props in enumerate(kwargs):
             p[ props ] = kwargs[ props ]
         return p
-
     def transform_ut_properties( self, t1, t2, t3, dist = False):
 
         if dist:
@@ -152,19 +149,16 @@ class Property( dict ):
         return  tmp_b
 
 
+
+
 class Atom(object):
 
     """ By default in Atomic units for coordinates """
+
     def __init__(self, *args, **kwargs ):
 
 #Element one-key char
-
         self.element = None
-
-        self.polar = False
-        self.cartesian = False
-        self.theta = False
-        self.tau = False
         self.r = False
         self.x = None
         self.y = None
@@ -208,29 +202,360 @@ class Atom(object):
         self.y *= a0
         self.z *= a0
 
-class Water(list):
+class Molecule(list):
+    """General molecule has general methods to obtain euler angles, 
+    All molecules inherits from this one"""
 
     def __init__(self , *args, **kwargs):
 
+#center will be defined for all molecules after all atoms are added
+#depends on which molecule
+        self.center = False
+        self.res_id = 0
+
+#By default, AU 
+        self.AA = False
+        self.Property = None
+
+
+#if supplied a dictionary with options, gather these in self.info
+        self.info = {}
+        if kwargs != {} :
+            for i in kwargs:
+                self.info[ i ] = kwargs[ i ]
+
+    @staticmethod
+    def get_Rz( theta ):
+        vec = np.array( [[ m.cos(theta), -m.sin(theta), 0],
+                            [ m.sin(theta), m.cos(theta), 0],
+                            [ 0,    0,  1]])
+        return vec
+
+    @staticmethod
+    def get_Rz_inv( theta ):
+        vec = np.array(     [[ m.cos(theta), m.sin(theta), 0],
+                            [ -m.sin(theta), m.cos(theta), 0],
+                            [ 0,             0,            1]])
+        return vec
+
+    @staticmethod
+    def get_Ry( theta ):
+        vec = np.array( [[ m.cos(theta),0, m.sin(theta)],
+                            [ 0,    1,  0],
+                            [ -m.sin(theta), 0, m.cos(theta)]])
+        return vec
+
+    @staticmethod
+    def get_Ry_inv( theta ):
+        vec = np.array( [[ m.cos(theta),0, -m.sin(theta)],
+                            [ 0,    1,  0],
+                            [ m.sin(theta), 0, m.cos(theta)]])
+        return vec
+
+    @staticmethod
+    def transform_dipole( qm_dipole, t1, t2, t3 ):
+        d_new1 = np.zeros([3]) #will be returned
+        d_new2 = np.zeros([3]) #will be returned
+        d_new3 = np.zeros([3]) #will be returned
+
+        rz  = Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
+
+        for i in range(3):
+            for x in range(3):
+                d_new1[i] += rz[i][x] * qm_dipole[x]
+        for i in range(3):
+            for x in range(3):
+                d_new2[i] += ryi[i][x] * d_new1[x]
+        for i in range(3):
+            for x in range(3):
+                d_new3[i] += rz2[i][x] * d_new2[x]
+        return d_new3
+
+    @staticmethod
+    def transform_quadrupole( qm_quadrupole, t1, t2 , t3 ):
+        a_new1 = np.zeros([3,3]) #will be calculated
+        a_new2 = np.zeros([3,3]) #will be calculated
+        a_new3 = np.zeros([3,3]) #will be calculated
+
+        rz = self.get_Rz( t1 )
+        ryi = self.get_Ry_inv( t2 )
+        rz2 = self.get_Rz( t3 )
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
+        return a_new3
+
+    @staticmethod
+    def transform_alpha( qm_alpha, t1, t2 , t3 ):
+        a_new1 = np.zeros([3,3]) #will be calculated
+        a_new2 = np.zeros([3,3]) #will be calculated
+        a_new3 = np.zeros([3,3]) #will be calculated
+
+        rz  = Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
+
+        for i in range(3):
+            for j in range(3):
+                for x in range(3):
+                    for y in range(3):
+                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
+
+        return a_new3
+    @staticmethod
+    def transform_beta( qm_beta, t1, t2, t3 ):
+        b_new1 = np.zeros([3,3,3]) #will be calculated
+        b_new2 = np.zeros([3,3,3]) #will be calculated
+        b_new3 = np.zeros([3,3,3]) #will be calculated
+
+        rz =  Water.get_Rz( t1 )
+        ryi = Water.get_Ry_inv( t2 )
+        rz2 = Water.get_Rz( t3 )
+
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    for x in range(3):
+                        for y in range(3):
+                            for z in range(3):
+                                b_new1[i][j][k] += rz[i][x] * rz[j][y] * rz[k][z] * qm_beta[x][y][z]
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    for x in range(3):
+                        for y in range(3):
+                            for z in range(3):
+                                b_new2[i][j][k] += ryi[i][x] * ryi[j][y] * ryi[k][z] * b_new1[x][y][z]
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    for x in range(3):
+                        for y in range(3):
+                            for z in range(3):
+                                b_new3[i][j][k] += rz2[i][x] * rz2[j][y] * rz2[k][z] * b_new2[x][y][z]
+        return b_new3
+
+    @staticmethod
+    def square_2_ut(alpha):
+        assert alpha.ndim == 2
+        tmp_a = np.zeros( 6 )
+        for index, (i, j ) in enumerate( ut.upper_triangular(2) ):
+            tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
+        return tmp_a
+
+    @staticmethod
+    def square_3_ut(beta):
+        assert beta.ndim == 3
+        tmp_b = np.zeros( 10 )
+        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ):
+            tmp_b[ index ] = ( \
+                    beta[i, j, k] + beta[i, k, j] + \
+                    beta[j, i, k] + beta[j, k, i] + \
+                    beta[k, i, j] + beta[k, j, i] )/ 6
+        return tmp_b
+
+    @staticmethod
+    def ut_2_square( alpha):
+        assert len(alpha) == 6
+        tmp_a = np.zeros( (3,3, ))
+        for index, val in enumerate( ut.upper_triangular(2) ) :
+            tmp_a[ val[0], val[1] ] = alpha[ index ]
+            tmp_a[ val[1], val[0] ] = alpha[ index ]
+        return tmp_a
+
+    @staticmethod
+    def ut_3_square( beta ):
+        assert len(beta) == 10
+        tmp_b = np.zeros( (3,3,3, ))
+        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ) :
+            tmp_b[ i, j ,k] = beta[ index ]
+            tmp_b[ i, k ,j] = beta[ index] 
+            tmp_b[ j, i, k] = beta [ index ]
+            tmp_b[ j, k, i] = beta [ index ]
+            tmp_b[ k, i, j] = beta [ index ]
+            tmp_b[ k, j, i] = beta [ index ]
+        return tmp_b
+    def plot(self ):
+#Plot water molecule in green and  nice xyz axis
+        O1, H1, H2 = self.o, self.h1, self.h2
+        fig = plt.figure()
+        dip = self.get_dipole()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
+         
+ 
+    @staticmethod
+    def transform_dist_quadrupole( qm_quadrupole, t1, t2, t3 ):
+        upper0 = np.array( qm_quadrupole[0] )
+        upper1 = np.array( qm_quadrupole[1] )
+        upper2 = np.array( qm_quadrupole[2] )
+        assert upper0.shape == (6,)
+        assert upper1.shape == (6,)
+        assert upper2.shape == (6,)
+        a0 = np.zeros((3, 3))
+        a1 = np.zeros((3, 3))
+        a2 = np.zeros((3, 3))
+
+        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
+
+            aij0 = upper0[ij]
+            aij1 = upper1[ij]
+            aij2 = upper2[ij]
+
+            a0[i, j] = aij0
+            a0[j, i] = aij0
+
+            a1[i, j] = aij1
+            a1[j, i] = aij1
+
+            a2[i, j] = aij2
+            a2[j, i] = aij2
+
+        a_new = np.zeros([3,3,3]) #will be returned
+        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
+        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
+        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
+        return a_new
+
+
+    @staticmethod
+    def transform_dist_dipole( self, qm_dipole, t1, t2, t3):
+#Input qm_dipole is 3 x 3 matrix row is atom col is px, py, pz
+        d_new = np.zeros([3,3]) #will be returned
+        d_new[0, :] = self.transform_dipole( qm_dipole[0], t1, t2, t3 )
+        d_new[1, :] = self.transform_dipole( qm_dipole[1], t1, t2, t3 )
+        d_new[2, :] = self.transform_dipole( qm_dipole[2], t1, t2, t3 )
+        return d_new
+
+    @staticmethod
+    def transform_dist_alpha( qm_alpha, t1, t2, t3 ):
+        upper0 = np.array( qm_alpha[0] )
+        upper1 = np.array( qm_alpha[1] )
+        upper2 = np.array( qm_alpha[2] )
+        assert upper0.shape == (6,)
+        assert upper1.shape == (6,)
+        assert upper2.shape == (6,)
+        a0 = np.zeros((3, 3))
+        a1 = np.zeros((3, 3))
+        a2 = np.zeros((3, 3))
+
+        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
+
+            aij0 = upper0[ij]
+            aij1 = upper1[ij]
+            aij2 = upper2[ij]
+
+            a0[i, j] = aij0
+            a0[j, i] = aij0
+
+            a1[i, j] = aij1
+            a1[j, i] = aij1
+
+            a2[i, j] = aij2
+            a2[j, i] = aij2
+
+        a_new = np.zeros([3,3,3]) #will be returned
+        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
+        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
+        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
+        return a_new
+
+
+    @staticmethod
+    def transform_dist_beta( qm_beta, t1, t2, t3 ):
+#Transform upper triangular to 3x3x3x form, rotate it, and transform back to ut style
+        upper0 = np.array( qm_beta[0] )
+        upper1 = np.array( qm_beta[1] )
+        upper2 = np.array( qm_beta[2] )
+        assert upper0.shape == (10,)
+        assert upper1.shape == (10,)
+        assert upper2.shape == (10,)
+        b0 = np.zeros( (3, 3, 3))
+        b1 = np.zeros( (3, 3, 3))
+        b2 = np.zeros( (3, 3, 3))
+        for ijk, (i, j, k) in enumerate(ut.upper_triangular(3)):
+            bijk0 = upper0[ijk]
+            bijk1 = upper1[ijk]
+            bijk2 = upper2[ijk]
+
+            b0[i, j, k] = bijk0
+            b0[k, i, j] = bijk0
+            b0[j, k, i] = bijk0
+            b0[i, k, j] = bijk0
+            b0[j, i, k] = bijk0
+            b0[k, j, i] = bijk0
+
+            b1[i, j, k] = bijk1
+            b1[k, i, j] = bijk1
+            b1[j, k, i] = bijk1
+            b1[i, k, j] = bijk1
+            b1[j, i, k] = bijk1
+            b1[k, j, i] = bijk1
+
+            b2[i, j, k] = bijk2
+            b2[k, i, j] = bijk2
+            b2[j, k, i] = bijk2
+            b2[i, k, j] = bijk2
+            b2[j, i, k] = bijk2
+            b2[k, j, i] = bijk2
+
+        b_new0 = np.zeros((3,3,3)) #will be returned
+        b_new1 = np.zeros((3,3,3)) #will be returned
+        b_new2 = np.zeros((3,3,3)) #will be returned
+        b_new0 = self.transform_beta( b0, t1, t2, t3 )
+        b_new1 = self.transform_beta( b1, t1, t2, t3 )
+        b_new2 = self.transform_beta( b2, t1, t2, t3 )
+
+        b0 = symmetrize_first_beta( b_new0 )
+        b1 = symmetrize_first_beta( b_new1 )
+        b2 = symmetrize_first_beta( b_new2 )
+
+        return [ b0, b1, b2 ]
+
+class Water( Molecule ):
+    """ Derives all general rotating methods from Molecule
+    Specifics here for Water """
+
+    def __init__(self , *args, **kwargs):
         self.atoms = 0
         self.q = 0.0
         self.r_oh = False
         self.t_hoh = False
-#Spherical coordinates
-        #self.r = False
-        #self.theta = False
-        #self.tau = False
 
-# Relative rotation euler angles 
-# 
-# Start with water molecule in xz plane with dipole moment pointing in z-axis
-#
-# Angles defined as:
-#
-# euler1 : clockwise rotation around z axis
-# euler2 : counter-clockwise rotation around y axis
-# euler3 : clockwise rotation around z axis
-#
         self.euler1 = False
         self.euler2 = False
         self.euler3 = False
@@ -240,14 +565,11 @@ class Water(list):
         self.h2 = False
         self.o  = False
 
-#By default set center as center of nuclei charge
-
         self.center = False
         self.res_id = 0
         self.atomlist  = []
 
         self.AA = False
-
         self.Property = None
 
     def append(self, atom):
@@ -268,7 +590,7 @@ class Water(list):
         if atom.element == "O":
             self.o = atom
 #Add the atom
-        super( Water, self).append(atom)
+        super( Water , self).append(atom)
 
 #Define water center, by default set it to center of nuclei
 
@@ -336,7 +658,7 @@ class Water(list):
 
     def set_property_on_each_atom(self):
         for i, prop in enumerate ( self.Property ):
-            pass#print prop, self.Property[prop]
+            pass
         o_props =   { prop : self.Property[prop][0] for (key , prop)  in enumerate( self.Property )  }
         h1_props =  { prop : self.Property[prop][1] for (key , prop)  in enumerate( self.Property ) }
         h2_props =  { prop : self.Property[prop][2] for (key , prop)  in enumerate( self.Property ) }
@@ -346,7 +668,9 @@ class Water(list):
         self.h2.Property = Property.from_template( **h2_props )
 
     def get_euler(self):
-        """Return euler angles required to rotate water in oxygen at origo to current"""
+        """Return euler angles rho1, rho2, rho3 
+        required to rotate water to its default placement
+        for which the template properties are calculated """
 
         H1 = self.h1.get_array()
         H2 = self.h2.get_array()
@@ -426,360 +750,6 @@ class Water(list):
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
         self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
 
-    @staticmethod
-    def get_Rz( theta ):
-        vec = np.array( [[ m.cos(theta), -m.sin(theta), 0],
-                            [ m.sin(theta), m.cos(theta), 0],
-                            [ 0,    0,  1]])
-        return vec
-    @staticmethod
-    def get_Rz_inv( theta ):
-        vec = np.array(     [[ m.cos(theta), m.sin(theta), 0],
-                            [ -m.sin(theta), m.cos(theta), 0],
-                            [ 0,             0,            1]])
-        return vec
-    @staticmethod
-    def get_Ry( theta ):
-        vec = np.array( [[ m.cos(theta),0, m.sin(theta)],
-                            [ 0,    1,  0],
-                            [ -m.sin(theta), 0, m.cos(theta)]])
-        return vec
-    @staticmethod
-    def get_Ry_inv( theta ):
-        vec = np.array( [[ m.cos(theta),0, -m.sin(theta)],
-                            [ 0,    1,  0],
-                            [ m.sin(theta), 0, m.cos(theta)]])
-        return vec
-
-    @staticmethod
-    def transform_dipole( qm_dipole, t1, t2, t3 ):
-        d_new1 = np.zeros([3]) #will be returned
-        d_new2 = np.zeros([3]) #will be returned
-        d_new3 = np.zeros([3]) #will be returned
-
-        rz  = Water.get_Rz( t1 )
-        ryi = Water.get_Ry_inv( t2 )
-        rz2 = Water.get_Rz( t3 )
-
-        for i in range(3):
-            for x in range(3):
-                d_new1[i] += rz[i][x] * qm_dipole[x]
-        for i in range(3):
-            for x in range(3):
-                d_new2[i] += ryi[i][x] * d_new1[x]
-        for i in range(3):
-            for x in range(3):
-                d_new3[i] += rz2[i][x] * d_new2[x]
-        return d_new3
-
-    @staticmethod
-    def transform_dist_dipole( self, qm_dipole, t1, t2, t3):
-#Input qm_dipole is 3 x 3 matrix row is atom col is px, py, pz
-        d_new = np.zeros([3,3]) #will be returned
-        d_new[0, :] = self.transform_dipole( qm_dipole[0], t1, t2, t3 )
-        d_new[1, :] = self.transform_dipole( qm_dipole[1], t1, t2, t3 )
-        d_new[2, :] = self.transform_dipole( qm_dipole[2], t1, t2, t3 )
-        return d_new
-
-    @staticmethod
-    def transform_quadrupole( qm_quadrupole, t1, t2 , t3 ):
-
-        a_new1 = np.zeros([3,3]) #will be calculated
-        a_new2 = np.zeros([3,3]) #will be calculated
-        a_new3 = np.zeros([3,3]) #will be calculated
-
-        rz = self.get_Rz( t1 )
-        ryi = self.get_Ry_inv( t2 )
-        rz2 = self.get_Rz( t3 )
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
-        return a_new3
-
-    
-    @staticmethod
-    def transform_dist_quadrupole( qm_quadrupole, t1, t2, t3 ):
-        upper0 = np.array( qm_quadrupole[0] )
-        upper1 = np.array( qm_quadrupole[1] )
-        upper2 = np.array( qm_quadrupole[2] )
-        assert upper0.shape == (6,)
-        assert upper1.shape == (6,)
-        assert upper2.shape == (6,)
-        a0 = np.zeros((3, 3))
-        a1 = np.zeros((3, 3))
-        a2 = np.zeros((3, 3))
-
-        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
-
-            aij0 = upper0[ij]
-            aij1 = upper1[ij]
-            aij2 = upper2[ij]
-
-            a0[i, j] = aij0
-            a0[j, i] = aij0
-
-            a1[i, j] = aij1
-            a1[j, i] = aij1
-
-            a2[i, j] = aij2
-            a2[j, i] = aij2
-
-        a_new = np.zeros([3,3,3]) #will be returned
-        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
-        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
-        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
-        return a_new
-
-    @staticmethod
-    def transform_alpha( qm_alpha, t1, t2 , t3 ):
-
-        a_new1 = np.zeros([3,3]) #will be calculated
-        a_new2 = np.zeros([3,3]) #will be calculated
-        a_new3 = np.zeros([3,3]) #will be calculated
-
-        rz  = Water.get_Rz( t1 )
-        ryi = Water.get_Ry_inv( t2 )
-        rz2 = Water.get_Rz( t3 )
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
-
-        return a_new3
-
-    @staticmethod
-    def transform_dist_alpha( qm_alpha, t1, t2, t3 ):
-        upper0 = np.array( qm_alpha[0] )
-        upper1 = np.array( qm_alpha[1] )
-        upper2 = np.array( qm_alpha[2] )
-        assert upper0.shape == (6,)
-        assert upper1.shape == (6,)
-        assert upper2.shape == (6,)
-        a0 = np.zeros((3, 3))
-        a1 = np.zeros((3, 3))
-        a2 = np.zeros((3, 3))
-
-        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
-
-            aij0 = upper0[ij]
-            aij1 = upper1[ij]
-            aij2 = upper2[ij]
-
-            a0[i, j] = aij0
-            a0[j, i] = aij0
-
-            a1[i, j] = aij1
-            a1[j, i] = aij1
-
-            a2[i, j] = aij2
-            a2[j, i] = aij2
-
-        a_new = np.zeros([3,3,3]) #will be returned
-        a_new[0, :, :] = self.transform_alpha( a0, t1, t2, t3 )
-        a_new[1, :, :] = self.transform_alpha( a1, t1, t2, t3 )
-        a_new[2, :, :] = self.transform_alpha( a2, t1, t2, t3 )
-        return a_new
-
-
-    @staticmethod
-    def transform_beta( qm_beta, t1, t2, t3 ):
-        b_new1 = np.zeros([3,3,3]) #will be calculated
-        b_new2 = np.zeros([3,3,3]) #will be calculated
-        b_new3 = np.zeros([3,3,3]) #will be calculated
-
-        rz =  Water.get_Rz( t1 )
-        ryi = Water.get_Ry_inv( t2 )
-        rz2 = Water.get_Rz( t3 )
-
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new1[i][j][k] += rz[i][x] * rz[j][y] * rz[k][z] * qm_beta[x][y][z]
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new2[i][j][k] += ryi[i][x] * ryi[j][y] * ryi[k][z] * b_new1[x][y][z]
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new3[i][j][k] += rz2[i][x] * rz2[j][y] * rz2[k][z] * b_new2[x][y][z]
-        return b_new3
-
-
-    @staticmethod
-    def transform_dist_beta( qm_beta, t1, t2, t3 ):
-#Transform upper triangular to 3x3x3x form, rotate it, and transform back to ut style
-        upper0 = np.array( qm_beta[0] )
-        upper1 = np.array( qm_beta[1] )
-        upper2 = np.array( qm_beta[2] )
-        assert upper0.shape == (10,)
-        assert upper1.shape == (10,)
-        assert upper2.shape == (10,)
-
-        b0 = np.zeros( (3, 3, 3))
-        b1 = np.zeros( (3, 3, 3))
-        b2 = np.zeros( (3, 3, 3))
-        for ijk, (i, j, k) in enumerate(ut.upper_triangular(3)):
-            bijk0 = upper0[ijk]
-            bijk1 = upper1[ijk]
-            bijk2 = upper2[ijk]
-
-            b0[i, j, k] = bijk0
-            b0[k, i, j] = bijk0
-            b0[j, k, i] = bijk0
-            b0[i, k, j] = bijk0
-            b0[j, i, k] = bijk0
-            b0[k, j, i] = bijk0
-
-            b1[i, j, k] = bijk1
-            b1[k, i, j] = bijk1
-            b1[j, k, i] = bijk1
-            b1[i, k, j] = bijk1
-            b1[j, i, k] = bijk1
-            b1[k, j, i] = bijk1
-
-            b2[i, j, k] = bijk2
-            b2[k, i, j] = bijk2
-            b2[j, k, i] = bijk2
-            b2[i, k, j] = bijk2
-            b2[j, i, k] = bijk2
-            b2[k, j, i] = bijk2
-
-        b_new0 = np.zeros((3,3,3)) #will be returned
-        b_new1 = np.zeros((3,3,3)) #will be returned
-        b_new2 = np.zeros((3,3,3)) #will be returned
-        b_new0 = self.transform_beta( b0, t1, t2, t3 )
-        b_new1 = self.transform_beta( b1, t1, t2, t3 )
-        b_new2 = self.transform_beta( b2, t1, t2, t3 )
-
-        b0 = symmetrize_first_beta( b_new0 )
-        b1 = symmetrize_first_beta( b_new1 )
-        b2 = symmetrize_first_beta( b_new2 )
-
-        return [ b0, b1, b2 ]
-
-    @staticmethod
-    def square_2_ut(alpha):
-        tmp_a = np.zeros( 6 )
-        for index, (i, j ) in enumerate( ut.upper_triangular(2) ):
-            tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
-        return tmp_a
-
-    @staticmethod
-    def square_3_ut(beta):
-        tmp_b = np.zeros( 10 )
-        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ):
-            tmp_b[ index ] = ( \
-                    beta[i, j, k] + beta[i, k, j] + \
-                    beta[j, i, k] + beta[j, k, i] + \
-                    beta[k, i, j] + beta[k, j, i] )/ 6
-        return tmp_b
-
-    @staticmethod
-    def ut_2_square( alpha):
-        tmp_a = np.zeros( (3,3, ))
-        for index, val in enumerate( ut.upper_triangular(2) ) :
-            tmp_a[ val[0], val[1] ] = alpha[ index ]
-            tmp_a[ val[1], val[0] ] = alpha[ index ]
-        return tmp_a
-
-    @staticmethod
-    def ut_3_square( beta ):
-        tmp_b = np.zeros( (3,3,3, ))
-        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ) :
-            tmp_b[ i, j ,k] = beta[ index ]
-            tmp_b[ i, k ,j] = beta[ index] 
-            tmp_b[ j, i, k] = beta [ index ]
-            tmp_b[ j, k, i] = beta [ index ]
-            tmp_b[ k, i, j] = beta [ index ]
-            tmp_b[ k, j, i] = beta [ index ]
-        return tmp_b
-
-
-    def beta_par(self):
-        """
-        return beta along molecular dipole z axis as defined by formula:
-        b_par = (bxxx + bxyy + bxzz, byxx +byyy + byzz, bzxx + bzyy + bzzz ) x dipole
-
-        """
-        beta_par = np.zeros( [3] )
-        for i in range(len(self.beta)):
-            for j in range(len(self.beta)):
-                for k in range(len(self.beta)):
-                    if j == k:
-                        beta_par[i] += self.beta[i][j][k]
-        return np.dot(beta_par, self.dipole) / np.linalg.norm( self.dipole )
-
-    def beta_par2(self):
-        """
-        return beta paralell as defined by formula:
-        b_par = 1/5 * sum (bzii + bizi + biiz) %i = x, y, z
-
-        """
-        beta_par = 0.0
-        for i in range(len(self.beta)):
-            for j in range(len(self.beta)):
-                for k in range(len(self.beta)):
-                    if j == k:
-                        if i == 2:
-                            beta_par += self.beta[i][j][k]
-                    if i == j:
-                        if k == 2:
-                            beta_par += self.beta[i][j][k]
-                    if i == k:
-                        if j == 2:
-                            beta_par += self.beta[i][j][k]
-        beta_par /= 5.0
-        return beta_par
-
-    def get_square_dipole(self):
-        return np.sqrt( self.qmDipole[0] **2 + self.qmDipole[1]**2 + self.qmDipole[2]**2 )
-
-    def get_square_beta(self):
-        return np.sqrt( \
-                (self.qmBeta[0][0][0] + self.qmBeta[0][1][1] + self.qmBeta[0][2][2] )**2 + \
-                (self.qmBeta[1][0][0] + self.qmBeta[1][1][1] + self.qmBeta[1][2][2] )**2 + \
-                (self.qmBeta[2][0][0] + self.qmBeta[2][1][1] + self.qmBeta[2][2][2] )**2  )
-
-    def get_alpha_trace(self):
-        return  self.qmAlpha[0][0] + self.qmAlpha[1][1] + self.qmAlpha[2][2]
-
     def to_au(self):
         self.h1.to_au()
         self.h2.to_au()
@@ -789,21 +759,9 @@ class Water(list):
         self.h1.to_aa()
         self.h2.to_aa()
         self.o.to_aa()
-
-    def get_angle_rho(self, other):
-        d1 = self.get_dipole()
-        d2 = other.get_dipole()
-        return np.arccos( np.dot( d1, d2)/ ( np.linalg.norm(d1) * np.linalg.norm(d2) ) )
-
-    def getAngleTau(self, other):
-        r1= self.get_norm()
-        r2= other.get_norm()
-        return np.arccos( np.dot( r1, r2 ) / (np.linalg.norm( r1 ) * np.linalg.norm( r2 )))
-
 # in_AA specifies if input coords are in angstrom
     @staticmethod
-    def read_waters( fname , in_AA = True , out_AA = True , N_waters = 1):
-
+    def read_waters( fname , in_AA = True, out_AA = True , N_waters = 1):
         """From file with name fname, return a list of all waters encountered"""
         atoms = []
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
@@ -816,7 +774,6 @@ class Water(list):
                             "y" : matched[2], "z" : matched[3] }
                     tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
-
         elif fname.endswith( ".pdb" ):
             pat1 = re.compile(r'^(ATOM|HETATM)')
             for i in open( fname ).readlines():
@@ -959,22 +916,16 @@ class Water(list):
 
         return waters
 
-    def plot(self ):
-#Plot water molecule in green and  nice xyz axis
-        O1, H1, H2 = self.o, self.h1, self.h2
-        fig = plt.figure()
-        dip = self.get_dipole()
-        ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-        ax.set_zlim3d( -5,5)
-        plt.xlim(-5,5)
-        plt.ylim(-5,5)
-        plt.show()
-            
+
+
+
+class Methanol(list):
+    def __init__(self):
+        pass
+
+class Ethane(list):
+    def __init__(self):
+        pass
 if __name__ == '__main__':
 
 # Water bonding parameters:

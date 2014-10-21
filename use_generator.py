@@ -6,7 +6,7 @@ import argparse, re, fractions
 import numpy as np
 import math as m
 
-from water import Water, Atom, Property
+from molecules import Water, Atom, Property, Methanol
 from owndict import *
 
 class Generator:
@@ -52,6 +52,9 @@ class Generator:
 
         self.vary_parameters()
 
+    @staticmethod
+    def build_molecule( molecule ):
+        """ molecule is a string to build, return class """
     def gen_mols_params(self, AA = False,):
 
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
@@ -139,8 +142,18 @@ class Generator:
         return w
 
     @staticmethod
-    def get_water( r_oh, t_hoh, rho1, rho2, rho3, AA = True ):
-        """return water class with oxygen in origo"""
+    def get_mol( center, mol, AA = True ):
+        """return molecule in origo, all molecules have different definition
+        of euler
+
+        for water place O in origo
+        for methanol place C=O bond in origo
+        
+        """
+
+        if mol == "water":
+            print center, mol
+            raise SystemExit
         h1 = Atom( { "AA" : AA} )
         h2 = Atom( { "AA" : AA} )
         o =  Atom( { "AA" : AA} )
@@ -344,13 +357,13 @@ class Generator:
     def write_mol(self, wlist, name = "tmp.mol" ):
         f_ = open (name, 'w')
         f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Nosymm\n")
-        f_.write("Charge=1.0 Atoms=4 Basis=cc-pVDZ\n")
+        f_.write("Charge=1.0 Atoms=4 Basis=cc-pVTZ\n")
         for i in wlist:
             for j in i:
                 if j.element != "H":
                     continue
                 f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.write("Charge=8.0 Atoms=2 Basis=cc-pVDZ\n")
+        f_.write("Charge=8.0 Atoms=2 Basis=cc-pVTZ\n")
         for i in wlist:
             for j in i:
                 if j.element != "O":
@@ -372,12 +385,6 @@ if __name__ == '__main__':
 
 #Related to generating two water molecules with specified 6 parameters
     A.add_argument( "-params"   , default = False , action = 'store_true' ) 
-    #A.add_argument( "-vary_r"   , default = False , action = 'store_true' ) 
-    #A.add_argument( "-vary_theta" , default = False , action = 'store_true' )
-    #A.add_argument( "-vary_tau"   , default = False , action = 'store_true' ) 
-    #A.add_argument( "-vary_rho1", default = False , action = 'store_true' ) 
-    #A.add_argument( "-vary_rho2", default = False , action = 'store_true' ) 
-    #A.add_argument( "-vary_rho3", default = False , action = 'store_true' ) 
 
     A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
@@ -401,9 +408,13 @@ if __name__ == '__main__':
     A.add_argument( "-rho3_points"  ,   type = int , default = 1) 
 
 #Related to generating/getting one water
-    A.add_argument( "-get_water"   , default = False , action = 'store_true' ) 
+    A.add_argument( "-get_molecule"   , default = False , action = 'store_true' ) 
+
+    A.add_argument( "-mol", dest = "molecule", 
+            type = str, default = "water", choices = ["water",
+                "methanol" , "ethane"] )
     A.add_argument( "-get_r_oh" , type = float,  default = 1.83681 )
-    A.add_argument( "-get_t_hoh" , type = float,  default = 104.5 )
+    A.add_argument( "-get_t_hoh", type = float,  default = 104.5 )
     A.add_argument( "-get_rho1" , type = float,  default = 0.0 )
     A.add_argument( "-get_rho2" , type = float,  default = 0.0 )
     A.add_argument( "-get_rho3" , type = float,  default = 0.0 )
@@ -425,12 +436,16 @@ if __name__ == '__main__':
         g.vary_parameters( opts )
         g.gen_mols_params( AA = False )
 
-    if args.get_water:
-        w = g.get_water( args.r_oh, args.t_hoh, \
-                args.rho1, args.rho2, args.rho3, AA = False )
+    if args.get_molecule:
+
+        w = g.get_mol( center = [0, 0, 0 ], mol = args.mol , AA = False )
+
         print w.o
         print w.h1
         print w.h2
         #w.plot()
+
+#    if args.molecule:
+#        g.build_mol( args.molecule )
 
 
