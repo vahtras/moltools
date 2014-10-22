@@ -7,55 +7,27 @@ import numpy as np
 import math as m
 
 from molecules import Water, Atom, Property, Methanol
-from owndict import *
 
-class Generator:
+a0 = 5.2917721092e-11
+
+class Generator( dict ):
     """
-    General class to manipulate water molecules, write and read dalton .mol files and .out files
-    Also to plot water molecules for testing rotations.
+    class to create molecules, write dalton .mol files 
+    using -params for study with use_calculator.py
 
-    And to write xmgrace data from dalton output
+    water currently implemented
+
     """
     def __init__(self, *args, **kwargs):
 
-        if kwargs is not None:
-            self.options = kwargs
-        else:
-            self.options = { "isAA" : False  }
-
-        self.dic = Dic()
-
-        self.r_oh = 1.83681
-        self.theta_hoh = np.pi * 104.5/ 180.0
-
-        self.varyR =     False
-        self.varyTheta = False
-        self.varyTau =   False
-        self.varyRho1 =  False
-        self.varyRho2 =  False
-        self.varyRho3 =  False
-
-        self.optionsR =     {  "min": 10.00, "max" : 10.00, "points": 1 }
-        self.optionsTheta = {  "min": 0.00, "max" : 0.00, "points": 1   }
-        self.optionsTau =   {  "min": 0.00, "max" : 0.00, "points": 1   }
-        self.optionsRho1 =  {  "min": 0.00, "max" : 0.00, "points": 1   }
-        self.optionsRho2 =  {  "min": 0.00, "max" : 0.00, "points": 1   }
-        self.optionsRho3 =  {  "min": 0.00, "max" : 0.00, "points": 1   }
-
-        opts = { "r" : {"max": 10.00, "min": 3.00,  "points":1  } ,
-             "theta" : {"max": np.pi , "min": 0.00 , "points":1 },
-             "tau"  : {"max": np.pi/2 , "min": 0.00 , "points":1 },
-             "rho1" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho2" : {"max": np.pi , "min": 0.00 , "points":1},
-             "rho3" : {"max": np.pi , "min": 0.00 , "points":1},
-             }
-
-        self.vary_parameters()
+        self[ ("water","a_hoh", "degree") ] = 104.5
+        self[ ("water","r_oh", "AA") ] = 1.83681
 
     @staticmethod
     def build_molecule( molecule ):
         """ molecule is a string to build, return class """
-    def gen_mols_params(self, AA = False,):
+
+    def gen_mols_params(self, mol, AA = False,):
 
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
@@ -75,15 +47,18 @@ class Generator:
         rho3 = np.r_[ self.optionsRho3[ "min" ] : self.optionsRho3[ "max" ] : \
                 complex( "%sj"%self.optionsRho3[ "points" ] ) ]
 
+        r_oh = self[ ("water","r_oh", "AA") ]
+        a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
+
         for i in r:
             for j in tau:
                 for k in theta:
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_water_params( [0, 0, 0], self.r_oh, self.theta_hoh, AA = AA)
+                                w1 = self.get_water_params( [0, 0, 0], r_oh, a_hoh, AA = AA)
                                 x, y, z = self.polar_to_cartesian( i, j, k )
-                                w2 = self.get_water_params( [x,y,z], self.r_oh, self.theta_hoh)
+                                w2 = self.get_water_params( [x,y,z], r_oh, a_hoh)
                                 w2.rotate( l, m, n )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
@@ -122,7 +97,7 @@ class Generator:
         h1.x = (origin[0] + r * m.cos(d)) ; h1.y = origin[1] ; h1.z = (origin[2] + r*m.sin(d))
         h2.x = (origin[0] - r * m.cos(d)) ; h2.y = origin[1] ; h2.z = (origin[2] + r*m.sin(d))
         w = Water(); w.append( o) ;w.append( h2 ) ;w.append( h1 ) 
-        w.theta_hoh = theta
+        w.a_hoh = theta
         w.r_oh = r
         w.center = origin
         w.euler1 = 0.00
@@ -141,8 +116,7 @@ class Generator:
             w.o.AA  = False
         return w
 
-    @staticmethod
-    def get_mol( center, mol, AA = True ):
+    def get_mol( self, center, mol, AA = True ):
         """return molecule in origo, all molecules have different definition
         of euler
 
@@ -152,45 +126,56 @@ class Generator:
         """
 
         if mol == "water":
-            print center, mol
-            raise SystemExit
-        h1 = Atom( { "AA" : AA} )
-        h2 = Atom( { "AA" : AA} )
-        o =  Atom( { "AA" : AA} )
+            h1 = Atom( { "AA" : AA} )
+            h2 = Atom( { "AA" : AA} )
+            o =  Atom( { "AA" : AA} )
 
-        d = (m.pi/2 - t_hoh/2)
+            r_oh = self[ ("water","r_oh", "AA") ]
+            if not AA:
+                r_oh = r_oh / a0
 
-        origin = np.array( [ 0, 0, 0] )
+            a_hoh = self[ ("water","a_hoh","degree") ]
 
-        o.element = "O" ; h1.element = "H" ; h2.element = "H"
-        o.x = origin[0]
-        o.y = origin[1]
-        o.z = origin[2] 
+            d = (m.pi/2 - a_hoh/2)
+            origin = np.array( [ 0, 0, 0] )
+            o.element = "O" ; h1.element = "H" ; h2.element = "H"
+            o.x = origin[0]
+            o.y = origin[1]
+            o.z = origin[2] 
 
-        h1.x = (origin[0] + r_oh * m.cos(d))
-        h1.y = origin[1] 
-        h1.z = (origin[2] + r_oh*m.sin(d))
+            h1.x = (origin[0] + r_oh * m.cos(d))
+            h1.y = origin[1] 
+            h1.z = (origin[2] + r_oh*m.sin(d))
 
-        h2.x = (origin[0] - r_oh * m.cos(d)) 
-        h2.y = origin[1] 
-        h2.z = (origin[2] + r_oh*m.sin(d))
+            h2.x = (origin[0] - r_oh * m.cos(d)) 
+            h2.y = origin[1] 
+            h2.z = (origin[2] + r_oh*m.sin(d))
 
-        w = Water()
-        w.append( o )
-        w.append( h1 )
-        w.append( h2 )
+            w = Water()
+            w.append( o )
+            w.append( h1 )
+            w.append( h2 )
+            if AA:
+                w.AA = True
+                w.h1.AA = True
+                w.h2.AA = True
+                w.o.AA  = True
+            else:
+                w.AA = False
+                w.h1.AA = False
+                w.h2.AA = False
+                w.o.AA  = False
+            return w
+        elif mol == "methanol":
+            r_co = self[ ("methanol", "r_co", "AA" )]["r_co"]
+            r_oh = self[ ("methanol", "r_oh", "AA" )]["r_oh"]
+            r_ch = self[ ("methanol", "r_ch", "AA" )]["r_ch"]
+            a_coh = self[ ("methanol", "a_coh", "AA" )]["a_coh"]
+            a_hco = self[ ("methanol", "a_hco", "AA" )]["a_hco"]
+            a_hch = self[ ("methanol", "a_hch", "AA" )]["a_hch"]
 
-        if AA:
-            w.AA = True
-            w.h1.AA = True
-            w.h2.AA = True
-            w.o.AA  = True
-        else:
-            w.AA = False
-            w.h1.AA = False
-            w.h2.AA = False
-            w.o.AA  = False
-        return w
+            c = Atom( {"x":0,"y":-r_co/2,"z":0,"AA" : AA , "element":"C"} )
+            o = Atom( {"x":0,"y":r_co/2,"z":0,"AA" : AA , "element":"C"} )
 
     def readWaters(self, fname):
         """From file with name fname, return a list of all waters encountered"""
@@ -381,10 +366,10 @@ class Generator:
 if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
-
-
 #Related to generating two water molecules with specified 6 parameters
-    A.add_argument( "-params"   , default = False , action = 'store_true' ) 
+    A.add_argument( "-params", type = str, 
+            default = "water", choices = ["water",
+                "methanol" , "ethane"] )
 
     A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
@@ -408,13 +393,11 @@ if __name__ == '__main__':
     A.add_argument( "-rho3_points"  ,   type = int , default = 1) 
 
 #Related to generating/getting one water
-    A.add_argument( "-get_molecule"   , default = False , action = 'store_true' ) 
-
-    A.add_argument( "-mol", dest = "molecule", 
+    A.add_argument( "-get_mol", 
             type = str, default = "water", choices = ["water",
                 "methanol" , "ethane"] )
     A.add_argument( "-get_r_oh" , type = float,  default = 1.83681 )
-    A.add_argument( "-get_t_hoh", type = float,  default = 104.5 )
+    A.add_argument( "-get_a_hoh", type = float,  default = 104.5 )
     A.add_argument( "-get_rho1" , type = float,  default = 0.0 )
     A.add_argument( "-get_rho2" , type = float,  default = 0.0 )
     A.add_argument( "-get_rho3" , type = float,  default = 0.0 )
@@ -432,20 +415,10 @@ if __name__ == '__main__':
        "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
              }
 
+
     if args.params:
         g.vary_parameters( opts )
-        g.gen_mols_params( AA = False )
+        g.gen_mols_params( args.params , AA = False )
 
-    if args.get_molecule:
-
-        w = g.get_mol( center = [0, 0, 0 ], mol = args.mol , AA = False )
-
-        print w.o
-        print w.h1
-        print w.h2
-        #w.plot()
-
-#    if args.molecule:
-#        g.build_mol( args.molecule )
-
-
+    if args.get_mol:
+        mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = False )
