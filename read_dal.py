@@ -26,8 +26,153 @@ charge_dic = {"H1": 1.0 ,"H2":1.0 , "C1":6.0, "C7":6.0, "H3":1.0,
 "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 
+def beta_related(args ):
 
-def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
+#These are used to create string for olavs dipole list class using templates
+    dipole = np.zeros( [3] )
+    alpha = np.zeros( [3, 3] )
+    beta = np.zeros( [3, 3, 3])
+
+#To be read from -b hfqua_file.out
+
+    dipole_qm = np.zeros( [3] )
+    alpha_qm = np.zeros( [3, 3] )
+    beta_qm = np.zeros( [3, 3, 3] )
+
+    waters = np.zeros( [] )
+
+#read if quadratic calculation is supplied
+    if args.beta:
+        if is_ccsd( args.beta ):
+            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
+        else:
+            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
+#Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
+
+    if args.verbose:
+        print "Dipole: "
+        for i in range(3):
+            print "%.5f" % (dipole_qm[ i ] )
+
+        print "\nAlpha: "
+        for i, j in enumerate ( ut.upper_triangular( 2 )) :
+            print "%.5f" % (alpha_qm[ j ] )
+
+        print "\nBeta: "
+        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+            print "%.5f" % (beta_qm[ jk ] )
+
+    if args.verbose:
+        for i in atoms:
+            print i
+
+    if args.verbose:
+        for i in range(len(dipole)):
+            print "Dipole_%s: %f" %( lab[i], dipole_qm[i] )
+        for i in range(len(alpha)):
+            for j in range(len(alpha[i])):
+                print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
+        for i in range(3):
+            for j in range(3):
+                print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
+        for i in range(len(beta)):
+            for j in range(len(beta[i])):
+                for k in range(len(beta[j])):
+                    print "Beta_%s%s%s: %f" %( lab[i], lab[j] , lab[k] , beta_qm[i][j][k] )
+
+
+    #if args.template:
+
+
+
+#Read coordinates for water molecules where to put properties to
+    
+    if args.wat:
+        waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
+
+    alpha_qm = Water.square_2_ut( alpha_qm )
+    beta_qm = Water.square_3_ut( beta_qm )
+
+# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
+    if args.wat:
+        for wat in waters:
+            if args.dist:
+                kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                    args.dist , 0.0))
+                for at in wat:
+                    Property.add_prop_from_template( at, kwargs_dict )
+
+            else:
+                kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                    args.dist, 0.0) )
+                for at in wat:
+                    Property.add_prop_from_template( at, kwargs_dict )
+            t1, t2, t3  = wat.get_euler()
+            Property.transform_ut_properties( wat.h1.Property, t1, t2 ,t3)
+            Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
+            Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
+                
+    static= GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
+    polar = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
+    hyper = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, dist = args.dist , AA = args.oAA ))
+
+    print get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist,
+            AA = args.oAA )
+    raise SystemExit
+
+    hyper.set_damp( 3.5, 3.5 )
+
+    static.solve_scf()
+    polar.solve_scf()
+    hyper.solve_scf()
+
+    sd = static.total_dipole_moment()
+    pd = polar.total_dipole_moment()
+    hd = hyper.total_dipole_moment()
+
+    pa =  Water.square_2_ut( polar.alpha() )
+    ha =  Water.square_2_ut( hyper.alpha() )
+
+    hb =  Water.square_3_ut( hyper.beta() )
+
+    lab1 = ["X", "Y", "Z"]
+    lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
+    lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+
+    if args.verbose:
+        print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
+        for i in range(3):
+            print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+
+        print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+        for i, j in enumerate ( ut.upper_triangular( 2 )) :
+            print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                    alpha_qm[i],\
+                    pa[i],\
+                    ha[i]  )
+
+        print "\nBeta;\t QM,\t Quadratic"
+        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+            print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
+
+        norm = np.sqrt( np.sum(  (beta_qm - hb)**2 ) )
+        print "Norm"
+        print norm
+
+    hb = Water.ut_3_square(hb)
+    beta_qm = Water.ut_3_square( beta_qm )
+
+    hb_z = np.einsum('ijj->i' ,hb )
+    qm_z = np.einsum('ijj->i', beta_qm )
+
+    if args.verbose:
+        print "\n\nThe projected beta, a.k.a. beta parallel component"
+        print "Quantum mechanical:"
+        print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
+        print "Quadratic model: "
+        print np.dot( hb_z, hd ) / np.linalg.norm( hd )
+    
+def get_string_from_waters( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
     """ Converts list of waters into Olav string for hyperpolarizable .pot"""
 # If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
     if AA:
@@ -47,18 +192,13 @@ def get_string( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = Fals
         string = "%s\n%d %d %d %d\n" % ( str_, len(waters),
                 max_l, pol, hyper )
         for i in waters:
-            string +=  "%d %.5f %.5f %.5f " %(
-                    int(i.o.res_id), i.o.x, i.o.y, i.o.z) + i.Property.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist ) + '\n'
+            for at in i:
+                string +=  "%d %.5f %.5f %.5f " % tuple(
+                        [int(at.res_id)] + at.r)
+                string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
+                string += '\n'
         return string
 
-def hyperq(vec):
-    tmp = []
-    vec_new = []
-    for i in vec:
-        if i[1] not in tmp:
-            tmp.append(i[1])
-            vec_new.append( i ) 
-    return vec_new
 
 def run_argparse( args ):
     A = argparse.ArgumentParser( description = \
@@ -95,7 +235,7 @@ def run_argparse( args ):
     A.add_argument( "-tbasis", type = str, default = "PVDZ",
             help = "available choices: PVDZ (default, is actually cc-pVDZ), \
                     MIDDLE (ano type) [O: 5s3p2d, H: 3s1p]")
-    A.add_argument( "-w", action = 'store_true' , default=  False )
+    A.add_argument( "-wat", action = 'store_true' , default=  False )
 
     a = A.parse_args( args[1:] )
     return a
@@ -337,8 +477,6 @@ def main():
     """
     args = run_argparse( sys.argv )
 
-    f_waters = False
-
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
@@ -352,141 +490,18 @@ def main():
 
     waters = np.zeros( [] )
 
-#read if linear calculation is supplied
 
-    if args.alpha:
-        dipole_qm = read_alpha( args )
+#Alpha related section 
 
-
-#read if quadratic calculation is supplied
     if args.beta:
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
-            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
-#Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
+            mols, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
 
-    if args.verbose:
-        print "Dipole: "
-        for i in range(3):
-            print "%.5f" % (dipole_qm[ i ] )
-
-        print "\nAlpha: "
-        for i, j in enumerate ( ut.upper_triangular( 2 )) :
-            print "%.5f" % (alpha_qm[ j ] )
-
-        print "\nBeta: "
-        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
-            print "%.5f" % (beta_qm[ jk ] )
-
-
-    if args.verbose:
-        for i in atoms:
-            print i
-
-    if args.verbose:
-        for i in range(len(dipole)):
-            print "Dipole_%s: %f" %( lab[i], dipole_qm[i] )
-        for i in range(len(alpha)):
-            for j in range(len(alpha[i])):
-                print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
-        for i in range(3):
-            for j in range(3):
-                print "Alpha_%s%s: %f" %( lab[i], lab[j] , alpha_qm[i][j] )
-        for i in range(len(beta)):
-            for j in range(len(beta[i])):
-                for k in range(len(beta[j])):
-                    print "Beta_%s%s%s: %f" %( lab[i], lab[j] , lab[k] , beta_qm[i][j][k] )
-
-
-    #if args.template:
-
-#Read coordinates for water molecules where to put properties to
+    beta_related(args)
     
-    f_waters = args.w
 
-    if f_waters:
-        waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
-
-    alpha_qm = Water.square_2_ut( alpha_qm )
-    beta_qm = Water.square_3_ut( beta_qm )
-
-# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
-    if f_waters:
-        for i in waters:
-            if args.dist:
-                kwargs = Template().get_dist_data( "TIP3P", "HF", "PVDZ" )
-            else:
-                kwargs = Template().get_data( "TIP3P", "HF", "PVDZ" )
-
-            p = Property.from_template( **kwargs )
-
-            t1, t2, t3  = i.get_euler()
-            p.transform_ut_properties( t1, t2 ,t3 , dist = args.dist )
-            i.Property = p
-
-    #print "\n\nThe projected beta, a.k.a. beta parallel component"
-    #print "Quantum mechanical:"
-
-    #beta_qm = Water.ut_3_square( beta_qm )
-    #qm_z = np.einsum('ijj->i', beta_qm )
-
-    #print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
-
-    static = GaussianQuadrupoleList.from_string( get_string( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
-    polar = GaussianQuadrupoleList.from_string( get_string( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
-    hyper = GaussianQuadrupoleList.from_string( get_string( waters, dist = args.dist , AA = args.oAA ))
-
-    hyper.set_damp( 3.5, 3.5 )
-
-    static.solve_scf()
-    polar.solve_scf()
-    hyper.solve_scf()
-
-    sd = static.total_dipole_moment()
-    pd = polar.total_dipole_moment()
-    hd = hyper.total_dipole_moment()
-
-    pa =  Water.square_2_ut( polar.alpha() )
-    ha =  Water.square_2_ut( hyper.alpha() )
-
-    hb =  Water.square_3_ut( hyper.beta() )
-
-    lab1 = ["X", "Y", "Z"]
-    lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
-    lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
-
-    print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
-    for i in range(3):
-        print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
-
-    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
-    for i, j in enumerate ( ut.upper_triangular( 2 )) :
-        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
-                alpha_qm[i],\
-                pa[i],\
-                ha[i]  )
-
-    print "\nBeta;\t QM,\t Quadratic"
-    for i, jk in enumerate ( ut.upper_triangular( 3 )) :
-        print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
-
-    norm = np.sqrt( np.sum(  (beta_qm - hb)**2 ) )
-    print "Norm"
-    print norm
-
-    hb = Water.ut_3_square(hb)
-    beta_qm = Water.ut_3_square( beta_qm )
-
-    hb_z = np.einsum('ijj->i' ,hb )
-    qm_z = np.einsum('ijj->i', beta_qm )
-
-    print "\n\nThe projected beta, a.k.a. beta parallel component"
-    print "Quantum mechanical:"
-    print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
-    print "Quadratic model: "
-    print np.dot( hb_z, hd ) / np.linalg.norm( hd )
-    
 #Only write output file if input alpha, beta, and coordinates are given
     if "pot" in args.write:
         write_pot = True
@@ -502,6 +517,8 @@ def main():
         write_mol = True
     else:
         write_mol = False
+
+
 
 #Inline temporary code to generate static, polarizable and hyperpolarizable string
 #Write the mol file for target cluster, if the corresponding qua_ file
@@ -551,107 +568,6 @@ def main():
             for i in waters:
                 for j in i.atomlist:
                     f_.write( "%s %.5f %.5f %.5f\n" %( j.element, j.x, j.y, j.z ))
-# Read in QM dipole moment from dalton .out files if they exist for supplied .xyz/.pdb file
-# lin_tip3p3_10.out is the corresponding out file for tip3p md configuration 3 using 10
-# water molecules obtained as linear response with dipole moment
-#
-    #if args.x:
-    #    if args.x.endswith( ".pdb" ):
-    #        lin_outfile = "lin_" + args.x.split('.')[0]+"_" + str( args.waters ) + ".out"
-    #        qua_outfile = "qua_" + args.x.split('.')[0]+"_" + str( args.waters ) + ".out"
-    #    elif args.x.endswith( ".xyz" ):
-    #        lin_outfile = "lin_" + args.x.split('.')[0] + ".out"
-    #        qua_outfile = "qua_" + args.x.split('.')[0] + ".out"
-    #    if os.path.isfile( lin_outfile ):
-    #        atoms, qm_dipole = read_coords_and_dipole( args, custom_file = lin_outfile )
-    #        print "Found QM dipole moment in %s" %lin_outfile
-    #        print qm_dipole
-
-
-    raise SystemExit
-
-# Do olav calculations for the generated .pot file for the supplied .xyz/.pdb file:
-    if not f_waters:
-        raise SystemExit
-
-    #if args.op:
-    #    string  =  open( args.op ).read()
-
-    if f_waters:
-        static = PointDipoleList.from_string( string_static )
-        polarizable = PointDipoleList.from_string( string_polarizable )
-        hyperpolarizable = PointDipoleList.from_string( string_hyperpolarizable )
-
-        static.solve_scf()
-        polarizable.solve_scf()
-        hyperpolarizable.solve_scf()
-
-#Dipole section
-
-    select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-    ref = [ dipole_qm, alpha_qm, beta_qm ]
-
-    c =  Calculator()
-    c.writeLog()
-
-
-    reference = dipole_qm
-
-    print '\n\nDipole: p_x, p_y, p_z\n'
-    print "Quantum Mech: ", reference
-    print "static dipole", static.total_dipole_moment()
-    print "polarizable dipole", polarizable.total_dipole_moment()
-    print "hyperpolarizable dipole", hyperpolarizable.total_dipole_moment()
-
-    print "\n"
-    print "Relative error Dipole static:" , \
-            [(this-ref)/ref for this, ref in zip(
-                    static.total_dipole_moment(),
-                            reference )]
-    print "Relative error Dipole polarizable:" , \
-         [(this-ref)/ref for this, ref in zip(
-                    polarizable.total_dipole_moment(),
-                            reference )]
-    print "Relative error Dipole hyperpolarizable:" , \
-        [(this-ref)/ref for this, ref in zip(
-                    hyperpolarizable.total_dipole_moment(),
-                            reference )]
-#Alpha section
-    reference = alpha_qm.diagonal()
-    print '\n\nAlfa: a_xx, a_yy, a_zz\n'
-    print "Quantum Mech: ", reference
-    print "static alpha", static.alpha().diagonal()
-    print "polarizable alpha", polarizable.alpha().diagonal()
-    print "hyperpolarizable alpha", hyperpolarizable.alpha().diagonal()
-
-    print "\n"
-    print "Relative error Alpha polarizable:" ,\
-            [(this-ref)/ref for this, ref in zip(
-                polarizable.alpha().diagonal(), 
-                        reference )]
-    print "Relative error Alpha hyperpolarizable:",\
-            [(this-ref)/ref for this, ref  \
-            in zip( hyperpolarizable.alpha().diagonal(), 
-                        reference )]
-
-
-
-#Beta section
-#Relative error for xxz, yyz, zzz
-
-    select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-    reference = [beta_qm[i, j, k] for i, j, k in select]
-    print "Relative error for xxz, yyz, zzz"
-    print '\n\nBeta: b_xxz, b_yyz, b_zzz\n'
-    print "Quantum Mech: ", reference
-    print "Static:", [static.beta()[i, j, k] for i, j, k in select]
-    print "Polarizable:" , [polarizable.beta()[i, j, k] for i, j, k in select]
-    print "Hyperpolarizable:" ,[hyperpolarizable.beta()[i, j, k] for i, j, k in select]
-
-    print "\n"
-    print "Relative error Beta:" ,[(this-ref)/ref for this, ref in zip([
-                             hyperpolarizable.beta()[i, j, k] for i, j, k in select],
-                        reference)]
 
 
 if __name__ == '__main__':

@@ -30,6 +30,7 @@ def tensor_to_ut( beta ):
     new[ 9 ] = beta[2,5]
     return new
 
+
 class Property( dict ):
     def __init__(self):
 
@@ -37,34 +38,46 @@ class Property( dict ):
         self.pol = 22
         self.hyper = 2
 
-        self.charge = None
-        self.dipole = np.array( (3,) )
-        self.quadrupole = np.array( ( 3,3 ) )
-        self.alpha = np.array( ( 3,3 ) )
-        self.beta = np.array( ( 3, 3,3 ) )
+    def __add__(self, other):
+        tmp = {}
+        for i, prop in enumerate(self):
+            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
+        return tmp
+    def __ladd__(self, other):
+        tmp = {}
+        for i, prop in enumerate(self):
+            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
+        return tmp
+    def __radd__(self, other):
+        tmp = {}
+        for i, prop in enumerate(self):
+            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
+        return tmp
 
-        self.distributed = True
 
     def __str__(self):
-        return "%.5f %.5f %.5f %.5f  %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f \n" %(
-                self["charge"], self["dipole"][0], self["dipole"][1], self["dipole"][2],
+        print self["charge"]
+        raise SystemExit
+        return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
+        #return "%.5f %.5f %.5f %.5f  %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f \n" %(
+        #        self["charge"], self["dipole"][0], self["dipole"][1], self["dipole"][2],
 
-                self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2],
-                self["quadrupole"][3],self["quadrupole"][4], self["quadrupole"][5],
+        #        self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2],
+        #        self["quadrupole"][3],self["quadrupole"][4], self["quadrupole"][5],
 
-                self["alpha"][0], self["alpha"][1], self["alpha"][2], self["alpha"][3],
-                self["alpha"][4], self["alpha"][5],
-                
-                self["beta"][0], self["beta"][1], self["beta"][2],
-                self["beta"][3], self["beta"][4], self["beta"][5],
-                self["beta"][6], self["beta"][7], self["beta"][8],
-                self["beta"][9]
-                )
+        #        self["alpha"][0], self["alpha"][1], self["alpha"][2], self["alpha"][3],
+        #        self["alpha"][4], self["alpha"][5],
+        #        
+        #        self["beta"][0], self["beta"][1], self["beta"][2],
+        #        self["beta"][3], self["beta"][4], self["beta"][5],
+        #        self["beta"][6], self["beta"][7], self["beta"][8],
+        #        self["beta"][9]
+        #        )
 
-    def potline(self, max_l , pol, hyper, dist):
+    def potline(self, max_l , pol, hyper):
         string = ""
         if 0  <= max_l :
-            string += "%.5f " %( self["charge"] )
+            string += "%.5f " % tuple(self["charge"] )
         if max_l >= 1 :
             string += "%.5f %.5f %.5f " %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
         if max_l >= 2 :
@@ -90,42 +103,28 @@ class Property( dict ):
 
         return string
 
+
     @staticmethod
-    def from_template( **kwargs ):
+    def add_prop_from_template( at, wat_templ):
         p = Property()
-        for i, props in enumerate(kwargs):
-            p[ props ] = kwargs[ props ]
-        return p
-    def transform_ut_properties( self, t1, t2, t3, dist = False):
+        for i, keys in enumerate( wat_templ ):
+            if keys[0] == at.name:
+                p[keys[1]] = wat_templ[ keys ]
+        at.Property = p
 
-        if dist:
-            if self.has_key( "dipole" ):
-                self[ "dipole" ] = [ Water.transform_dipole( self["dipole"][i], 
-                    t1, t2, t3) for i in range( len(self[ "dipole" ]) ) ]
+    @staticmethod
+    def transform_ut_properties( prop, t1, t2, t3):
+        assert isinstance( prop, dict )
+        if prop.has_key( "dipole" ):
+            prop["dipole"] = Water.transform_dipole( prop["dipole"] , t1, t2, t3 )
+        if prop.has_key( "quadrupole" ):
+            prop["quadrupole"] = prop.transform_ut_quadrupole( prop["quadrupole"], t1, t2, t3 )
 
-            if self.has_key( "quadrupole" ):
-                self[ "quadrupole" ] = [ Property.transform_ut_quadrupole( self["quadrupole"][i], t1, t2, t3) for i in range( len(self[ "quadrupole" ]) ) ]
+        if prop.has_key( "alpha" ):
+            prop["alpha"] = prop.transform_ut_alpha( prop["alpha"],t1, t2, t3 )
 
-            if self.has_key( "alpha" ):
-                self[ "alpha" ] = [ Property.transform_ut_alpha( self["alpha"][i], 
-                    t1, t2, t3) for i in range( len(self[ "alpha" ]) ) ]
-
-            if self.has_key( "beta" ):
-                self[ "beta" ] = [ Property.transform_ut_beta( self["beta"][i], 
-                    t1, t2, t3) for i in range( len(self[ "beta" ]) ) ]
-        else:
-            if self.has_key( "dipole" ):
-                self["dipole"] = Water.transform_dipole( self["dipole"] , t1, t2, t3 )
-
-            if self.has_key( "quadrupole" ):
-                self["quadrupole"] = self.transform_ut_quadrupole( self["quadrupole"], t1, t2, t3 )
-
-            if self.has_key( "alpha" ):
-                self["alpha"] = self.transform_ut_alpha( self["alpha"],t1, t2, t3 )
-
-            if self.has_key( "beta" ):
-                self["beta"] = self.transform_ut_beta( self["beta"], t1, t2, t3 )
-
+        if prop.has_key( "beta" ):
+            prop["beta"] = prop.transform_ut_beta( prop["beta"], t1, t2, t3 )
 
     @staticmethod
     def transform_ut_quadrupole( quad, t1, t2 ,t3 ):
@@ -159,6 +158,10 @@ class Atom(object):
 
 #Element one-key char
         self.element = None
+
+#Name is custom name, for water use O1, H2 (positive x ax), H3
+        self.name = None
+
         self.r = False
         self.x = None
         self.y = None
@@ -176,7 +179,7 @@ class Atom(object):
             self.y = float( kwargs.get( "y", 0.0 ))
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
-            self.r = np.array( [self.x, self.y, self.z ] )
+            self.r = [self.x, self.y, self.z ]
 
     def potline(self, max_l, pol, hyper, dist):
         return  "%d %.5f %.5f %.5f " %( 
@@ -600,6 +603,50 @@ class Water( Molecule ):
         self.AA = False
         self.Property = None
 
+        self._coc = None
+
+    @staticmethod
+    def get_standard():
+#Geometrical parameters
+        AA = False
+        center = [0, 0, 0]
+        r_oh =  104.5
+        a_hoh = 0.9720
+        r_oh = r_oh / a0
+        d = (90 - a_hoh/2 ) * np.pi / 180
+        origin = np.array( [ 0, 0, 0] )
+
+        h1 = Atom( **{ "AA" : AA, "element" : "H"} )
+        h2 = Atom( **{ "AA" : AA, "element" : "H"} )
+        o =  Atom( **{ "AA" : AA, "element" : "O"} )
+
+        o.x = center[0]
+        o.y = center[1]
+        o.z = center[2] 
+
+        h1.x = (center[0] + r_oh * np.cos(d))
+        h1.y = center[1] 
+        h1.z = (center[2] + r_oh* np.sin(d))
+
+        h2.x = (center[0] - r_oh * np.cos(d)) 
+        h2.y = center[1] 
+        h2.z = (center[2] + r_oh* np.sin(d))
+
+        w = Water()
+        w.append( o )
+        w.append( h1 )
+        w.append( h2 )
+        
+        return w
+
+    @property
+    def coc(self):
+        if self._coc is not None:
+            return _coc
+        self._coc = sum( [at.r * charge_dict[at.element] for at in self])\
+                /sum( map(float,[charge_dict[at.element] for at in self]) )
+        return self._coc
+
     def append(self, atom):
         if len(self) > 3:
             print "tried to add additional atoms to water, exiting"
@@ -617,6 +664,7 @@ class Water( Molecule ):
                 self.h2 = atom
         if atom.element == "O":
             self.o = atom
+            atom.name = "O1"
 #Add the atom
         super( Water , self).append(atom)
 
@@ -626,11 +674,11 @@ class Water( Molecule ):
             self.center = np.array([self.h1.x + self.h2.x + self.o.x,  \
                     self.h1.y + self.h2.y + self.o.y , \
                     self.h1.z + self.h2.z + self.o.z ]) / 3.0
-            hc = charge_dict[ self.h1.element ]
-            oc = charge_dict[ self.h1.element ]
-            self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
-                self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
-                self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
+            #hc = charge_dict[ self.h1.element ]
+            #oc = charge_dict[ self.h1.element ]
+            #self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
+            #    self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
+            #    self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
 
         if self.res_id:
             if self.res_id != atom.res_id:
@@ -653,9 +701,13 @@ class Water( Molecule ):
             if d1 < d2:
                 self.h1 = hyd1
                 self.h2 = hyd2
+                hyd1.name = "H2"
+                hyd2.name = "H3"
             else:
                 self.h1 = hyd2
                 self.h2 = hyd1
+                hyd1.name = "H2"
+                hyd2.name = "H3"
 
     def potline(self, max_l, pol, hyper, dist):
         return  "%d %.5f %.5f %.5f " %( 
@@ -740,9 +792,6 @@ class Water( Molecule ):
         """
         d1, d2, d3 = self.get_euler()
 
-        print self.center
-        raise SystemExit
-        
 # Place water molecule in origo, and rotate it so hydrogens in xz plane
         H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
         TMP = self.o.get_array()
