@@ -114,25 +114,24 @@ def beta_related(args ):
                 
     static= GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
     polar = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
-    hyper = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, dist = args.dist , AA = args.oAA ))
+    hyper = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 22,
+        hyper = 1, dist = args.dist , AA = args.oAA ))
 
-    print get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist,
+    print get_string_from_waters( waters, pol = 22, hyper = 1, dist = args.dist,
             AA = args.oAA )
-    raise SystemExit
 
-    hyper.set_damp( 3.5, 3.5 )
+    #hyper.set_damp( 3.5, 3.5 )
 
     static.solve_scf()
     polar.solve_scf()
     hyper.solve_scf()
 
-    sd = static.total_dipole_moment()
+    sd = static.total_dipole_moment(  )
     pd = polar.total_dipole_moment()
     hd = hyper.total_dipole_moment()
 
     pa =  Water.square_2_ut( polar.alpha() )
     ha =  Water.square_2_ut( hyper.alpha() )
-
     hb =  Water.square_3_ut( hyper.beta() )
 
     lab1 = ["X", "Y", "Z"]
@@ -179,25 +178,15 @@ def get_string_from_waters( waters, max_l = 1, pol = 22 , hyper = 1, dist = Fals
         str_ = "AA"
     else:
         str_ = "AU"
-    if dist:
-        string = "%s\n%d %d %d %d\n" % ( str_, len(waters)*3,
-                max_l, pol, hyper )
-        for i in waters:
-            i.set_property_on_each_atom()
-            string +=  i.o.potline( max_l = max_l, pol =pol, hyper= hyper, dist= dist )
-            string +=  i.h1.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
-            string +=  i.h2.potline(max_l = max_l, pol =pol, hyper= hyper, dist= dist )
-        return string
-    else:
-        string = "%s\n%d %d %d %d\n" % ( str_, len(waters),
-                max_l, pol, hyper )
-        for i in waters:
-            for at in i:
-                string +=  "%d %.5f %.5f %.5f " % tuple(
-                        [int(at.res_id)] + at.r)
-                string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
-                string += '\n'
-        return string
+    string = "%s\n%d %d %d %d\n" % ( str_, len(waters)*3,
+            max_l, pol, hyper )
+    for i in waters:
+        for at in i:
+            string +=  "%d %.5f %.5f %.5f " % tuple(
+                    [int(at.res_id)] + at.r)
+            string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
+            string += '\n'
+    return string
 
 
 def run_argparse( args ):
@@ -468,7 +457,6 @@ def read_beta_hf( args ):
     tot_dip = nuc_dip - el_dip
 
     return atoms, nuc_dip - el_dip, alpha , beta
-
 
 def main():
     """ 
