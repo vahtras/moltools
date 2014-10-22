@@ -8,7 +8,7 @@ import math as m
 
 from molecules import Water, Atom, Property, Methanol
 
-a0 = 5.2917721092e-11
+a0 = 0.52917721092
 
 class Generator( dict ):
     """
@@ -21,7 +21,19 @@ class Generator( dict ):
     def __init__(self, *args, **kwargs):
 
         self[ ("water","a_hoh", "degree") ] = 104.5
-        self[ ("water","r_oh", "AA") ] = 1.83681
+        self[ ("water","r_oh", "AA") ] = 0.9720
+
+        self[ ("methanol", "r_oh", "AA" ) ] = 0.967
+        self[ ("methanol", "r_co", "AA" ) ] = 1.428
+        self[ ("methanol", "r_ch", "AA" ) ] = 1.098
+
+        self[ ("methanol", "a_coh", "degree" ) ] = 107.16
+        self[ ("methanol", "a_hch", "degree" ) ] = 109.6
+        self[ ("methanol", "a_hco", "degree" ) ] = 109.342
+
+        self[ ("methanol", "d_hcoh", "h4", "degree" ) ] =  60.0
+        self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
+        self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
 
     @staticmethod
     def build_molecule( molecule ):
@@ -56,14 +68,16 @@ class Generator( dict ):
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_water_params( [0, 0, 0], r_oh, a_hoh, AA = AA)
+                                w1 = self.get_mol( [0, 0, 0], "methanol", AA = AA)
+
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_water_params( [x,y,z], r_oh, a_hoh)
                                 w2.rotate( l, m, n )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
-                                self.write_mol( [w1, w2], name )
+
+                                Molecule.mollist_to_mol_string( [w1, w2], name )
 
     def vary_parameters( self, *args ):
         """Given two parameters, for e.g. r and theta, keeps all other static"""
@@ -126,56 +140,92 @@ class Generator( dict ):
         """
 
         if mol == "water":
-            h1 = Atom( { "AA" : AA} )
-            h2 = Atom( { "AA" : AA} )
-            o =  Atom( { "AA" : AA} )
 
+#Geometrical parameters
             r_oh = self[ ("water","r_oh", "AA") ]
+            a_hoh = self[ ("water","a_hoh","degree") ]
             if not AA:
                 r_oh = r_oh / a0
 
-            a_hoh = self[ ("water","a_hoh","degree") ]
-
-            d = (m.pi/2 - a_hoh/2)
+            d = (90 - a_hoh/2 ) * np.pi / 180
             origin = np.array( [ 0, 0, 0] )
-            o.element = "O" ; h1.element = "H" ; h2.element = "H"
-            o.x = origin[0]
-            o.y = origin[1]
-            o.z = origin[2] 
 
-            h1.x = (origin[0] + r_oh * m.cos(d))
-            h1.y = origin[1] 
-            h1.z = (origin[2] + r_oh*m.sin(d))
+            h1 = Atom( **{ "AA" : AA, "element" : "H"} )
+            h2 = Atom( **{ "AA" : AA, "element" : "H"} )
+            o =  Atom( **{ "AA" : AA, "element" : "O"} )
 
-            h2.x = (origin[0] - r_oh * m.cos(d)) 
-            h2.y = origin[1] 
-            h2.z = (origin[2] + r_oh*m.sin(d))
+            o.x = center[0]
+            o.y = center[1]
+            o.z = center[2] 
+
+            h1.x = (center[0] + r_oh * np.cos(d))
+            h1.y = center[1] 
+            h1.z = (center[2] + r_oh* np.sin(d))
+
+            h2.x = (center[0] - r_oh * np.cos(d)) 
+            h2.y = center[1] 
+            h2.z = (center[2] + r_oh* np.sin(d))
 
             w = Water()
             w.append( o )
             w.append( h1 )
             w.append( h2 )
-            if AA:
-                w.AA = True
-                w.h1.AA = True
-                w.h2.AA = True
-                w.o.AA  = True
-            else:
-                w.AA = False
-                w.h1.AA = False
-                w.h2.AA = False
-                w.o.AA  = False
+            
             return w
-        elif mol == "methanol":
-            r_co = self[ ("methanol", "r_co", "AA" )]["r_co"]
-            r_oh = self[ ("methanol", "r_oh", "AA" )]["r_oh"]
-            r_ch = self[ ("methanol", "r_ch", "AA" )]["r_ch"]
-            a_coh = self[ ("methanol", "a_coh", "AA" )]["a_coh"]
-            a_hco = self[ ("methanol", "a_hco", "AA" )]["a_hco"]
-            a_hch = self[ ("methanol", "a_hch", "AA" )]["a_hch"]
 
-            c = Atom( {"x":0,"y":-r_co/2,"z":0,"AA" : AA , "element":"C"} )
-            o = Atom( {"x":0,"y":r_co/2,"z":0,"AA" : AA , "element":"C"} )
+        elif mol == "methanol":
+
+            r_co = self[ ("methanol", "r_co", "AA" )]
+            r_oh = self[ ("methanol", "r_oh", "AA" )]
+            r_ch = self[ ("methanol", "r_ch", "AA" )]
+
+            a_coh = self[ ("methanol", "a_coh", "degree" ) ]
+            #a_hch = self[ ("methanol", "a_hch", "degree" ) ]
+            a_hco = self[ ("methanol", "a_hco", "degree" ) ]
+
+            a_coh *= np.pi / 180
+            a_hco *= np.pi / 180
+
+            d_hcoh_4 = self[ ("methanol", "d_hcoh", "h4", "degree" ) ]
+            d_hcoh_4 *= np.pi / 180
+            d_hcoh_5 = self[ ("methanol", "d_hcoh", "h5", "degree" ) ]
+            d_hcoh_5 *= np.pi / 180
+            d_hcoh_6 = self[ ("methanol", "d_hcoh", "h6", "degree" ) ]
+            d_hcoh_6 *= np.pi / 180
+
+            if not AA:
+                r_co, r_oh, r_ch = r_co/a0, r_oh/a0, r_ch/a0
+
+            c1 = Atom( **{"x":0, "y":0, "z":-r_co/2, "AA": AA, "element":"C" } )
+            o2 = Atom( **{"x":0, "y":0, "z": r_co/2, "AA": AA, "element":"O" } )
+
+            h3 = Atom( **{"x":r_oh*np.cos( a_coh-np.pi/2),
+                "y":0,
+                "z":r_oh*np.sin( a_coh-np.pi/2) + r_co/2,
+                "AA": AA, "element":"H" } )
+
+            h4 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_4 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_4 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+            h5 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_5 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_5 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+            h6 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_6 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_6 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+
+            m = Methanol()
+            m.append(c1)
+            m.append(o2)
+            m.append(h3)
+            m.append(h4)
+            m.append(h5)
+            m.append(h6)
+
+            return m
 
     def readWaters(self, fname):
         """From file with name fname, return a list of all waters encountered"""
@@ -368,7 +418,7 @@ if __name__ == '__main__':
     A = argparse.ArgumentParser( add_help= True)
 #Related to generating two water molecules with specified 6 parameters
     A.add_argument( "-params", type = str, 
-            default = "water", choices = ["water",
+            choices = ["water",
                 "methanol" , "ethane"] )
 
     A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
@@ -394,14 +444,11 @@ if __name__ == '__main__':
 
 #Related to generating/getting one water
     A.add_argument( "-get_mol", 
-            type = str, default = "water", choices = ["water",
+            type = str, choices = ["water",
                 "methanol" , "ethane"] )
-    A.add_argument( "-get_r_oh" , type = float,  default = 1.83681 )
-    A.add_argument( "-get_a_hoh", type = float,  default = 104.5 )
-    A.add_argument( "-get_rho1" , type = float,  default = 0.0 )
-    A.add_argument( "-get_rho2" , type = float,  default = 0.0 )
-    A.add_argument( "-get_rho3" , type = float,  default = 0.0 )
+    A.add_argument( "-basis", type = str, default = "cc-pVDZ" )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
+
     args = A.parse_args()
 
     g = Generator()
@@ -415,10 +462,13 @@ if __name__ == '__main__':
        "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
              }
 
-
     if args.params:
         g.vary_parameters( opts )
         g.gen_mols_params( args.params , AA = False )
 
-    if args.get_mol:
-        mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = False )
+    elif args.get_mol:
+        mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
+    else:
+        print "Usage; use_generator [-params water] [-get_mol methanol]"
+
+

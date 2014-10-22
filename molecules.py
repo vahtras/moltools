@@ -172,10 +172,11 @@ class Atom(object):
 
         if kwargs != {}:
             self.AA = bool( kwargs.get( "AA", True ) )
-            self.x = float( kwargs.get( "x" ))
-            self.y = float( kwargs.get( "y" ))
-            self.z = float( kwargs.get( "z" ))
-            self.element = kwargs.get( "element" )
+            self.x = float( kwargs.get( "x", 0.0 ))
+            self.y = float( kwargs.get( "y", 0.0 ))
+            self.z = float( kwargs.get( "z", 0.0 ))
+            self.element = kwargs.get( "element", "X" )
+            self.r = np.array( [self.x, self.y, self.z ] )
 
     def potline(self, max_l, pol, hyper, dist):
         return  "%d %.5f %.5f %.5f " %( 
@@ -183,6 +184,7 @@ class Atom(object):
 
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
+
     def __sub__(self, other ):
         return self.get_array() - other.get_array()
     def get_array(self):
@@ -216,8 +218,7 @@ class Molecule(list):
 #By default, AU 
         self.AA = False
         self.Property = None
-
-
+        self.no_hydrogens = True
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
@@ -545,12 +546,39 @@ class Molecule(list):
         b2 = symmetrize_first_beta( b_new2 )
 
         return [ b0, b1, b2 ]
+    def get_mol_string(self, basis = "cc-pVDZ"):
+        st = ""
+        uni = Molecule.unique([ at.element for at in self])
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
+        for el in uni:
+            st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
+                    len( [all_el for all_el in self if (all_el.element == el)] ),
+                    basis )
+            for i in [all_el for all_el in self if (all_el.element == el) ]:
+                st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
+
+        return st
+    @staticmethod
+    def unique(arr):
+        tmp = []
+        for i in arr:
+            if i in tmp:
+                continue
+            tmp.append(i)
+        return tmp
+
+
+    @staticmethod
+    def mollist_to_mol_string( mollist , name ):
+        print mollist
+        raise SystemExit
 
 class Water( Molecule ):
     """ Derives all general rotating methods from Molecule
     Specifics here for Water """
 
     def __init__(self , *args, **kwargs):
+        super(Water, self).__init__( **kwargs )
         self.atoms = 0
         self.q = 0.0
         self.r_oh = False
@@ -704,13 +732,16 @@ class Water( Molecule ):
         return theta3, theta2, theta1
 
     def rotate(self, t1, t2, t3):
-        """Rotate self by t1, t2 and t3
+        """Rotate all coordinates by t1, t2 and t3
         first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
 
         R all in radians
 
         """
         d1, d2, d3 = self.get_euler()
+
+        print self.center
+        raise SystemExit
         
 # Place water molecule in origo, and rotate it so hydrogens in xz plane
         H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
@@ -913,15 +944,67 @@ class Water( Molecule ):
         if not out_AA:
             for wat in waters:
                 wat.to_au()
-
         return waters
 
 
 
 
-class Methanol(list):
-    def __init__(self):
-        pass
+class Methanol(Molecule):
+
+    def __init__(self, *args, **kwargs):
+        super( Methanol, self).__init__(**kwargs)
+
+    def append(self, atom):
+        """Typical append for each seperate molecule class"""
+        if len(self) == 6:
+            print "tried to add additional atoms to methanol, exiting"
+            raise SystemExit
+
+        if not isinstance( atom, Atom ):
+            print "wront class passed to methanol append"
+            raise SystemExit
+
+        if atom.element == "H":
+            if self.no_hydrogens:
+                self.h1 = atom
+                self.no_hydrogens = False
+            else:
+                self.h2 = atom
+
+        if atom.element == "O":
+            self.o = atom
+#Add the atom
+        super( Molecule, self).append(atom)
+
+#Define methanol center, by default set it to center of C=O bond
+
+        if len(self) == 6:
+            self.center = sum([ i.r for i in self ] ) / len(self)
+            #hc = charge_dict[ self.h1.element ]
+            #oc = charge_dict[ self.h1.element ]
+            #self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
+            #    self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
+            #    self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
+        if self.res_id:
+            if self.res_id != atom.res_id:
+                print "Tried to add %s to %s, exiting" %(atom, self)
+                raise SystemExit
+        else:
+#Initialize res_id from atomic res_id
+            self.res_id = atom.res_id
+#Also calculate center now
+        if len(self) == 6:
+            h1, h2, h3, h4 = [i for i in self if i.element == "H" ]
+            #print "All hyds added for methanol %s" %str(self)
+            #raise SystemExit
+            #d1 = hyd1.dist_to_point( [1,1,1] )
+            #d2 = hyd2.dist_to_point( [1,1,1] )
+            #if d1 < d2:
+            #    self.h1 = hyd1
+            #    self.h2 = hyd2
+            #else:
+            #    self.h1 = hyd2
+            #    self.h2 = hyd1
 
 class Ethane(list):
     def __init__(self):
