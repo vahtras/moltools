@@ -120,6 +120,18 @@ class Calculator:
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
 
         for i in self.get_matching_out_and_mol():
+
+# Gather the water molecules from the .mol file
+            tmp_waters = []
+            for j in Water.read_waters( i + ".mol", in_AA = False ):
+                t1, t2, t3 =  j.get_euler()
+
+                templ = Template().get( *("OLAV","HF","PVDZ",args.dist,0.0) )
+                for at in j:
+                    Property.add_prop_from_template( at, templ )
+                tmp_waters.append( j )
+
+#Gathe the QM result and save it in the dictionary for the relative error
             if args.rel:
                 file_name = args.qm_method + "_" + i + ".out"
 
@@ -149,25 +161,8 @@ class Calculator:
                     qm_dipole = self.get_qm_dipole( file_name )
                     qm_alpha = self.get_qm_alpha(  file_name )
                     qm_beta = self.get_qm_beta(   file_name )
-                tmp_waters = []
-#Read water molecule models from QM .mol file
-                for j in Water.read_waters( i + ".mol" , in_AA = False ):
-                    t1, t2, t3 =  j.get_euler()
-                    if args.dist:
-                        kwargs = Template().get_dist_data( "OLAV", "HF", args.basis )
-                        p = Property.from_template( **kwargs )
-                    else:
-                        kwargs = Template().get_data( "OLAV", "HF", args.basis )
-                        p = Property.from_template( **kwargs )
-
-# For each template properties, transform them to the waters euler angles
-                    p.transform_ut_properties( t1, t2 , t3 , dist = args.dist)
-
-# Set the property to each water
-                    j.Property = p
-                    tmp_waters.append( j )
-
 #Defaults to this model
+
                 if args.model == "pointdipole":
                     static= PointDipoleList.from_string( self.get_string( tmp_waters ,
                             max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
@@ -176,37 +171,22 @@ class Calculator:
                     hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
                             max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
                 if args.model == "gaussian":
-                    tmp_Rq = float(args.Rq)
-                    tmp_Rp = float(args.Rp)
+                    tmp_Rq = float(args.R)
+                    tmp_Rp = float(args.R)
                     if "static" in args.l:
-                        static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                             max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
-                        for j in static:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
+                        static.set_damp( tmp_Rq, tmp_Rp )
 
                     if "polar" in args.l:
-                        polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                             max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
-                        for j in polar:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
+                        polar.set_damp( tmp_Rq, tmp_Rp )
 
                     if "hyper" in args.l:
-                        hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                        hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                             max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
-                        for j in hyper:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
-                if args.model == "quadrupole":
-                    static= QuadrupoleList.from_string( self.get_string( tmp_waters ,
-                            max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-
-                    polar = QuadrupoleList.from_string( self.get_string(  tmp_waters ,
-                            max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-
-                    hyper = QuadrupoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
+                        hyper.set_damp( tmp_Rq, tmp_Rp )
                 try:
                     static.solve_scf()
                     polar.solve_scf()
@@ -226,13 +206,13 @@ class Calculator:
                 if "static" in args.l:
                     d_static =  \
                              [(this-ref)/ref for this, ref in zip(
-                                    static.total_dipole_moment(),
+                                    static.total_dipole_moment(dist=args.dist),
                                             qm_dipole )] 
 
                 if "polar" in args.l:
                     d_polar =  \
                              [(this-ref)/ref for this, ref in zip(
-                                    polar.total_dipole_moment(),
+                                    polar.total_dipole_moment(dist=args.dist),
                                             qm_dipole )] 
 
                     a_polar = \
@@ -243,7 +223,7 @@ class Calculator:
                 if "hyper" in args.l:
                     d_hyper = \
                              [(this-ref)/ref for this, ref in zip(
-                                    hyper.total_dipole_moment(),
+                                    hyper.total_dipole_moment(dist=args.dist),
                                             qm_dipole )] 
 
                     a_hyper = \
@@ -261,19 +241,14 @@ class Calculator:
             else:
 # Get absolute values using the quadratic model
                 if args.noqm:
+
                     tmp_waters = []
                     for j in Water.read_waters( i + ".mol", in_AA = False ):
                         t1, t2, t3 =  j.get_euler()
 
-                        if args.dist:
-                            kwargs = Template().get_dist_data( "OLAV", "HF", args.basis )
-                            p = Property.from_template( **kwargs )
-                        else:
-                            kwargs = Template().get_data( "OLAV", "HF", args.basis )
-                            p = Property.from_template( **kwargs )
-
-                        p.transform_ut_properties( t1, t2 ,t3, dist = args.dist )
-                        j.Property = p
+                        templ = Template().get( *("OLAV","HF","PVDZ",args.dist,0.0) )
+                        for at in j:
+                            Property.add_prop_from_template( at, templ )
                         tmp_waters.append( j )
 
                     if args.model == "pointdipole":
@@ -288,32 +263,23 @@ class Calculator:
                         tmp_Rq = float(args.Rq)
                         tmp_Rp = float(args.Rp)
                         if "static" in args.l:
-                            static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                            static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                                 max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
                             for j in static:
                                 j._R_q = tmp_Rq
                                 j._R_p = tmp_Rp
                         if "polar" in args.l:
-                            polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                            polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                                 max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
                             for j in polar:
                                 j._R_q = tmp_Rq
                                 j._R_p = tmp_Rp
                         if "hyper" in args.l:
-                            hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
+                            hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                                 max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
                             for j in hyper:
                                 j._R_q = tmp_Rq
                                 j._R_p = tmp_Rp
-                    if args.model == "quadrupole":
-                        static= QuadrupoleList.from_string( self.get_string( tmp_waters ,
-                                max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-
-                        polar = QuadrupoleList.from_string( self.get_string(  tmp_waters ,
-                                max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-
-                        hyper = QuadrupoleList.from_string( self.get_string(  tmp_waters,
-                                max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
                     try:
                         static.solve_scf()
                     except UnboundLocalError:
@@ -333,12 +299,12 @@ class Calculator:
                     a_hyper = []
                     b_hyper = []
                     if "static" in args.l:
-                        d_static = static.total_dipole_moment()
+                        d_static = static.total_dipole_moment( dist = args.dist)
                     if "polar" in args.l:
-                        d_polar =  polar.total_dipole_moment()
+                        d_polar =  polar.total_dipole_moment( dist = args.dist)
                         a_polar = polar.alpha().diagonal()
                     if "hyper" in args.l:
-                        d_hyper = hyper.total_dipole_moment()
+                        d_hyper = hyper.total_dipole_moment( dist = args.dist)
                         a_hyper = hyper.alpha().diagonal()
                         b_hyper =  [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select]
                     val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
@@ -380,301 +346,6 @@ class Calculator:
                 if args.params:
                     r, tau, theta, rho1, rho2, rho3 = i.split('-')
                     self.Dict.setVal( r, tau, theta, rho1, rho2, rho3, val)
-
-
-
-    def get_abs_value( self, args ):
-        """write a set of defined property/components """
-
-        select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-
-
-        for i in self.get_matching_out_and_mol():
-#Read values obtained for the point dipole model
-            if args.noqm:
-                tmp_waters = []
-                for j in Water.read_waters( i + ".mol", in_AA = False ):
-                    t1, t2, t3 =  j.get_euler()
-
-                    if args.dist:
-                        kwargs = Template().get_dist_data( "OLAV", "HF", "PVDZ" )
-                        p = Property.from_template( **kwargs )
-                    else:
-                        kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
-                        p = Property.from_template( **kwargs )
-
-                    p.transform_ut_properties( t1, t2 ,t3, dist = args.dist )
-                    j.Property = p
-                    tmp_waters.append( j )
-
-                if args.model == "pointdipole":
-                    static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                            max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-                    polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                            max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-                    hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
-
-                if args.model == "gaussian":
-                    tmp_Rq = float(args.Rq)
-                    tmp_Rp = float(args.Rp)
-                    if "static" in args.l:
-                        static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
-                        for j in static:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
-                    if "polar" in args.l:
-                        polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
-                        for j in polar:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
-                    if "hyper" in args.l:
-                        hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
-                        for j in hyper:
-                            j._R_q = tmp_Rq
-                            j._R_p = tmp_Rp
-                if args.model == "quadrupole":
-                    static= QuadrupoleList.from_string( self.get_string( tmp_waters ,
-                            max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-
-                    polar = QuadrupoleList.from_string( self.get_string(  tmp_waters ,
-                            max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-
-                    hyper = QuadrupoleList.from_string( self.get_string(  tmp_waters,
-                            max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
-                try:
-                    static.solve_scf()
-                except UnboundLocalError:
-                    pass
-                try:
-                    polar.solve_scf()
-                except UnboundLocalError:
-                    pass
-                try:
-                    hyper.solve_scf()
-                except UnboundLocalError:
-                    pass
-                d_static = []
-                d_polar = []
-                d_hyper = []
-                a_polar = []
-                a_hyper = []
-                b_hyper = []
-                if "static" in args.l:
-                    d_static = static.total_dipole_moment()
-                if "polar" in args.l:
-                    d_polar =  polar.total_dipole_moment()
-                    a_polar = polar.alpha().diagonal()
-                if "hyper" in args.l:
-                    d_hyper = hyper.total_dipole_moment()
-                    a_hyper = hyper.alpha().diagonal()
-                    b_hyper =  [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select]
-                val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-            else:
-                file_name = args.qm_method + "_" + i + ".out"
-
-                r, tau, theta, rho1, rho2, rho3 = i.split('-')
-                if self.opts["r"].has_key( "constant" ):
-                    if r != self.opts["r"]["constant"]:
-                        continue
-                if self.opts["tau"].has_key( "constant" ):
-                    if tau != self.opts["tau"]["constant"]:
-                        continue
-                if self.opts["theta"].has_key( "constant" ):
-                    if theta != self.opts["theta"]["constant"]:
-                        continue
-                if self.opts["rho1"].has_key( "constant" ):
-                    if rho1 != self.opts["rho1"]["constant"]:
-                        continue
-                if self.opts["rho2"].has_key( "constant" ):
-                    if rho2 != self.opts["rho2"]["constant"]:
-                        continue
-                if self.opts["rho3"].has_key( "constant" ):
-                    if rho3 != self.opts["rho3"]["constant"]:
-                        continue
-
-#By default read values obtained by QM, will be overridden by -noqm later if want args.model value
-                if args.qm_method == "ccsd":
-                    qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
-                else:
-                    qm_dipole = self.get_qm_dipole( file_name )
-                    qm_alpha =  self.get_qm_alpha(  file_name )
-                    qm_beta =   self.get_qm_beta(   file_name )
-
-                dipole = qm_dipole
-                alpha  = np.einsum('ii->i', np.array(qm_alpha))
-                beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
-                val = [ dipole, dipole, dipole, alpha, alpha, beta ]
-
-#End of two blocks
-            if args.params:
-                r, tau, theta, rho1, rho2, rho3 = i.split('-')
-                self.Dict.setVal( r, tau, theta, rho1, rho2, rho3, val)
-
-    def get_rel_error( self, args ):
-        select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-        for i in self.get_matching_out_and_mol():
-            file_name = args.qm_method + "_" + i + ".out"
-            if args.params:
-                r, tau, theta, rho1, rho2, rho3 = i.split('-')
-                if self.opts["r"].has_key( "constant" ):
-                    if r != self.opts["r"]["constant"]:
-                        continue
-                if self.opts["tau"].has_key( "constant" ):
-                    if tau != self.opts["tau"]["constant"]:
-                        continue
-                if self.opts["theta"].has_key( "constant" ):
-                    if theta != self.opts["theta"]["constant"]:
-                        continue
-                if self.opts["rho1"].has_key( "constant" ):
-                    if rho1 != self.opts["rho1"]["constant"]:
-                        continue
-                if self.opts["rho2"].has_key( "constant" ):
-                    if rho2 != self.opts["rho2"]["constant"]:
-                        continue
-                if self.opts["rho3"].has_key( "constant" ):
-                    if rho3 != self.opts["rho3"]["constant"]:
-                        continue
-
-            if args.qm_method == "ccsd":
-                qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
-            else:
-                qm_dipole = self.get_qm_dipole( file_name )
-                qm_alpha = self.get_qm_alpha(  file_name )
-                qm_beta = self.get_qm_beta(   file_name )
-
-            tmp_waters = []
-
-#Read water molecule models from QM .mol file
-            for j in Water.read_waters( i + ".mol" , in_AA = False ):
-
-                t1, t2, t3 =  j.get_euler()
-
-                if args.dist:
-                    kwargs = Template().get_dist_data( "OLAV", "HF", "PVDZ" )
-                    p = Property.from_template( **kwargs )
-                else:
-                    kwargs = Template().get_data( "OLAV", "HF", "PVDZ" )
-                    p = Property.from_template( **kwargs )
-
-# For each template properties, transform them to the waters euler angles
-                p.transform_ut_properties( t1, t2 , t3 , dist = args.dist)
-
-# Set the property to each water
-                j.Property = p
-                tmp_waters.append( j )
-
-#Defaults to this model
-            if args.model == "pointdipole":
-
-                static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                        max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-                polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                        max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-                hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                        max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
-
-            if args.model == "gaussian":
-
-                tmp_Rq = float(args.Rq)
-                tmp_Rp = float(args.Rp)
-
-                if "static" in args.l:
-                    static = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
-                    for j in static:
-                        j._R_q = tmp_Rq
-                        j._R_p = tmp_Rp
-
-                if "polar" in args.l:
-                    polar = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
-                    for j in polar:
-                        j._R_q = tmp_Rq
-                        j._R_p = tmp_Rp
-
-                if "hyper" in args.l:
-                    hyper = GaussianQuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
-                    for j in hyper:
-                        j._R_q = tmp_Rq
-                        j._R_p = tmp_Rp
-
-            if args.model == "quadrupole":
-                static= QuadrupoleList.from_string( self.get_string( tmp_waters ,
-                        max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
-
-                polar = QuadrupoleList.from_string( self.get_string(  tmp_waters ,
-                        max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
-
-                hyper = QuadrupoleList.from_string( self.get_string(  tmp_waters,
-                        max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
-            try:
-                static.solve_scf()
-                polar.solve_scf()
-                hyper.solve_scf()
-            except UnboundLocalError:
-                pass
-
-            #for ii in np.r_[ 0:3:10j ]:
-            #    print '\n\n-New--------'
-            #    print hyper[0].field_at( [0 , 0, ii ] )
-            #    for jj in hyper:
-            #        jj._Q0 = np.zeros( [3,3,] )
-            #    print hyper[0].field_at( [0 , 0, ii ] )
-
-            #raise SystemExit
-            #    print "Can't solve scf for: %s" %i
-
-            d_static = []
-            d_polar = []
-            d_hyper = []
-
-            a_polar = []
-            a_hyper = []
-
-            b_hyper = []
-
-            if "static" in args.l:
-                d_static =  \
-                         [(this-ref)/ref for this, ref in zip(
-                                static.total_dipole_moment(),
-                                        qm_dipole )] 
-
-            if "polar" in args.l:
-                d_polar =  \
-                         [(this-ref)/ref for this, ref in zip(
-                                polar.total_dipole_moment(),
-                                        qm_dipole )] 
-
-                a_polar = \
-                         [(this-ref)/ref for this, ref in zip(
-                                polar.alpha().diagonal(),
-                                        qm_alpha.diagonal() )] 
-
-            if "hyper" in args.l:
-                d_hyper = \
-                         [(this-ref)/ref for this, ref in zip(
-                                hyper.total_dipole_moment(),
-                                        qm_dipole )] 
-
-                a_hyper = \
-                         [(this-ref)/ref for this, ref in zip(
-                                hyper.alpha().diagonal(),
-                                        qm_alpha.diagonal() )] 
-
-            reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
-
-            b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
-
-            val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-
-            if args.params:
-                r, tau, theta, rho1, rho2, rho3 = i.split('-')
-                self.Dict.setVal( r, tau, theta, rho1, rho2, rho3, val)
 
     def get_matching_out_and_mol(self):
         tmp = []
@@ -1218,6 +889,7 @@ if __name__ == '__main__':
     A.add_argument( "-basis"  , type = str, default = "PVDZ" )
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
+    A.add_argument( "-R"  , type = str, default = "0.00001" )
 
 #Param analyzez 6 variables r, tau, theta, rho_{1,2,3}, so far only parameter
     A.add_argument( "-params"  , default = True )

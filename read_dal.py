@@ -10,8 +10,9 @@ import ut
 from particles import *
 from gaussian import *
 
-from molecules import Atom, Water, Property
+from molecules import Atom, Water, Property, Cluster
 from template import Template
+from analysis import Analysis
 
 
 #from calculator import *
@@ -46,7 +47,7 @@ def beta_related(args ):
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
-            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
+            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
     if args.verbose:
@@ -112,23 +113,23 @@ def beta_related(args ):
             Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
             Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
                 
-    static= GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
-    polar = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
-    hyper = GaussianQuadrupoleList.from_string( get_string_from_waters( waters, pol = 22,
+    static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
+    polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
+    hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
         hyper = 1, dist = args.dist , AA = args.oAA ))
 
-    print get_string_from_waters( waters, pol = 22, hyper = 1, dist = args.dist,
-            AA = args.oAA )
+    #print get_string_from_waters( waters, pol = 22, hyper = 1, dist = args.dist,
+    #        AA = args.oAA )
 
-    #hyper.set_damp( 3.5, 3.5 )
+    hyper.set_damp( args.R , args.R  )
 
     static.solve_scf()
     polar.solve_scf()
     hyper.solve_scf()
 
-    sd = static.total_dipole_moment(  )
-    pd = polar.total_dipole_moment()
-    hd = hyper.total_dipole_moment()
+    sd = static.total_dipole_moment( dist = args.dist )
+    pd = polar.total_dipole_moment(dist = args.dist)
+    hd = hyper.total_dipole_moment(dist = args.dist)
 
     pa =  Water.square_2_ut( polar.alpha() )
     ha =  Water.square_2_ut( hyper.alpha() )
@@ -164,67 +165,163 @@ def beta_related(args ):
     hb_z = np.einsum('ijj->i' ,hb )
     qm_z = np.einsum('ijj->i', beta_qm )
 
-    if args.verbose:
-        print "\n\nThe projected beta, a.k.a. beta parallel component"
-        print "Quantum mechanical:"
-        print np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
-        print "Quadratic model: "
-        print np.dot( hb_z, hd ) / np.linalg.norm( hd )
-    
-def get_string_from_waters( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
-    """ Converts list of waters into Olav string for hyperpolarizable .pot"""
-# If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
-    if AA:
-        str_ = "AA"
-    else:
-        str_ = "AU"
-    string = "%s\n%d %d %d %d\n" % ( str_, len(waters)*3,
-            max_l, pol, hyper )
+    c = Cluster()
     for i in waters:
-        for at in i:
-            string +=  "%d %.5f %.5f %.5f " % tuple(
-                    [int(at.res_id)] + at.r)
-            string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
-            string += '\n'
-    return string
+        c.append(i)
+
+
+    if args.beta_analysis or args.verbose:
+        #print "\n\nThe projected beta, a.k.a. beta parallel component"
+        #print "Quantum mechanical:"
+        qm = np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
+        #print qm
+        #print "Quadratic model: "
+        mm =  np.dot( hb_z, hd ) / np.linalg.norm( hd )
+        #print mm
+        #print args.R
+        dists = c.min_dist()
+        print len(c), dists[0], dists[1], dists[2], dists[3] ,  qm/mm
+
+def alpha_related(args ):
+
+#These are used to create string for olavs dipole list class using templates
+    dipole = np.zeros( [3] )
+    alpha = np.zeros( [3, 3] )
+    beta = np.zeros( [3, 3, 3])
+
+#To be read from -b hfqua_file.out
+
+    dipole_qm = np.zeros( [3] )
+    alpha_qm = np.zeros( [3, 3] )
+    beta_qm = np.zeros( [3, 3, 3] )
+
+    waters = np.zeros( [] )
+
+    pat_= re.compile(r'.*(\d+)_(\d+)')
+
+    freqs=[ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
+
+
+    snap = Water.unique([pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    N = Water.unique([pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+
+    #snaps = [ pat_snapshot.match( i.split('_')[1] ).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')]
+    a = Analysis()
+    for sn in snap:
+        for num in N:
+            for fre in freqs:
+                out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
+                mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
+
+#read if quadratic calculation is supplied
+                if is_ccsd( out ):
+                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
+                else:
+                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out )
+#Read coordinates for water molecules where to put properties to
+
+                waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
+
+                alpha_qm = Water.square_2_ut( alpha_qm )
+                beta_qm = Water.square_3_ut( beta_qm )
+
+# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
+                if args.wat:
+                    for wat in waters:
+                        kwargs_dict = Template().get(  \
+                                *( args.tname , args.tmethod,
+                                    args.tbasis,args.dist,fre ))
+                        for at in wat:
+                            Property.add_prop_from_template( at, kwargs_dict )
+
+                        t1, t2, t3  = wat.get_euler()
+
+                        for at in wat:
+                            Property.transform_ut_properties( at.Property, t1, t2, t3 )
+                            
+                static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
+                polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
+                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
+                    hyper = 1, dist = args.dist , AA = args.oAA ))
+
+                hyper.set_damp( args.R , args.R  )
+
+                static.solve_scf()
+                polar.solve_scf()
+                hyper.solve_scf()
+
+                sd = static.total_dipole_moment( dist = args.dist )
+                pd = polar.total_dipole_moment(dist = args.dist)
+                hd = hyper.total_dipole_moment(dist = args.dist)
+
+                pa =  Water.square_2_ut( polar.alpha() )
+                ha =  Water.square_2_ut( hyper.alpha() )
+                hb =  Water.square_3_ut( hyper.beta() )
+
+                lab1 = ["X", "Y", "Z"]
+                lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
+                lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+
+                if args.verbose:
+                    print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
+                    for i in range(3):
+                        print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+
+                    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+                    for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                                alpha_qm[i],\
+                                pa[i],\
+                                ha[i]  )
+
+                hb = Water.ut_3_square(hb)
+                beta_qm = Water.ut_3_square( beta_qm )
+
+                hb_z = np.einsum('ijj->i' ,hb )
+                qm_z = np.einsum('ijj->i', beta_qm )
+
+
+                if sn == "0" and num == "2":
+                    print sn, num, fre, qm_z
+
+                a[ ( num, sn, fre ) ] = qm_z
+
+    print "Finished alpha"
+    raise SystemExit
+    return a
 
 
 def run_argparse( args ):
-    A = argparse.ArgumentParser( description = \
-            "This program reads alpha and beta from dalton .out files, obtained for an ideal water molecule centered as oxygen at origo and hydrogens in the xz-plane.\n\n It also read coordinates of arbitrary water molecules and transforms the above read properties to their coordinate reference frame, and writes it to a .pot file." ,add_help= True)
-    A.add_argument( "-a", dest = "alpha", type = str, help="File that contains LINEAR response output with polarizabilities" )
-    A.add_argument( "-al", type = str, default = "22", help="Symmetry res_id alpha [1, 2, 3]" )
+    A = argparse.ArgumentParser( )
+
     A.add_argument( "-b",dest="beta", type = str,help="File that contains QUADRATIC response output with hyperpolarizabilities" ) 
-    A.add_argument( "-bl", type = str, default = "1", help="Symmetry res_id beta [1, 2, 3]" )
+
     A.add_argument( "-x", type = str, help = 'Coordinate file with water molecules for the output .pot file. [ xyz , pdb ]')
+
     A.add_argument( "-xAA", default = False ,action='store_true',
-            help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: "AU"')
-    A.add_argument( "-dl", type = str, default = "1", help="Symmetry res_id dipole [0, 1]" )
-    A.add_argument( "-test", action = "store_true", default = False )
-    A.add_argument( "-dist", action = "store_true", default = False )
-    A.add_argument( "-mon", action = "store_true", default = False )
+            help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: False ')
+
+    A.add_argument( "-beta_analysis", action = "store_true", default = False )
+    A.add_argument( "-alpha_analysis", action = "store_true", default = False )
+
+    A.add_argument("-dal", type= str, default = 'hfqua' )
+    A.add_argument("-mol", type= str, default = 'tip3p' )
+
     A.add_argument("-v","--verbose", action='store_true' , default = False)
     A.add_argument("-write", nargs='*', default = [],  help = "Supply any which files to write from a selection: pot, xyz" )
     A.add_argument("-waters", type = int , default = 4, help = "how many waters to take closest to center atom, default: 4")
-    A.add_argument( "-op", type = str, default = "conf.pot", help='output name of the .pot file, default: "conf.pot"' )
     A.add_argument( "-oAA", default = False, action='store_true' , help='Default coordinate type AA or AU for -op output potential file, default: "AU"' )
 
-    A.add_argument( "-ox", type = str, default = "conf.xyz", help='output name of the .xyz file, default: "conf.xyz"' )
+    A.add_argument( "-R", type = float, default = 0.000001)
 
 
-    A.add_argument( "-com", help="Place point properties on center-of-mass instead of Oxygen",action = 'store_true', default = False)
-    A.add_argument( "-template", action = 'store_true', help= "Activate Beta tensor reading from templates, options provided below for choices", default = False)
+    A.add_argument( "-tname", type = str, default = "OLAV" )
+    A.add_argument( "-tmethod", type = str, default = "HF" )
+    A.add_argument( "-tbasis", type = str, default = "PVDZ" )
+    A.add_argument( "-dist", action = "store_true", default = False )
+    A.add_argument( "-tw", type = float, default = 0.0 )
 
-    A.add_argument( "-tname", type = str, default = "CENTERED", 
-            help = "available templates: CENTERED (default), TIP3P, SPC, OLAV")
-
-    A.add_argument( "-tmethod", type = str, default = "HF",
-            help = "available methods: HF (default) , B3LYP")
-
-    A.add_argument( "-tbasis", type = str, default = "PVDZ",
-            help = "available choices: PVDZ (default, is actually cc-pVDZ), \
-                    MIDDLE (ano type) [O: 5s3p2d, H: 3s1p]")
-    A.add_argument( "-wat", action = 'store_true' , default=  False )
+    A.add_argument( "-wat", action = 'store_true' , default=  True )
 
     a = A.parse_args( args[1:] )
     return a
@@ -341,7 +438,7 @@ def read_beta_ccsd( args ):
 
     return atoms, mol_dip, alpha , beta
 
-def read_beta_hf( args ):
+def read_beta_hf( file_, in_AA = False ):
 
     nuc_dip = np.zeros(3)
     el_dip = np.zeros(3)
@@ -357,7 +454,7 @@ def read_beta_hf( args ):
     pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
 
 # Reading in dipole
-    for i in open( args.beta ).readlines():
+    for i in open( file_ ).readlines():
         if pat_xyz.match(i):
             f = pat_xyz.match(i).groups()
             
@@ -412,7 +509,7 @@ def read_beta_hf( args ):
 
 # Reading in Alfa and Beta tensor
     pat_alpha = re.compile(r'@.*QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
-    for i in open( args.beta ).readlines():
+    for i in open( file_ ).readlines():
         if pat_alpha.match( i ):
             try:
                 if "D" in i.split()[-1]:
@@ -434,7 +531,7 @@ def read_beta_hf( args ):
             if A == "Y" and B == "Z":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
     pat_beta = re.compile(r'@ B-freq')
-    for i in open( args.beta ).readlines():
+    for i in open( file_ ).readlines():
         if pat_beta.match(i):
             try:
                 if i.split()[7].lstrip("beta") in exists:
@@ -452,7 +549,7 @@ def read_beta_hf( args ):
                     beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
                 except KeyError:
                     beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
-    if args.xAA:
+    if in_AA:
         nuc_dip /= a0
     tot_dip = nuc_dip - el_dip
 
@@ -485,10 +582,18 @@ def main():
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
-            mols, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args )
+            mols, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta )
 
-    beta_related(args)
-    
+    if args.beta_analysis:
+        beta_related(args)
+
+    if args.alpha_analysis:
+        alpha_related(args)
+     
+    if args.wat or args.waters:
+        waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
+
+
 
 #Only write output file if input alpha, beta, and coordinates are given
     if "pot" in args.write:
@@ -528,10 +633,9 @@ def main():
             str_ = ""
         f_.write( "ATOMBASIS\n\nComment\nAtomtypes=2 Charge=0 Nosymm %s\n" %str_)
 
-        if not f_waters:
+        if not args.wat:
             "Can't write to .mol file, didn't read water molecules"
             raise SystemExit
-
         hCnt = len(waters) * 2
         oCnt = len(waters)
         f_.write( "Charge=1.0 Atoms=%d Basis=cc-pVDZ\n" % hCnt)
@@ -546,6 +650,7 @@ def main():
             for j in i:
                 if j.element == "O":
                     f_.write( "%s   %.5f   %.5f   %.5f\n" %( j.element, j.x, j.y, j.z ))
+        print "Finished writing mol files %s" %name
         raise SystemExit
 
 #Write the xyz file for target cluster

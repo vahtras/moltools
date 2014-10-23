@@ -994,6 +994,24 @@ class Water( Molecule ):
             for wat in waters:
                 wat.to_au()
         return waters
+     
+    @staticmethod
+    def get_string_from_waters( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
+        """ Converts list of waters into Olav string for hyperpolarizable .pot"""
+# If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
+        if AA:
+            str_ = "AA"
+        else:
+            str_ = "AU"
+        string = "%s\n%d %d %d %d\n" % ( str_, len(waters)*3,
+                max_l, pol, hyper )
+        for i in waters:
+            for at in i:
+                string +=  "%d %.5f %.5f %.5f " % tuple(
+                        [int(at.res_id)] + at.r)
+                string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
+                string += '\n'
+        return string
 
 
 
@@ -1058,6 +1076,21 @@ class Methanol(Molecule):
 class Ethane(list):
     def __init__(self):
         pass
+
+class Cluster(list):
+    def __init__(self):
+        """ Typical list of molecules """
+    def min_dist(self):
+        dist = np.zeros( len(self) )
+        for i in range(len(self)):
+            for j in range(i ,len(self)):
+
+                if i == j:
+                    continue
+                dist[i] = ( np.linalg.norm(self[i].center - self[j].center) )
+        dist.sort()
+        return dist
+
 if __name__ == '__main__':
 
 # Water bonding parameters:
