@@ -996,7 +996,7 @@ class Water( Molecule ):
         return waters
      
     @staticmethod
-    def get_string_from_waters( waters, max_l = 1, pol = 22 , hyper = 1, dist = False, AA = False ):
+    def get_string_from_waters( waters, max_l = 1, pol = 2 , hyper = 0, dist = False, AA = False ):
         """ Converts list of waters into Olav string for hyperpolarizable .pot"""
 # If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
         if AA:

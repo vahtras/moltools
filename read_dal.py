@@ -210,8 +210,9 @@ def alpha_related(args ):
     for sn in snap:
         for num in N:
             for fre in freqs:
-                if fre != "0.0":
+                if fre != "0.0773571":
                     continue
+
                 out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
                 mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
 
@@ -241,9 +242,10 @@ def alpha_related(args ):
                             
                 static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
                 polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
-                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
-                    hyper = 1, dist = args.dist , AA = args.oAA ))
 
+
+                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2,
+                    hyper = 0, dist = args.dist , AA = args.oAA ))
 
                 hyper.set_damp( args.R , args.R  )
 
@@ -281,8 +283,7 @@ def alpha_related(args ):
                 hb_z = np.einsum('ijj->i' ,hb )
                 qm_z = np.einsum('ijj->i', beta_qm )
 
-
-                if sn == "0":
+                if sn == "0" and num == "1":
                     print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
                     print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
                     print "\nAlpha;\t QM,\t Linea,\t Quadratic"
