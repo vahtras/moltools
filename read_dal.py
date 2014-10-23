@@ -210,6 +210,8 @@ def alpha_related(args ):
     for sn in snap:
         for num in N:
             for fre in freqs:
+                if fre != "0.0":
+                    continue
                 out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
                 mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
 
@@ -233,9 +235,7 @@ def alpha_related(args ):
                                     args.tbasis,args.dist,fre ))
                         for at in wat:
                             Property.add_prop_from_template( at, kwargs_dict )
-
                         t1, t2, t3  = wat.get_euler()
-
                         for at in wat:
                             Property.transform_ut_properties( at.Property, t1, t2, t3 )
                             
@@ -244,6 +244,7 @@ def alpha_related(args ):
                 hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
                     hyper = 1, dist = args.dist , AA = args.oAA ))
 
+
                 hyper.set_damp( args.R , args.R  )
 
                 static.solve_scf()
@@ -251,8 +252,8 @@ def alpha_related(args ):
                 hyper.solve_scf()
 
                 sd = static.total_dipole_moment( dist = args.dist )
-                pd = polar.total_dipole_moment(dist = args.dist)
-                hd = hyper.total_dipole_moment(dist = args.dist)
+                pd = polar.total_dipole_moment(  dist = args.dist )
+                hd = hyper.total_dipole_moment(  dist = args.dist )
 
                 pa =  Water.square_2_ut( polar.alpha() )
                 ha =  Water.square_2_ut( hyper.alpha() )
@@ -281,8 +282,16 @@ def alpha_related(args ):
                 qm_z = np.einsum('ijj->i', beta_qm )
 
 
-                if sn == "0" and num == "2":
-                    print sn, num, fre, qm_z
+                if sn == "0":
+                    print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
+                    print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
+                    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+                    for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                                alpha_qm[i],\
+                                pa[i],\
+                                ha[i]  )
+
 
                 a[ ( num, sn, fre ) ] = qm_z
 
@@ -315,7 +324,7 @@ def run_argparse( args ):
     A.add_argument( "-R", type = float, default = 0.000001)
 
 
-    A.add_argument( "-tname", type = str, default = "OLAV" )
+    A.add_argument( "-tname", type = str, default = "TIP3P" )
     A.add_argument( "-tmethod", type = str, default = "HF" )
     A.add_argument( "-tbasis", type = str, default = "PVDZ" )
     A.add_argument( "-dist", action = "store_true", default = False )

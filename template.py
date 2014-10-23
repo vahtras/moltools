@@ -179,9 +179,9 @@ class Template(dict):
 ("H2","charge") : [0.0],
 ("H3","charge") : [0.0],
 
-("O1", "dipole") :  [ -0.000,    -0.000,     0.339],
-("H2", "dipole") :  [ -0.170,    -0.000,    -0.130],
-("H3", "dipole") :  [ 0.170,      0.000,    -0.130 ],
+("O1", "dipole") :  [ -0.000,    -0.000,   0.80897],
+("H2", "dipole") :  [ 0.000, 0.000, 0.000, ],
+("H3", "dipole") :  [ 0.000, 0.000, 0.000, ],
 
 ##Quadxx    Quadxy    Quadxz    Quadyy     Quadyz    Quadzz
 #("O1", "quadrupole"):[ -3.209, 0.000, 0.000, -4.352,-0.000,-3.820],
@@ -189,9 +189,9 @@ class Template(dict):
 #("H3", "quadrupole"):[ -0.114, 0.000,-0.284, -0.438,-0.000,-0.216],
 
 #Alphaxx   Alphaxy   Alphaxz   Alphayy   Alphayz   Alphazz
-("O1", "alpha"):[ 3.125,    -0.000,      0.000,    1.357,    -0.000,     2.435, ]
-("H2", "alpha"):[ 1.938,    -0.000,      1.134,    0.866,    -0.000,     1.361, ]
-("H3", "alpha"):[ 1.938,     0.000,     -1.134,    0.866,     0.000,     1.361, ]
+("O1", "alpha"): [7.00055, -0.00000,  3.08864,  0.00000, -0.00000,  5.15748,],
+("H2", "alpha"):[ 0., 0., 0., 0., 0., 0., ], 
+("H3", "alpha"):[ 0., 0., 0., 0., 0., 0., ]
 
           #Betaxxx    Betaxxy    Betaxxz    Betaxyy     Betaxyz   Betaxzz   Betayyy     Betayyz    Betayzz    Betazzz
 #("O1", "beta"):[-0.000, 0.000, -7.893,  -0.000,  -0.000,  -0.000,  -0.000,  -0.387,   0.000, -3.752,],
@@ -215,9 +215,9 @@ class Template(dict):
 #("H3", "quadrupole"):[ -0.114, 0.000,-0.284, -0.438,-0.000,-0.216],
 
 #Alphaxx   Alphaxy   Alphaxz   Alphayy   Alphayz   Alphazz
-("O1", "alpha"):[ 3.125,    -0.000,      0.000,    1.357,    -0.000,     2.435, ]
-("H2", "alpha"):[ 1.938,    -0.000,      1.134,    0.866,    -0.000,     1.361, ]
-("H3", "alpha"):[ 1.938,     0.000,     -1.134,    0.866,     0.000,     1.361, ]
+("O1", "alpha"):[ 3.125,    -0.000,      0.000,    1.357,    -0.000,     2.435, ],
+("H2", "alpha"):[ 1.938,    -0.000,      1.134,    0.866,    -0.000,     1.361, ],
+("H3", "alpha"):[ 1.938,     0.000,     -1.134,    0.866,     0.000,     1.361, ],
 
           #Betaxxx    Betaxxy    Betaxxz    Betaxyy     Betaxyz   Betaxzz   Betayyy     Betayyz    Betayzz    Betazzz
 #("O1", "beta"):[-0.000, 0.000, -7.893,  -0.000,  -0.000,  -0.000,  -0.000,  -0.387,   0.000, -3.752,],
@@ -226,12 +226,9 @@ class Template(dict):
         }
 
 
-
-
-
     def get(self, model = "OLAV", method = "HF", basis ="PVDZ",
             dist = False, freq = "0.0" ):
-        return self[ ( model, method, basis, dist, freq)]
+        return self[ ( model, method, basis, dist, freq) ]
 
 if __name__ == '__main__':
     #Perform tests om Tempaltes
