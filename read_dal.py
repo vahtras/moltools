@@ -14,6 +14,7 @@ from molecules import Atom, Water, Property, Cluster
 from template import Template
 from analysis import Analysis
 
+from matplotlib import pyplot as plt
 
 #from calculator import *
 
@@ -26,6 +27,8 @@ charge_dic = {"H1": 1.0 ,"H2":1.0 , "C1":6.0, "C7":6.0, "H3":1.0,
             "O5":8.0, "O11": 8.0,
 "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
+freq_dict = {"0.0": "static","0.0238927": "1907nm", "0.0428227" : "1064nm",
+        "0.0773571" : "589nm" }
 
 def beta_related(args ):
 
@@ -200,40 +203,49 @@ def alpha_related(args ):
     pat_= re.compile(r'.*(\d+)_(\d+)')
 
     freqs=[ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
+    snap = Water.unique([ pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    N = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
-
-    snap = Water.unique([pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
-    N = Water.unique([pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
-
+    snap.sort()
+    N.sort()
+    freqs.sort()
     #snaps = [ pat_snapshot.match( i.split('_')[1] ).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')]
-    a = Analysis()
-    for sn in snap:
-        for num in N:
-            for fre in freqs:
-                if fre != "0.0773571":
-                    continue
 
+    err = Analysis()
+
+    for num in N:
+        for sn in snap:
+            for fre in freqs:
                 out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
                 mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
 
+                if not os.path.isfile( out ):
+                    continue
+
+                if num not in args.nums:
+                    continue
+                if sn not in args.snaps:
+                    continue
+                if fre not in args.freqs:
+                    continue
+
+        
 #read if quadratic calculation is supplied
                 if is_ccsd( out ):
                     atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
                 else:
                     atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out )
 #Read coordinates for water molecules where to put properties to
-
                 waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
 
                 alpha_qm = Water.square_2_ut( alpha_qm )
                 beta_qm = Water.square_3_ut( beta_qm )
-
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
                 if args.wat:
                     for wat in waters:
                         kwargs_dict = Template().get(  \
                                 *( args.tname , args.tmethod,
-                                    args.tbasis,args.dist,fre ))
+                                    args.tbasis,args.dist, fre ))
                         for at in wat:
                             Property.add_prop_from_template( at, kwargs_dict )
                         t1, t2, t3  = wat.get_euler()
@@ -283,18 +295,85 @@ def alpha_related(args ):
                 hb_z = np.einsum('ijj->i' ,hb )
                 qm_z = np.einsum('ijj->i', beta_qm )
 
-                if sn == "0" and num == "1":
-                    print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
-                    print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
-                    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
-                    for i, j in enumerate ( ut.upper_triangular( 2 )) :
-                        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
-                                alpha_qm[i],\
-                                pa[i],\
-                                ha[i]  )
+                #print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
+                #print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
+                #print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+                #for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                #    print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                #            alpha_qm[i],\
+                #            pa[i],\
+                #            ha[i]  )
+                #
+                e_xx = ( pa[0] - alpha_qm[0] ) / pa[ 0 ]
+                e_yy = ( pa[3] - alpha_qm[3] ) / pa[ 3 ]
+                e_zz = ( pa[5] - alpha_qm[5] ) / pa[ 5 ]
+
+                err[ ( sn, num, fre ) ] = \
+                        [ e_xx, e_yy, e_zz ]
+    x = np.zeros( [len(snap), len( N ), len (freqs ), 3] )
+    snap.sort()
+    N.sort()
+    freqs.sort()
+
+    for i in range(len( snap )):
+        for j in range(len( N )):
+            for k in range(len( freqs )):
+                for l in range( 3 ):
+                    try:
+                        x[i, j, k, l] = err[ (str(snap[i]), str(N[j]), str(freqs[k]) ) ][l]
+                    except KeyError:
+                        x[i, j, k, l] = 0.0
+
+#Average of all snapshots
+
+    print x[:, 0, 0, 0, ]
+    x1 = x.sum( axis = 0 ) / len ( args.snaps )
+    print x1[0, 0, 0]
+
+    lab = [r"$\alpha_{xx}$", r"$\alpha_{yy}$", r"$\alpha_{zz}$", ]
 
 
-                a[ ( num, sn, fre ) ] = qm_z
+    title = r'Relative error $\frac{\alpha_{qm}-\alpha^{Model}}{\alpha_{qm}}$'
+    sub = "Averaged over %d snapshots; " %len(args.snaps )
+    if args.dist: sub += "LoProp ; "
+    ax = plt.axes([.15,.1,.8,.7])
+    plt.figtext(.5,.9,title, fontsize=24, ha='center')
+    plt.figtext(.5,.85,sub ,fontsize=16,ha='center')
+    ax.set_xlabel('Number of water molecules', size = 14)
+    ax.set_ylabel('Rel. Error.', size = 14)
+
+    ax.set_xlim(1, 10 )
+    ax.set_ylim(-0.18, 0.05)
+
+    for i in range(len( freqs )):
+        if freqs[i] not in args.freqs:
+            continue
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 0 ], label = r'$f$: %s %s' %( freqs[i], lab[0]))
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 1 ], label = r'$f$: %s %s' %( freqs[i], lab[1]))
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 2 ], label = r'$f$: %s %s' %( freqs[i], lab[2]))
+
+    leg = plt.legend()
+
+    fig = plt.gcf()
+    out = '%s_%dwat_%dsnaps' %(freq_dict[ args.freqs[0] ],len(args.nums), len(args.snaps) )
+    if args.dist:
+        out += "_dist.eps"
+    else:
+        out += ".eps"
+    
+    fig.savefig( out , format = 'eps')
+    print out
+    #plt.show()
+    raise SystemExit
+
+#Average over snapshot for each num
+    for i, key in enumerate( err ):
+        print map( int, key[:-1] )
+        print float( key[-1] )
+        print err[ key ] 
 
     print "Finished alpha"
     raise SystemExit
@@ -312,8 +391,21 @@ def run_argparse( args ):
             help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: False ')
 
     A.add_argument( "-beta_analysis", action = "store_true", default = False )
-    A.add_argument( "-alpha_analysis", action = "store_true", default = False )
 
+# ----------------------------
+# ALPHA RELATED
+# ----------------------------
+    A.add_argument( "-alpha_analysis", action = "store_true", default = False )
+    A.add_argument( "-nums", type = str, nargs = '*',
+            default = map(str, range(1,10)) )
+    A.add_argument( "-freqs", type = str, nargs = '*',
+            default = ['0.0', "0.0238927", "0.0428227", "0.0773571"]
+            )
+    A.add_argument( "-snaps", type = str, nargs = '*',
+            default = map(str, range(10)) )
+
+
+# ----------------------------
     A.add_argument("-dal", type= str, default = 'hfqua' )
     A.add_argument("-mol", type= str, default = 'tip3p' )
 
