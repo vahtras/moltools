@@ -30,8 +30,46 @@ mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 freq_dict = {"0.0": "static","0.0238927": "1907nm", "0.0428227" : "1064nm",
         "0.0773571" : "589nm" }
 
-def beta_related(args ):
+def qmmm_generation( args ):
 
+    n_qm = args.qm_waters
+    n_mm = args.mm_waters
+    ending = args.file_type
+
+    files = [i for i in os.listdir(os.getcwd()) if i.endswith( ending ) ]
+
+    c = Cluster.get_water_cluster( files[0], in_AA = True, out_AA = False,
+            N_qm =  n_qm , N_mm = n_mm )
+
+    out_mol = "%s_%dqm_%dmm.mol" % ( files[0].rstrip( '.' + ending ),
+            n_qm, n_mm)
+    out_pot = "%s_%dqm_%dmm.pot" % ( files[0].rstrip( '.' + ending ),
+            n_qm, n_mm)
+
+    for wat in [mol for mol in c if mol.in_mm ]:
+        if args.dist:
+            kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                args.dist , "0.0"))
+            for at in wat:
+                Property.add_prop_from_template( at, kwargs_dict )
+        else:
+            kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                args.dist, "0.0") )
+            for at in wat:
+                Property.add_prop_from_template( at, kwargs_dict )
+        t1, t2, t3  = wat.get_euler()
+        Property.transform_ut_properties( wat.h1.Property, t1, t2 ,t3)
+        Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
+        Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
+
+    #print c.get_pe_pot_string()
+    
+    open( out_mol , 'w' ).write( c.get_qm_mol_string() )
+    open( out_pot , 'w' ).write( c.get_pe_pot_string() )
+
+    raise SystemExit
+
+def beta_related(args ):
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
@@ -100,15 +138,16 @@ def beta_related(args ):
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
     if args.wat:
         for wat in waters:
+
             if args.dist:
                 kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                    args.dist , 0.0))
+                    args.dist , "0.0"))
                 for at in wat:
                     Property.add_prop_from_template( at, kwargs_dict )
 
             else:
                 kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                    args.dist, 0.0) )
+                    args.dist, "0.0") )
                 for at in wat:
                     Property.add_prop_from_template( at, kwargs_dict )
             t1, t2, t3  = wat.get_euler()
@@ -183,10 +222,9 @@ def beta_related(args ):
         #print mm
         #print args.R
         dists = c.min_dist()
-        print len(c), dists[0], dists[1], dists[2], dists[3] ,  qm/mm
+        #print len(c), dists[0], dists[1], dists[2], dists[3] ,  qm/mm
 
 def alpha_related(args ):
-
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
@@ -326,9 +364,7 @@ def alpha_related(args ):
 
 #Average of all snapshots
 
-    print x[:, 0, 0, 0, ]
     x1 = x.sum( axis = 0 ) / len ( args.snaps )
-    print x1[0, 0, 0]
 
     lab = [r"$\alpha_{xx}$", r"$\alpha_{yy}$", r"$\alpha_{zz}$", ]
 
@@ -404,8 +440,19 @@ def run_argparse( args ):
     A.add_argument( "-snaps", type = str, nargs = '*',
             default = map(str, range(10)) )
 
+# ----------------------------
+# QMMM generation RELATED
+# ----------------------------
+
+    A.add_argument( "-qmmm", action = "store_true", default = False )
+    A.add_argument( "-qm_waters", type = int, default = 1 )
+    A.add_argument( "-mm_waters", type = int, default = 1 )
+    A.add_argument( "-file_type", type = str, default = "pdb" )
 
 # ----------------------------
+# simple pdb to mol generation RELATED
+# ----------------------------
+
     A.add_argument("-dal", type= str, default = 'hfqua' )
     A.add_argument("-mol", type= str, default = 'tip3p' )
 
@@ -691,6 +738,9 @@ def main():
 
     if args.alpha_analysis:
         alpha_related(args)
+
+    if args.qmmm:
+        qmmm_generation( args )
      
     if args.wat or args.waters:
         waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)

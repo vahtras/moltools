@@ -4,6 +4,8 @@
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
+import itertools
+
 import numpy as np
 import math as m
 import re
@@ -166,7 +168,10 @@ class Atom(object):
         self.x = None
         self.y = None
         self.z = None
+
         self.res_id = None
+        self.atom_id = None
+
         self.in_water = False
 
         self.Water = None
@@ -179,11 +184,12 @@ class Atom(object):
             self.y = float( kwargs.get( "y", 0.0 ))
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
+            self.number = kwargs.get( "number", 0 )
             self.r = [self.x, self.y, self.z ]
 
-    def potline(self, max_l, pol, hyper, dist):
-        return  "%d %.5f %.5f %.5f " %( 
-                self.res_id, self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, dist ) + "\n"
+    def potline(self, max_l, pol, hyper):
+        return  "{0:4}{1:10f}{2:10f}{3:10f} ".format( \
+                str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
     def __str__(self):
         return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
@@ -549,6 +555,7 @@ class Molecule(list):
         b2 = symmetrize_first_beta( b_new2 )
 
         return [ b0, b1, b2 ]
+
     def get_mol_string(self, basis = "cc-pVDZ"):
         st = ""
         uni = Molecule.unique([ at.element for at in self])
@@ -559,8 +566,16 @@ class Molecule(list):
                     basis )
             for i in [all_el for all_el in self if (all_el.element == el) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
-
         return st
+
+    def get_xyz_string(self):
+        st = "%d\n\n" % len(self)
+        for i in self:
+            st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+                    i.element, i.x,  i.y , i.z )
+        return st
+
+
     @staticmethod
     def unique(arr):
         tmp = []
@@ -604,6 +619,9 @@ class Water( Molecule ):
         self.Property = None
 
         self._coc = None
+
+        self.in_qm = False
+        self.in_mm = False
 
     @staticmethod
     def get_standard():
@@ -715,6 +733,16 @@ class Water( Molecule ):
 
     def __str__(self):
         return "WAT" + str(self.res_id) 
+
+    
+    def exclists(self):
+        tmp = []
+        uniq = []
+        for i in itertools.permutations( [at.number for at in self], len(self) ):
+            if i[0] not in uniq:
+                tmp.append(i)
+                uniq.append( i[0] )
+        return tmp
 
     def get_dipole(self):
         hq = 0.25
@@ -840,6 +868,7 @@ class Water( Molecule ):
         self.h2.to_aa()
         self.o.to_aa()
 # in_AA specifies if input coords are in angstrom
+
     @staticmethod
     def read_waters( fname , in_AA = True, out_AA = True , N_waters = 1):
         """From file with name fname, return a list of all waters encountered"""
@@ -1078,18 +1107,287 @@ class Ethane(list):
         pass
 
 class Cluster(list):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
+        pass
+
+    def __str__(self):
+        return " ".join( [ str(i) for i in self ] )
     def min_dist(self):
         dist = np.zeros( len(self) )
         for i in range(len(self)):
             for j in range(i ,len(self)):
-
                 if i == j:
                     continue
                 dist[i] = ( np.linalg.norm(self[i].center - self[j].center) )
         dist.sort()
         return dist
+
+    def get_qm_mol_string(self, basis = "cc-pVDZ"):
+
+        st = ""
+        uni = Molecule.unique([ at.element for mol in self for at in mol if mol.in_qm])
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
+        for el in uni:
+            st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
+                    len( [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm )] ),
+                    basis )
+            for i in [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm) ]:
+                st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
+        return st
+
+# Specific output for PEQM calculation in dalton, all molecules exclude itself
+    def get_pe_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
+
+        self.order_mm_atoms()
+        st = r'!%s' % (self ) + '\n'
+        st += r'@COORDINATES' + '\n'
+        st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+        if out_AA:
+            st += "AA\n"
+        else:
+            st += "AU\n"
+        #st += '%d\n' %len(mol)
+        for mol in [m for m in self if m.in_mm]:
+            for at in mol:
+                st += "%s %.5f %.5f %.5f\n" % (at.number, \
+                        at.x, at.y, at.z )
+
+        st += r'@MULTIPOLES'  + '\n'
+        if max_l >= 0:
+            st += 'ORDER 0\n'
+            st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+            for mol in [m for m in self if m.in_mm]:
+                for at in mol:
+                    st += "%s %.5f\n" % (tuple( [at.number] ) + tuple( at.Property["charge"] )  )
+        if max_l >= 1:
+            st += 'ORDER 1\n'
+            st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+            for mol in [m for m in self if m.in_mm]:
+                for at in mol:
+                    st += "%s %.5f %.5f %.5f\n" % ( tuple([at.number]) + tuple(at.Property["dipole"])) 
+
+        st += r'@POLARIZABILITIES' + '\n'
+        st += 'ORDER 1 1\n'
+        st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+        if pol % 2 == 0:
+            for mol in [m for m in self if m.in_mm]:
+                #st += 'ORDER 1 1\n'
+                #st += '%d\n' % len( mol )
+                for at in mol:
+                    st += "%s %.5f %.5f %.5f %.5f %.5f %.5f\n" % ( tuple([at.number]) + tuple(at.Property["alpha"])) 
+
+        st += 'EXCLISTS\n%d %d\n' %( sum([len(i) for i in self if i.in_mm ])
+ , len(mol))
+        for mol in [m for m in self if m.in_mm]:
+            for each in mol.exclists():
+                ls = ""
+                for ind in each:
+                    ls += "%s " %ind
+                ls += '\n'
+                st += ls
+
+        return st
+
+
+
+# For all waters that have in_qm = True, generate a potfile string
+    def get_mm_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
+        if out_AA:
+            st = "AA\n"
+        else:
+            st = "AU\n"
+        st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
+                max_l, pol, hyp )
+        st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
+        return st
+
+    def get_xyz_string(self):
+        st = "%d\n\n" % sum([len(i) for i in self ])
+        for mol in self:
+            for i in mol:
+                st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+                        i.element, i.x,  i.y , i.z )
+        return st
+
+
+    def order_mm_atoms(self):
+        cnt = 1
+        for mol in [m for m in self if m.in_mm]:
+            for at in mol:
+                at.number = str(cnt)
+                cnt += 1
+    @staticmethod
+    def get_water_cluster( fname , in_AA = True, out_AA = True , N_qm = 1, N_mm=1):
+        """From file with name fname, return a Cluster with all waters encountered"""
+        atoms = []
+        c = Cluster()
+
+        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
+            for i in open( fname ).readlines():
+                if pat_xyz.match(i):
+                    f = pat_xyz.match(i).groups()
+                    matched = pat_xyz.match(i).groups()
+                    kwargs = { "element" :  matched[0], "x" : matched[1],
+                            "y" : matched[2], "z" : matched[3] }
+                    tmpAtom = Atom( **kwargs )
+                    atoms.append( tmpAtom )
+
+        elif fname.endswith( ".pdb" ):
+            pat1 = re.compile(r'^(ATOM|HETATM)')
+#Temporary atom numbering so that it is compatible with PEQM reader in dalton
+            for i in open( fname ).readlines():
+                if pat1.search(i):
+                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
+                        continue
+                    kwargs = {
+                            "AA" : in_AA,
+                            "x" : float(i[30:38].strip()),
+                            "y" : float(i[38:46].strip()),
+                            "z" : float(i[46:54].strip()),
+                            "element": i[11:16].strip()[0],
+                            "number" : i[6:11].strip()  }
+                    tmpAtom = Atom( **kwargs )
+                    atoms.append( tmpAtom )
+        elif fname.endswith( ".out" ):
+            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
+            for i in open( fname ).readlines():
+                if pat_xyz.match(i):
+                    f = pat_xyz.match(i).groups()
+                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
+                    atoms.append( tmpAtom )
+#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
+        waters = []
+        cnt = 1
+        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+            for i in atoms:
+                if i.element == "H":
+                    continue
+                if i.in_water:
+                    continue
+                tmp = Water()
+                i.in_water = True
+                tmp.append( i )
+                for j in atoms:
+                    if j.element == "O":
+                        continue
+                    if j.in_water:
+                        continue
+#If in angstrom
+                    if in_AA:
+                        if i.dist_to_atom(j) < 1.1:
+                            tmp.append ( j )
+                            j.in_water = True
+                    else:
+                        if i.dist_to_atom(j) < 1.1/a0:
+                            tmp.append ( j )
+                            j.in_water = True
+                tmp.res_id = cnt
+                cnt += 1
+                waters.append( tmp )
+        elif fname.endswith( ".pdb" ):
+#Find out the size of the box encompassing all atoms
+            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
+            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
+            for i in atoms:
+                if i.x < xmin:
+                    xmin = i.x
+                if i.y < ymin:
+                    ymin = i.y
+                if i.z < zmin:
+                    zmin = i.z
+                if i.x > xmax:
+                    xmax = i.x
+                if i.y > ymax:
+                    ymax = i.y
+                if i.z > zmax:
+                    zmax = i.z
+            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
+            wlist = []
+            for i in atoms:
+                if i.element == "H":
+                    continue
+                if i.in_water:
+                    continue
+                tmp = Water()
+#__Water__.append() method will update the waters residue number and center coordinate
+#When all atoms are there
+#Right now NOT center-of-mass
+                i.in_water= True
+                tmp.append(i)
+                for j in atoms:
+                    if j.element == "O":
+                        continue
+                    if j.in_water:
+                        continue
+#1.05 because sometimes spc water lengths can be over 1.01
+                    if in_AA:
+                        if i.dist_to_atom(j) <= 1.05:
+                            j.in_water = True
+                            tmp.append( j )
+                    else:
+                        if i.dist_to_atom(j) <= 1.05/a0:
+                            j.in_water = True
+                            tmp.append( j )
+                tmp.res_id = cnt
+                cnt += 1
+                wlist.append( tmp )
+            wlist.sort( key = lambda x: x.dist_to_point( center ))
+            center_water = wlist[0]
+            cent_wlist = wlist[1:]
+            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+
+
+            if N_qm< 1:
+                print "Please choose at least one QM water molecule"
+                raise SystemExit
+            qm_waters = [center_water] + cent_wlist[ 0 : N_qm - 1 ]
+            mm_waters = cent_wlist[ N_qm - 1 : N_qm - 1 + N_mm ]
+
+            for i in qm_waters:
+                i.in_qm = True
+                c.append(i)
+            for i in mm_waters:
+                i.in_mm = True
+                c.append(i)
+
+        elif fname.endswith( ".out" ):
+            for i in atoms:
+                if i.element == "H":
+                    continue
+                if i.in_water:
+                    continue
+                tmp = Water()
+                i.in_water = True
+                tmp.append( i )
+                for j in atoms:
+                    if j.element == "O":
+                        continue
+                    if j.in_water:
+                        continue
+#If in cartesian:
+                    if i.AA:
+                        if i.dist(j) < 1.0:
+                            tmp.append ( j )
+                            j.in_water = True
+                    else:
+                        if i.dist(j) < 1.0/a0:
+                            tmp.append ( j )
+                            j.in_water = True
+                tmp.res_id = cnt
+                cnt += 1
+                waters.append( tmp )
+
+        for wat in c:
+            for atom in wat:
+                atom.res_id = wat.res_id
+
+        if not out_AA:
+            for wat in c:
+                wat.to_au()
+        return c
+
 
 if __name__ == '__main__':
 
