@@ -1124,7 +1124,6 @@ class Cluster(list):
         return dist
 
     def get_qm_mol_string(self, basis = "cc-pVDZ"):
-
         st = ""
         uni = Molecule.unique([ at.element for mol in self for at in mol if mol.in_qm])
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
@@ -1135,10 +1134,8 @@ class Cluster(list):
             for i in [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st
-
 # Specific output for PEQM calculation in dalton, all molecules exclude itself
     def get_pe_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
-
         self.order_mm_atoms()
         st = r'!%s' % (self ) + '\n'
         st += r'@COORDINATES' + '\n'
@@ -1188,17 +1185,15 @@ class Cluster(list):
                 st += ls
 
         return st
-
-
-
-# For all waters that have in_qm = True, generate a potfile string
-    def get_mm_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
+# This is the old *QMMM input style in dalton
+    def get_qmmm_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
         if out_AA:
             st = "AA\n"
         else:
             st = "AU\n"
+# Old qmmm format requires integer at end to properly read charges
         st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
-                max_l, pol, hyp )
+                max_l, pol, 1 )
         st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 

@@ -64,8 +64,8 @@ def qmmm_generation( args ):
 
     #print c.get_pe_pot_string()
     
-    open( out_mol , 'w' ).write( c.get_qm_mol_string() )
-    open( out_pot , 'w' ).write( c.get_pe_pot_string() )
+    open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
+    open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
 
     raise SystemExit
 
@@ -224,7 +224,195 @@ def beta_related(args ):
         dists = c.min_dist()
         #print len(c), dists[0], dists[1], dists[2], dists[3] ,  qm/mm
 
+def qmmm_analysis( args ):
+#These are used to create string for olavs dipole list class using templates
+    dipole = np.zeros( [3] )
+    alpha = np.zeros( [3, 3] )
+
+#To be read from -b hfqua_file.out
+    dipole_qm = np.zeros( [3] )
+    alpha_qm = np.zeros( [3, 3] )
+
+    waters = np.zeros( [] )
+    pat_= re.compile(r'.*(\d+)_(\d+)')
+    freqs=[ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
+    snap = Water.unique([ pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    n_qm = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    n_mm = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+
+    snap.sort()
+    N.sort()
+    freqs.sort()
+    #snaps = [ pat_snapshot.match( i.split('_')[1] ).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')]
+
+    err = Analysis()
+
+    for num in N:
+        for sn in snap:
+            for fre in freqs:
+                out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
+                mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
+
+                if not os.path.isfile( out ):
+                    continue
+
+                if num not in args.nums:
+                    continue
+                if sn not in args.snaps:
+                    continue
+                if fre not in args.freqs:
+                    continue
+
+        
+#read if quadratic calculation is supplied
+                if is_ccsd( out ):
+                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
+                else:
+                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out )
+#Read coordinates for water molecules where to put properties to
+                waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
+
+                alpha_qm = Water.square_2_ut( alpha_qm )
+                beta_qm = Water.square_3_ut( beta_qm )
+# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
+                if args.wat:
+                    for wat in waters:
+                        kwargs_dict = Template().get(  \
+                                *( args.tname , args.tmethod,
+                                    args.tbasis,args.dist, fre ))
+                        for at in wat:
+                            Property.add_prop_from_template( at, kwargs_dict )
+                        t1, t2, t3  = wat.get_euler()
+                        for at in wat:
+                            Property.transform_ut_properties( at.Property, t1, t2, t3 )
+                            
+                static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
+                polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
+
+
+                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2,
+                    hyper = 0, dist = args.dist , AA = args.oAA ))
+
+                hyper.set_damp( args.R , args.R  )
+
+                static.solve_scf()
+                polar.solve_scf()
+                hyper.solve_scf()
+
+                sd = static.total_dipole_moment( dist = args.dist )
+                pd = polar.total_dipole_moment(  dist = args.dist )
+                hd = hyper.total_dipole_moment(  dist = args.dist )
+
+                pa =  Water.square_2_ut( polar.alpha() )
+                ha =  Water.square_2_ut( hyper.alpha() )
+                hb =  Water.square_3_ut( hyper.beta() )
+
+                lab1 = ["X", "Y", "Z"]
+                lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
+                lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+
+                if args.verbose:
+                    print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
+                    for i in range(3):
+                        print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+
+                    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+                    for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                                alpha_qm[i],\
+                                pa[i],\
+                                ha[i]  )
+
+                hb = Water.ut_3_square(hb)
+                beta_qm = Water.ut_3_square( beta_qm )
+
+                hb_z = np.einsum('ijj->i' ,hb )
+                qm_z = np.einsum('ijj->i', beta_qm )
+
+                #print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
+                #print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
+                #print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+                #for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                #    print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                #            alpha_qm[i],\
+                #            pa[i],\
+                #            ha[i]  )
+                #
+                e_xx = ( pa[0] - alpha_qm[0] ) / pa[ 0 ]
+                e_yy = ( pa[3] - alpha_qm[3] ) / pa[ 3 ]
+                e_zz = ( pa[5] - alpha_qm[5] ) / pa[ 5 ]
+
+                err[ ( sn, num, fre ) ] = \
+                        [ e_xx, e_yy, e_zz ]
+    x = np.zeros( [len(snap), len( N ), len (freqs ), 3] )
+    snap.sort()
+    N.sort()
+    freqs.sort()
+
+    for i in range(len( snap )):
+        for j in range(len( N )):
+            for k in range(len( freqs )):
+                for l in range( 3 ):
+                    try:
+                        x[i, j, k, l] = err[ (str(snap[i]), str(N[j]), str(freqs[k]) ) ][l]
+                    except KeyError:
+                        x[i, j, k, l] = 0.0
+
+#Average of all snapshots
+
+    x1 = x.sum( axis = 0 ) / len ( args.snaps )
+
+    lab = [r"$\alpha_{xx}$", r"$\alpha_{yy}$", r"$\alpha_{zz}$", ]
+
+
+    title = r'Relative error $\frac{\alpha_{qm}-\alpha^{Model}}{\alpha_{qm}}$'
+    sub = "Averaged over %d snapshots; " %len(args.snaps )
+    if args.dist: sub += "LoProp ; "
+    ax = plt.axes([.15,.1,.8,.7])
+    plt.figtext(.5,.9,title, fontsize=24, ha='center')
+    plt.figtext(.5,.85,sub ,fontsize=16,ha='center')
+    ax.set_xlabel('Number of water molecules', size = 14)
+    ax.set_ylabel('Rel. Error.', size = 14)
+
+    ax.set_xlim(1, 10 )
+    ax.set_ylim(-0.18, 0.05)
+
+    for i in range(len( freqs )):
+        if freqs[i] not in args.freqs:
+            continue
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 0 ], label = r'$f$: %s %s' %( freqs[i], lab[0]))
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 1 ], label = r'$f$: %s %s' %( freqs[i], lab[1]))
+        plt.plot( range(1, len(N)+1),
+                x1[:, i, 2 ], label = r'$f$: %s %s' %( freqs[i], lab[2]))
+
+    leg = plt.legend()
+
+    fig = plt.gcf()
+    out = '%s_%dwat_%dsnaps' %(freq_dict[ args.freqs[0] ],len(args.nums), len(args.snaps) )
+    if args.dist:
+        out += "_dist.eps"
+    else:
+        out += ".eps"
+    
+    fig.savefig( out , format = 'eps')
+    print out
+    #plt.show()
+    raise SystemExit
+
+#Average over snapshot for each num
+    for i, key in enumerate( err ):
+        print map( int, key[:-1] )
+        print float( key[-1] )
+        print err[ key ] 
+
+    print "Finished alpha"
+    raise SystemExit
+    return a
+
 def alpha_related(args ):
+
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
@@ -414,7 +602,6 @@ def alpha_related(args ):
     print "Finished alpha"
     raise SystemExit
     return a
-
 
 def run_argparse( args ):
     A = argparse.ArgumentParser( )
