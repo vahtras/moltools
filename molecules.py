@@ -1125,8 +1125,13 @@ class Cluster(list):
 
     def get_qm_mol_string(self, basis = "cc-pVDZ"):
         st = ""
+        comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
+        comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
         uni = Molecule.unique([ at.element for mol in self for at in mol if mol.in_qm])
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
+        st += "ATOMBASIS\n%s\n%s\nAtomtypes=%d Charge=0 Nosymm\n" %( \
+                comm1,
+                comm2,
+                len(uni))
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm )] ),

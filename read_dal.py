@@ -41,20 +41,24 @@ def qmmm_generation( args ):
     c = Cluster.get_water_cluster( files[0], in_AA = True, out_AA = False,
             N_qm =  n_qm , N_mm = n_mm )
 
-    out_mol = "%s_%dqm_%dmm.mol" % ( files[0].rstrip( '.' + ending ),
-            n_qm, n_mm)
-    out_pot = "%s_%dqm_%dmm.pot" % ( files[0].rstrip( '.' + ending ),
-            n_qm, n_mm)
+    str_ = ""
+    if args.dist:
+        str_ += "_dist"
 
+    out_mol = "%s_%dqm_%dmm_%s%s.mol" % ( files[0].rstrip( '.' + ending ),
+            n_qm, n_mm, args.potfreq, str_)
+    out_pot = "%s_%dqm_%dmm_%s%s.pot" % ( files[0].rstrip( '.' + ending ),
+            n_qm, n_mm, args.potfreq, str_)
+    
     for wat in [mol for mol in c if mol.in_mm ]:
         if args.dist:
             kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                args.dist , "0.0"))
+                args.dist , args.potfreq ))
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
         else:
             kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                args.dist, "0.0") )
+                args.dist, args.potfreq  ))
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
         t1, t2, t3  = wat.get_euler()
@@ -66,6 +70,8 @@ def qmmm_generation( args ):
     
     open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
     open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
+
+    print "wrote: %s %s" %(out_mol, out_pot)
 
     raise SystemExit
 
@@ -88,7 +94,7 @@ def beta_related(args ):
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
-            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta )
+            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta, args.freq )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
     if args.verbose:
@@ -432,6 +438,8 @@ def alpha_related(args ):
     snap = Water.unique([ pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
     N = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
+    if len(snap) != len( args.snaps ):
+        print "WARNING ; supplied snaps doesn't match calculated"
     snap.sort()
     N.sort()
     freqs.sort()
@@ -460,12 +468,12 @@ def alpha_related(args ):
                 if is_ccsd( out ):
                     atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
                 else:
-                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out )
+                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, fre )
 #Read coordinates for water molecules where to put properties to
                 waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
 
-                alpha_qm = Water.square_2_ut( alpha_qm )
-                beta_qm = Water.square_3_ut( beta_qm )
+                #alpha_qm = Water.square_2_ut( alpha_qm )
+                #beta_qm = Water.square_3_ut( beta_qm )
 # Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
                 if args.wat:
                     for wat in waters:
@@ -496,88 +504,91 @@ def alpha_related(args ):
                 hd = hyper.total_dipole_moment(  dist = args.dist )
 
                 pa =  Water.square_2_ut( polar.alpha() )
-                ha =  Water.square_2_ut( hyper.alpha() )
-                hb =  Water.square_3_ut( hyper.beta() )
+# Relative error in xx, yy, zz components
 
-                lab1 = ["X", "Y", "Z"]
-                lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
-                lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+                a_qm = einsum('ii->i', alpha_qm ) 
+                a_cl = einsum('ii->i', polar.alpha())
+                e_xx, e_yy, e_zz = (a_qm - a_cl)/ a_qm
 
-                if args.verbose:
-                    print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
-                    for i in range(3):
-                        print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+# Relative error for mean alpha
 
-                    print "\nAlpha;\t QM,\t Linea,\t Quadratic"
-                    for i, j in enumerate ( ut.upper_triangular( 2 )) :
-                        print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
-                                alpha_qm[i],\
-                                pa[i],\
-                                ha[i]  )
+                a_qm = einsum('ii', alpha_qm ) / 3
+                a_cl = einsum('ii', polar.alpha() ) / 3
+                e_mean = (a_qm - a_cl ) / a_qm
 
-                hb = Water.ut_3_square(hb)
-                beta_qm = Water.ut_3_square( beta_qm )
+# Relative error for anisotropic alpha
 
-                hb_z = np.einsum('ijj->i' ,hb )
-                qm_z = np.einsum('ijj->i', beta_qm )
-
-                #print "{0:10s}{1:10s}{2:10s}".format( "Snapshot", "Waters", "Frequency" ) 
-                #print "{0:10s}{1:10s}{2:10s}".format( sn, num, fre)
-                #print "\nAlpha;\t QM,\t Linea,\t Quadratic"
-                #for i, j in enumerate ( ut.upper_triangular( 2 )) :
-                #    print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
-                #            alpha_qm[i],\
-                #            pa[i],\
-                #            ha[i]  )
-                #
-                e_xx = ( pa[0] - alpha_qm[0] ) / pa[ 0 ]
-                e_yy = ( pa[3] - alpha_qm[3] ) / pa[ 3 ]
-                e_zz = ( pa[5] - alpha_qm[5] ) / pa[ 5 ]
+                a_qm = 0.5 * ( 3 * einsum('ij,ij', alpha_qm, alpha_qm ) - einsum('ii,jj', alpha_qm, alpha_qm ))
+                a_cl = 0.5 * ( 3 * einsum('ij,ij', polar.alpha(), polar.alpha() ) - einsum('ii,jj', polar.alpha(), polar.alpha() ))
+                e_aniso =  (a_qm - a_cl) / a_qm
 
                 err[ ( sn, num, fre ) ] = \
-                        [ e_xx, e_yy, e_zz ]
-    x = np.zeros( [len(snap), len( N ), len (freqs ), 3] )
-    snap.sort()
-    N.sort()
-    freqs.sort()
+                        [ e_xx, e_yy, e_zz, e_mean, e_aniso ]
+
+# component dictionary, plots specific alpha components 
+    f_dict = {"0.0":0, "0.0238927":1, "0.0428227":2, "0.0773571":3}
+    c_dict = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
+
+    x = np.zeros( [len(snap), len( N ), len (freqs ), 5 ] )
 
     for i in range(len( snap )):
         for j in range(len( N )):
             for k in range(len( freqs )):
-                for l in range( 3 ):
+                for l in range( 5 ):
                     try:
-                        x[i, j, k, l] = err[ (str(snap[i]), str(N[j]), str(freqs[k]) ) ][l]
+                        x[i, j, k, l ] = err[ (str(snap[i]), str(N[j]), str(freqs[k]) ) ][l]
                     except KeyError:
-                        x[i, j, k, l] = 0.0
+                        x[i, j, k, l ] = 0.0
 
 #Average of all snapshots
 
-    x1 = x.sum( axis = 0 ) / len ( args.snaps )
+    x1 = x.sum( axis = 0 ) / len ( snap )
 
-    lab = [r"$\alpha_{xx}$", r"$\alpha_{yy}$", r"$\alpha_{zz}$", ]
+    max_xx =  max( map ( abs, x1[ :, f_dict["0.0773571"], 0 ] ))
+    max_yy =  max( map ( abs, x1[ :, f_dict["0.0773571"], 1 ] ))
+    max_zz =  max( map ( abs, x1[ :, f_dict["0.0773571"], 2 ] ))
+    max_mean =  max( map ( abs, x1[ :, f_dict["0.0773571"], 3 ] ))
+    max_aniso =  max( map ( abs, x1[ :, f_dict["0.0773571"], 4 ] ))
 
+    if args.dist:
+        print "LoProp Maximum errors" 
+    else:
+        print "Non-LoProp Maximum errors" 
+    print "max error xx: " , max_xx
+    print "max error yy: " , max_yy
+    print "max error zz: " , max_zz
+    print "max error mean: " , max_mean
+    print "max error aniso: " , max_aniso
+
+
+    lab = [r"$\alpha_{xx}$", r"$\alpha_{yy}$",
+            r"$\alpha_{zz}$", r"$\bar{\alpha}$",
+            r"$\left(\Delta\alpha\right)^{2}$"]
 
     title = r'Relative error $\frac{\alpha_{qm}-\alpha^{Model}}{\alpha_{qm}}$'
-    sub = "Averaged over %d snapshots; " %len(args.snaps )
+    sub = "Averaged over %d snapshots; " %len( args.snaps )
     if args.dist: sub += "LoProp ; "
+    fig = plt.figure()
     ax = plt.axes([.15,.1,.8,.7])
     plt.figtext(.5,.9,title, fontsize=24, ha='center')
     plt.figtext(.5,.85,sub ,fontsize=16,ha='center')
     ax.set_xlabel('Number of water molecules', size = 14)
-    ax.set_ylabel('Rel. Error.', size = 14)
+    ax.set_ylabel('Relative Error', size = 14)
 
     ax.set_xlim(1, 10 )
-    ax.set_ylim(-0.18, 0.05)
+    ax.set_ylim(-0.18, 0.25)
 
     for i in range(len( freqs )):
         if freqs[i] not in args.freqs:
             continue
-        plt.plot( range(1, len(N)+1),
-                x1[:, i, 0 ], label = r'$f$: %s %s' %( freqs[i], lab[0]))
-        plt.plot( range(1, len(N)+1),
-                x1[:, i, 1 ], label = r'$f$: %s %s' %( freqs[i], lab[1]))
-        plt.plot( range(1, len(N)+1),
-                x1[:, i, 2 ], label = r'$f$: %s %s' %( freqs[i], lab[2]))
+        for j in args.comps:
+            ax.plot( range(1, len(N)+1),
+                    x1[:, i, c_dict[j] ], label = r'%s  $f$ = %s' %( lab[c_dict[j]], freqs[i] )
+                    )
+
+    #for  i in range(len( args.comps)):
+    #   ax.annotate('Max errorj
+    #ax.annotate('Max val', xytext = ( , max_err) )
 
     leg = plt.legend()
 
@@ -613,17 +624,29 @@ def run_argparse( args ):
     A.add_argument( "-xAA", default = False ,action='store_true',
             help = 'Default coordinate type in AA or AU in -x input water coordinate file, default: False ')
 
+# ----------------------------
+# BETA ANALYSIS RELATED
+# ----------------------------
+
     A.add_argument( "-beta_analysis", action = "store_true", default = False )
+    A.add_argument( "-freq", type = str, default = "0.0",
+            choices = ["0.0", "0.0238927", "0.0428227", "0.0773571"] )
 
 # ----------------------------
-# ALPHA RELATED
+# ALPHA ANALYSIS RELATED
 # ----------------------------
+#
     A.add_argument( "-alpha_analysis", action = "store_true", default = False )
+
     A.add_argument( "-nums", type = str, nargs = '*',
             default = map(str, range(1,10)) )
+
     A.add_argument( "-freqs", type = str, nargs = '*',
             default = ['0.0', "0.0238927", "0.0428227", "0.0773571"]
             )
+    A.add_argument( "-comps", type = str, nargs = '*', default = ["xx", "yy", "zz"],
+            choices = ["xx", "yy", "zz", "mean", "aniso"])
+
     A.add_argument( "-snaps", type = str, nargs = '*',
             default = map(str, range(10)) )
 
@@ -635,6 +658,14 @@ def run_argparse( args ):
     A.add_argument( "-qm_waters", type = int, default = 1 )
     A.add_argument( "-mm_waters", type = int, default = 1 )
     A.add_argument( "-file_type", type = str, default = "pdb" )
+    A.add_argument( "-potfreq", type = str, default = "0.0",
+            choices = ["0.0", "0.0238927", "0.0428227", "0.0773571"] )
+
+# ----------------------------
+# QMMM analysis RELATED
+# ----------------------------
+
+
 
 # ----------------------------
 # simple pdb to mol generation RELATED
@@ -670,13 +701,15 @@ def is_ccsd( filename):
             return True
     return False
 
-def read_alpha( args ):
+def read_alpha( file_, freq, in_AA = False ):
 # Reading in Alpha tensor
-    pat_alpha = re.compile(r'@ -<< ([XYZ])DIPLEN.*([XYZ])DIPLEN')
-    alpha = np.zeros([3,3])
-    lab = ["X", "Y", "Z"]
-    for i in open( args.a ).readlines():
-        if pat_alpha.match( i ):
+#
+    fre = freq[0:7]
+    pat_alpha = re.compile(r'@.*QRLRVE.*([XYZ])DIPLEN.*([XYZ])DIPLEN.*%s' %fre)
+    alpha = np.zeros( [3,3,] )
+    lab = ['X', 'Y', 'Z', ]
+    for i in open( file_ ).readlines():
+        if pat_alpha.search( i ):
             try:
                 if "D" in i.split()[-1]:
                     frac = float( i.split()[-1].replace("D","E") )
@@ -696,6 +729,10 @@ def read_alpha( args ):
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
             if A == "Y" and B == "Z":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+
+    print alpha
+
+    raise SystemExit
     return alpha 
 
 def read_beta_ccsd( args ):
@@ -774,8 +811,7 @@ def read_beta_ccsd( args ):
 
     return atoms, mol_dip, alpha , beta
 
-def read_beta_hf( file_, in_AA = False ):
-
+def read_beta_hf( file_, freq = "0.0",  in_AA = False ):
     nuc_dip = np.zeros(3)
     el_dip = np.zeros(3)
     alpha = np.zeros([3,3])
@@ -844,7 +880,12 @@ def read_beta_hf( file_, in_AA = False ):
         nuc_dip[2] += charge_dic[ i.element ] * i.z
 
 # Reading in Alfa and Beta tensor
-    pat_alpha = re.compile(r'@.*QRLRVE:.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+
+    fre = str("%.5f" % float(freq))
+    pat_alpha = re.compile(r'@.*QRLRVE.*([XYZ])DIPLEN.*([XYZ])DIPLEN.*%s' %fre)
+    alpha = np.zeros( [3,3,] )
+    lab = ['X', 'Y', 'Z', ]
+
     for i in open( file_ ).readlines():
         if pat_alpha.match( i ):
             try:
@@ -866,6 +907,7 @@ def read_beta_hf( file_, in_AA = False ):
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
             if A == "Y" and B == "Z":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+
     pat_beta = re.compile(r'@ B-freq')
     for i in open( file_ ).readlines():
         if pat_beta.match(i):
@@ -898,27 +940,13 @@ def main():
     """
     args = run_argparse( sys.argv )
 
-#These are used to create string for olavs dipole list class using templates
-    dipole = np.zeros( [3] )
-    alpha = np.zeros( [3, 3] )
-    beta = np.zeros( [3, 3, 3])
-
-#To be read from -b hfqua_file.out
-
-    dipole_qm = np.zeros( [3] )
-    alpha_qm = np.zeros( [3, 3] )
-    beta_qm = np.zeros( [3, 3, 3] )
-
-    waters = np.zeros( [] )
-
-
 #Alpha related section 
 
     if args.beta:
         if is_ccsd( args.beta ):
             atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
         else:
-            mols, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta )
+            mols, dipole_qm , alpha_qm , beta_qm = read_beta_hf( args.beta, freq=args.freq )
 
     if args.beta_analysis:
         beta_related(args)
@@ -933,6 +961,7 @@ def main():
         waters = Water.read_waters( args.x , in_AA = args.xAA , out_AA = args.oAA, N_waters = args.waters)
 
 
+    raise SystemExit
 
 #Only write output file if input alpha, beta, and coordinates are given
     if "pot" in args.write:
