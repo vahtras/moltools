@@ -422,127 +422,115 @@ def alpha_related(args ):
 #These are used to create string for olavs dipole list class using templates
     dipole = np.zeros( [3] )
     alpha = np.zeros( [3, 3] )
-    beta = np.zeros( [3, 3, 3])
 
 #To be read from -b hfqua_file.out
 
     dipole_qm = np.zeros( [3] )
     alpha_qm = np.zeros( [3, 3] )
-    beta_qm = np.zeros( [3, 3, 3] )
 
-    waters = np.zeros( [] )
+    waters = Cluster()
 
     pat_= re.compile(r'.*(\d+)_(\d+)')
 
-    freqs=[ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
-    snap = Water.unique([ pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
-    N = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+# Grab all files for alpha analysis, only plot the specified by args
+# -nums [] -snaps [] -freqs []
 
-    if len(snap) != len( args.snaps ):
-        print "WARNING ; supplied snaps doesn't match calculated"
-    snap.sort()
-    N.sort()
+    freqs = [ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
+    snaps = Water.unique([ pat_.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    nums = Water.unique([ pat_.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+
+    if len(snaps) != len( args.snaps ):
+        print "WARNING ; supplied args.snaps doesn't match calculated ones"
+
+    snaps.sort()
+    nums.sort()
     freqs.sort()
-    #snaps = [ pat_snapshot.match( i.split('_')[1] ).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')]
 
     err = Analysis()
 
-    for num in N:
-        for sn in snap:
-            for fre in freqs:
-                out = "_".join( [args.dal,"%s"%fre,"%s%s"%(args.mol,sn), "%s.out"%num] )
-                mol = "_".join( ["%s%s"%(args.mol,sn), "%s.mol"%num] )
+    for freq in freqs:
+        if freq not in args.freqs:
+            continue
+        for num in nums:
+            if num not in args.nums:
+                continue
+            for snap in snaps:
+                if snap not in args.snaps:
+                    continue
+                out = "_".join( [args.dal,"%s"%freq,"%s%s"%(args.mol,snap), "%s.out"%num] )
+                mol = "_".join( ["%s%s"%(args.mol,snap), "%s.mol"%num] )
 
-                if not os.path.isfile( out ):
+                if not os.path.isfile( os.path.join( os.getcwd(), out)):
                     continue
+                if not os.path.isfile( os.path.join( os.getcwd(), mol)):
+                    continue
+#read from typical quadratic response, find QRLRVE with freq in parenthesis
 
-                if num not in args.nums:
-                    continue
-                if sn not in args.snaps:
-                    continue
-                if fre not in args.freqs:
-                    continue
+                atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, freq )
 
-        
-#read if quadratic calculation is supplied
-                if is_ccsd( out ):
-                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( args )
-                else:
-                    atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, fre )
-#Read coordinates for water molecules where to put properties to
+#Read in Water molecules for where to put properties to
+
                 waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
 
-                #alpha_qm = Water.square_2_ut( alpha_qm )
-                #beta_qm = Water.square_3_ut( beta_qm )
-# Read in rotation angles for each water molecule follow by transfer of dipole, alpha and beta to coordinates
+# Calculate rotation angles for each water molecule followed by a transfer of the dipole, alpha and beta 
                 if args.wat:
                     for wat in waters:
-                        kwargs_dict = Template().get(  \
-                                *( args.tname , args.tmethod,
-                                    args.tbasis,args.dist, fre ))
+
+                        if args.template_freq:
+                            kwargs_dict = Template().get(  \
+                                    *( args.tname , args.tmethod,
+                                        args.tbasis,args.dist, args.template_freq ))
+                        else:
+                            kwargs_dict = Template().get(  \
+                                    *( args.tname , args.tmethod,
+                                        args.tbasis,args.dist, freq ))
                         for at in wat:
                             Property.add_prop_from_template( at, kwargs_dict )
                         t1, t2, t3  = wat.get_euler()
                         for at in wat:
                             Property.transform_ut_properties( at.Property, t1, t2, t3 )
-                            
-                static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
-                polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
 
+                polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, AA = args.oAA ))
 
-                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2,
-                    hyper = 0, dist = args.dist , AA = args.oAA ))
-
-                hyper.set_damp( args.R , args.R  )
-
-                static.solve_scf()
                 polar.solve_scf()
-                hyper.solve_scf()
 
-                sd = static.total_dipole_moment( dist = args.dist )
-                pd = polar.total_dipole_moment(  dist = args.dist )
-                hd = hyper.total_dipole_moment(  dist = args.dist )
-
-                pa =  Water.square_2_ut( polar.alpha() )
 # Relative error in xx, yy, zz components
-
                 a_qm = einsum('ii->i', alpha_qm ) 
                 a_cl = einsum('ii->i', polar.alpha())
                 e_xx, e_yy, e_zz = (a_qm - a_cl)/ a_qm
 
 # Relative error for mean alpha
-
                 a_qm = einsum('ii', alpha_qm ) / 3
                 a_cl = einsum('ii', polar.alpha() ) / 3
                 e_mean = (a_qm - a_cl ) / a_qm
 
 # Relative error for anisotropic alpha
-
                 a_qm = 0.5 * ( 3 * einsum('ij,ij', alpha_qm, alpha_qm ) - einsum('ii,jj', alpha_qm, alpha_qm ))
                 a_cl = 0.5 * ( 3 * einsum('ij,ij', polar.alpha(), polar.alpha() ) - einsum('ii,jj', polar.alpha(), polar.alpha() ))
                 e_aniso =  (a_qm - a_cl) / a_qm
 
-                err[ ( sn, num, fre ) ] = \
+# Put all errors in 
+                err[ ( snap, num, freq ) ] = \
                         [ e_xx, e_yy, e_zz, e_mean, e_aniso ]
 
 # component dictionary, plots specific alpha components 
     f_dict = {"0.0":0, "0.0238927":1, "0.0428227":2, "0.0773571":3}
     c_dict = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
 
-    x = np.zeros( [len(snap), len( N ), len (freqs ), 5 ] )
+    x = np.zeros( [len(snaps), len( nums ), len(freqs ), 5 ] )
 
-    for i in range(len( snap )):
-        for j in range(len( N )):
+    for i in range(len( snaps )):
+        for j in range(len( nums )):
             for k in range(len( freqs )):
                 for l in range( 5 ):
                     try:
-                        x[i, j, k, l ] = err[ (str(snap[i]), str(N[j]), str(freqs[k]) ) ][l]
+                        x[i, j, k, l ] = err[ (str(snaps[i]), str(nums[j]), str(freqs[k]) ) ][l]
                     except KeyError:
                         x[i, j, k, l ] = 0.0
 
 #Average of all snapshots
 
-    x1 = x.sum( axis = 0 ) / len ( snap )
+    x1 = x.sum( axis = 0 ) / len ( snaps )
 
     max_xx =  max( map ( abs, x1[ :, f_dict["0.0773571"], 0 ] ))
     max_yy =  max( map ( abs, x1[ :, f_dict["0.0773571"], 1 ] ))
@@ -566,53 +554,38 @@ def alpha_related(args ):
             r"$\left(\Delta\alpha\right)^{2}$"]
 
     title = r'Relative error $\frac{\alpha_{qm}-\alpha^{Model}}{\alpha_{qm}}$'
-    sub = "Averaged over %d snapshots; " %len( args.snaps )
+    sub = "Averaged over %d snapshots; " %len( snaps )
     if args.dist: sub += "LoProp ; "
     fig = plt.figure()
     ax = plt.axes([.15,.1,.8,.7])
     plt.figtext(.5,.9,title, fontsize=24, ha='center')
-    plt.figtext(.5,.85,sub ,fontsize=16,ha='center')
+    plt.figtext(.5,.82,sub ,fontsize=16,ha='center')
     ax.set_xlabel('Number of water molecules', size = 14)
     ax.set_ylabel('Relative Error', size = 14)
 
-    ax.set_xlim(1, 10 )
-    ax.set_ylim(-0.18, 0.25)
+    ax.set_xlim( 1, 10 )
+    ax.set_ylim( args.ymin, args.ymax )
 
-    for i in range(len( freqs )):
-        if freqs[i] not in args.freqs:
-            continue
+    for i in args.freqs:
         for j in args.comps:
-            ax.plot( range(1, len(N)+1),
-                    x1[:, i, c_dict[j] ], label = r'%s  $f$ = %s' %( lab[c_dict[j]], freqs[i] )
+            ax.plot( range(1, len(nums)+1),
+                    x1[:, f_dict[i] , c_dict[j] ], label = r'%s $\omega$ = %s' %( lab[ c_dict[j] ], freq_dict[ freqs[f_dict[i]] ] )
                     )
-
-    #for  i in range(len( args.comps)):
-    #   ax.annotate('Max errorj
-    #ax.annotate('Max val', xytext = ( , max_err) )
 
     leg = plt.legend()
 
     fig = plt.gcf()
-    out = '%s_%dwat_%dsnaps' %(freq_dict[ args.freqs[0] ],len(args.nums), len(args.snaps) )
+
+    out = '%s_%dwat_%dsnaps' %( freq_dict[ args.freqs[0] ],len(nums), len(snaps) )
+
     if args.dist:
         out += "_dist.eps"
     else:
         out += ".eps"
     
     fig.savefig( out , format = 'eps')
-    print out
-    #plt.show()
+    print "Wrote: %s" % out
     raise SystemExit
-
-#Average over snapshot for each num
-    for i, key in enumerate( err ):
-        print map( int, key[:-1] )
-        print float( key[-1] )
-        print err[ key ] 
-
-    print "Finished alpha"
-    raise SystemExit
-    return a
 
 def run_argparse( args ):
     A = argparse.ArgumentParser( )
@@ -649,6 +622,16 @@ def run_argparse( args ):
 
     A.add_argument( "-snaps", type = str, nargs = '*',
             default = map(str, range(10)) )
+
+    A.add_argument( "-template_freq", type = str,
+            choices = ['0.0', "0.0238927", "0.0428227", "0.0773571"]
+            )
+# ----------------------------
+# RELATED TO PLOT WINDOW APPEARANCE
+# ----------------------------
+    A.add_argument( "-ymin", type = float, default = -0.10 )
+    A.add_argument( "-ymax", type = float, default = 0.10 )
+
 
 # ----------------------------
 # QMMM generation RELATED
