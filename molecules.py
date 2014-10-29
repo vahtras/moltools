@@ -580,9 +580,8 @@ class Molecule(list):
     def unique(arr):
         tmp = []
         for i in arr:
-            if i in tmp:
-                continue
-            tmp.append(i)
+            if i not in tmp:
+                tmp.append(i)
         return tmp
 
 
