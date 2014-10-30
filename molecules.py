@@ -1121,7 +1121,6 @@ class Cluster(list):
                 dist[i] = ( np.linalg.norm(self[i].center - self[j].center) )
         dist.sort()
         return dist
-
     def get_qm_mol_string(self, basis = "cc-pVDZ"):
         st = ""
         comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
@@ -1217,7 +1216,7 @@ class Cluster(list):
                 at.number = str(cnt)
                 cnt += 1
     @staticmethod
-    def get_water_cluster( fname , in_AA = True, out_AA = True , N_qm = 1, N_mm=1):
+    def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
         """From file with name fname, return a Cluster with all waters encountered"""
         atoms = []
         c = Cluster()
@@ -1332,23 +1331,20 @@ class Cluster(list):
                 tmp.res_id = cnt
                 cnt += 1
                 wlist.append( tmp )
+
             wlist.sort( key = lambda x: x.dist_to_point( center ))
             center_water = wlist[0]
             cent_wlist = wlist[1:]
             cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
 
 
-            if N_qm< 1:
-                print "Please choose at least one QM water molecule"
+            if N_waters < 1:
+                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
                 raise SystemExit
-            qm_waters = [center_water] + cent_wlist[ 0 : N_qm - 1 ]
-            mm_waters = cent_wlist[ N_qm - 1 : N_qm - 1 + N_mm ]
 
-            for i in qm_waters:
-                i.in_qm = True
-                c.append(i)
-            for i in mm_waters:
-                i.in_mm = True
+# Ensure that cluster has ordered water structure from first index
+            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
+            for i in waters:
                 c.append(i)
 
         elif fname.endswith( ".out" ):
@@ -1377,15 +1373,24 @@ class Cluster(list):
                 tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-
         for wat in c:
             for atom in wat:
                 atom.res_id = wat.res_id
-
         if not out_AA:
             for wat in c:
                 wat.to_au()
         return c
+    def set_qm_mm(self, N_qm = 1, N_mm = 0):
+        """First set all waters to False for security """
+        for i in self:
+            i.in_qm = False
+            i.in_mm = False
+
+        """Set the first N_qm in qm region and rest N_mm in mm region"""
+        for i in self[ 0 : N_qm  ]:
+            i.in_qm = True
+        for i in self[ N_qm  : N_qm + N_mm ]:
+            i.in_mm = True
 
 
 if __name__ == '__main__':

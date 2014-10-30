@@ -76,46 +76,40 @@ def write_related( args ):
 
 def qmmm_generation( args ):
 
-    n_qm = args.qm_waters
-    n_mm = args.mm_waters
     ending = args.file_type
 
     pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( "0.pdb" ) ]
 
+    dists = ["", "_dist"]
 
-    str_ = ""
-    if args.dist:
-        str_ += "_dist"
 
     for files in pdb_files:
         c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
-                N_qm =  n_qm , N_mm = n_mm )
-        out_mol = "%s_%dqm_%dmm_%s%s.mol" % ( files.rstrip( '.' + ending ),
-                n_qm, n_mm, args.potfreq, str_)
-        out_pot = "%s_%dqm_%dmm_%s%s.pot" % ( files.rstrip( '.' + ending ),
-                n_qm, n_mm, args.potfreq, str_)
-        for wat in [mol for mol in c if mol.in_mm ]:
-            if args.dist:
-                kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                    args.dist , args.potfreq ))
-                for at in wat:
-                    Property.add_prop_from_template( at, kwargs_dict )
-            else:
-                kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                    args.dist, args.potfreq  ))
-                for at in wat:
-                    Property.add_prop_from_template( at, kwargs_dict )
-            t1, t2, t3  = wat.get_euler()
-            Property.transform_ut_properties( wat.h1.Property, t1, t2 ,t3)
-            Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
-            Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
+                N_waters = 340 )
+        for n_qm in args.qm_waters:
+            for n_mm in args.mm_waters:
+                for freq in args.potfreqs:
+                    for dist in dists:
+                        c.set_qm_mm( N_qm = n_qm, N_mm = n_mm )
 
-        #print c.get_pe_pot_string()
-        
-        open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
-        open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
+                        out_mol = "%s_%dqm_%dmm_%s%s.mol" % ( files.rstrip( '.' + ending ),
+                                n_qm, n_mm, freq , dist )
+                        out_pot = "%s_%dqm_%dmm_%s%s.pot" % ( files.rstrip( '.' + ending ),
+                                n_qm, n_mm, freq , dist )
+                        for wat in [mol for mol in c if mol.in_mm ]:
+                            kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                                dist == "_dist" , freq ))
+                            for at in wat:
+                                Property.add_prop_from_template( at, kwargs_dict )
+                            t1, t2, t3  = wat.get_euler()
+                            Property.transform_ut_properties( wat.h1.Property, t1, t2 ,t3)
+                            Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
+                            Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
 
-        print "wrote: %s %s" %(out_mol, out_pot)
+                        open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
+                        open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
+
+                        print "wrote: %s %s" %(out_mol, out_pot)
     raise SystemExit
 
 def beta_analysis(args ):
@@ -274,7 +268,6 @@ def qmmm_analysis( args ):
 
     freqs = Water.unique([  pat_freq.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.dal')])
 
-
     snaps = Water.unique([ pat_snap.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
     N_qm = Water.unique([ pat_qm_mm.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
@@ -293,15 +286,21 @@ def qmmm_analysis( args ):
     N_mm.sort( key = lambda x: int(x))
     dists = ["", "_dist",]
 
+    potfreqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ]
+    potfreqs = args.potfreqs
+
 # component dictionary, plots specific alpha components 
     f_to_ind = {"0.0":0, "0.0238927":1, "0.0428227":2, "0.0773571":3}
     comp_to_ind = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
     c_to_ind = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
 
-# [snap, qm_water, mm_water, freqs, components, dist]
 #
-    x = np.zeros( (10, 9, 100, 4, 5, 2) )
+# [snap, qm_water, mm_water, freq1 (qm) , freq2(mm), dist, components]
+#
+# dist = 1 is LoProp, dist = 0 is oxygen centered
+# #
 
+    x = np.zeros( (10, 9, 100, 4, 4, 2, 5 ) )
     for n_qm in N_qm:
         if n_qm not in args.n_qm:
             continue
@@ -311,53 +310,60 @@ def qmmm_analysis( args ):
             for snap in snaps:
                 if snap not in args.snaps:
                     continue
-                for freq in freqs:
-                    if freq not in args.freqs:
+                for freq1 in freqs:
+                    if freq1 not in args.freqs:
                         continue
-                    for dist in dists:
+                    for freq2 in potfreqs:
+                        for dist in dists:
+                            out = "_".join( [args.dal,
+                                "%s"% (freq1) ,
+                                "%s%s"%(args.mol,snap),
+                                "%sqm"%(n_qm),
+                                "%smm" %(n_mm),
+                                "%s%s.out" % (freq2, dist)] )
 
-                        out = "_".join( [args.dal,"%s"%freq,"%s%s"%(args.mol,snap), "%sqm"%(n_qm), "%smm" %(n_mm), "%s%s.out" % (freq, dist)] )
+                            mol = "_".join( ["%s%s"%(args.mol,snap), "%sqm"%(n_qm),
+                                "%smm" %(n_mm), "%s%s.mol" %(freq2, dist)] )
 
-                        mol = "_".join( ["%s%s"%(args.mol,snap), "%sqm"%(n_qm),
-                            "%smm" %(n_mm), "%s%s.mol" %(freq, dist)] )
+                            if not os.path.isfile( os.path.join( os.getcwd(), out)):
+                                continue
 
-                        if not os.path.isfile( os.path.join( os.getcwd(), out)):
-                            continue
+                            if not os.path.isfile( os.path.join( os.getcwd(), mol)):
+                                continue
 
-                        if not os.path.isfile( os.path.join( os.getcwd(), mol)):
-                            continue
-
-                        snap_ind = int(snap)
-                        qm_ind = int(n_qm) - 1
-                        mm_ind = int(n_mm) - 1
-                        freq_ind = f_to_ind[freq]
-                        if dist == "_dist":
-                            dist_ind = 1
-                        else:
-                            dist_ind = 0
+                            snap_ind = int(snap)
+                            qm_ind = int(n_qm) - 1
+                            mm_ind = int(n_mm) - 1
+                            freq1_ind = f_to_ind[freq1]
+                            freq2_ind = f_to_ind[freq2]
+                            if dist == "_dist":
+                                dist_ind = 1
+                            else:
+                                dist_ind = 0
 #read from typical quadratic response, find QRLRVE with freq in parenthesis
-                        alpha_qm = read_alpha( out )
+                            alpha_qm = read_alpha( out )
 
-# Relative error in xx, yy, zz components
-                        a_qm = einsum('ii->i', alpha_qm ) 
-                        x[ snap_ind, qm_ind, mm_ind,
-                                f_to_ind[freq], :3 ,dist_ind ] = a_qm
+# xx, yy, zz components
+                            a_qm1 = einsum('ii->i', alpha_qm ) 
 
-# Relative error for mean alpha
-                        a_qm = einsum('ii', alpha_qm ) / 3
-                        x[ snap_ind, qm_ind, mm_ind, 
-                                f_to_ind[freq], 3 ,dist_ind ] = a_qm
+# mean alpha
+                            a_qm2 = einsum('ii', alpha_qm ) / 3
 
-# Relative error for anisotropic alpha
-                        a_qm = 0.5 * ( 3 * einsum('ij,ij', alpha_qm, alpha_qm ) - einsum('ii,jj', alpha_qm, alpha_qm ))
-                        x[ snap_ind, qm_ind, mm_ind, 
-                                f_to_ind[freq], 4 ,dist_ind ] = a_qm
+# anisotropic alpha
+                            a_qm3 = 0.5 * ( 3 * einsum('ij,ij', alpha_qm, alpha_qm ) - einsum('ii,jj', alpha_qm, alpha_qm ))
+
+                            x[ snap_ind, qm_ind, mm_ind, 
+                                    freq1_ind, freq2_ind, dist_ind, :3 ] = a_qm1
+                            x[ snap_ind, qm_ind, mm_ind, 
+                                    freq1_ind, freq2_ind, dist_ind, 3 ] = a_qm2
+                            x[ snap_ind, qm_ind, mm_ind, 
+                                    freq1_ind, freq2_ind, dist_ind, 4 ] = a_qm3
 
 #Average over all snapshots requested, WARNING may give wrong result if no match
-    x1 = x.sum( axis = 0 ) / len ( args.snaps )
+#    x1 = x.sum( axis = 0 ) / len ( args.snaps )
 
     if args.hdf:
-        h5file = h5py.File("data.h5", 'w')
+        h5file = h5py.File("qmmm.h5", 'w')
         h5file["qmmm"] = x
         h5file.close()
     raise SystemExit
@@ -628,7 +634,7 @@ def run_argparse( args ):
 # GENERIC VARIABLES
 # ----------------------------
 #
-    A.add_argument("-dal", type= str, default = 'hfqua' )
+    A.add_argument("-dal", type= str, default = 'hflin' )
     A.add_argument("-mol", type= str, default = 'tip3p' )
     A.add_argument( "-dist", action = "store_true", default = False )
 
@@ -680,11 +686,11 @@ def run_argparse( args ):
 # ----------------------------
 
     A.add_argument( "-qmmm_generation", action = "store_true", default = False )
-    A.add_argument( "-qm_waters", type = int, default = 1 )
-    A.add_argument( "-mm_waters", type = int, default = 1 )
+    A.add_argument( "-qm_waters", type = int, nargs = '*',
+            default = [1] )
+    A.add_argument( "-mm_waters", type = int, nargs = '*',
+            default = [1] )
     A.add_argument( "-file_type", type = str, default = "pdb" )
-    A.add_argument( "-potfreq", type = str, default = "0.0",
-            choices = ["0.0", "0.0238927", "0.0428227", "0.0773571"] )
 
 #also share same arguments -snaps -freqs with -alpha_analysis
 
@@ -697,6 +703,8 @@ def run_argparse( args ):
             default = map(str, range(1,10)) )
     A.add_argument( "-n_mm", type = str, nargs = '*',
             default = map(str, range(1,101)) )
+    A.add_argument( "-potfreqs", type = str, nargs = '*',
+            default = ["0.0", "0.0238927", "0.0428227", "0.0773571"] )
 
 # ----------------------------
 # WRITE RELATED pdb to mol generation RELATED
