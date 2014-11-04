@@ -755,18 +755,29 @@ def is_ccsd( filename):
             return True
     return False
 
-def read_alpha( file_, freq = '0.0', in_AA = False ):
+def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
+# If freqs > 1, will return a tuple of all alphas for each frequency
+#
 # Reading in Alpha tensor
     fre = freq[0:7]
     pat_alpha = re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*= *(-?\d*\.{1}\d+D*-?\+?\d*)')
+    pat_new_freq = re.compile(r'FREQUENCY.*SECOND ORDER')
     alpha = np.zeros( [3,3,] )
     lab = ['X', 'Y', 'Z', ]
+
+# For every new frequency, will append this one and store alpha in the last
+# element, otherwise, first column is first frequency by default
+    freqlist = None
+
     for i in open( file_ ).readlines():
 
+        if pat_new_freq.search( i ):
+            if freqlist is None:
+                freqlist = []
+            freqlist.append( np.zeros( (3,3 )) )
+
         if pat_alpha.search( i ):
-
             matched = pat_alpha.search(i).groups()
-
             if "D" in matched[2]:
                 frac = float( matched[2].replace("D","E") )
             else:
@@ -774,13 +785,25 @@ def read_alpha( file_, freq = '0.0', in_AA = False ):
 
             A = matched[0]
             B = matched[1]
+
             alpha[ lab.index( A ) , lab.index( B ) ]  = frac
+            freqlist[-1][lab.index( A ), lab.index( B ) ] = frac
+
             if A == "X" and B == "Y":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                freqlist[-1][lab.index( B ), lab.index( A ) ] = frac
+
             if A == "X" and B == "Z":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                freqlist[-1][lab.index( B ), lab.index( A ) ] = frac
+
             if A == "Y" and B == "Z":
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                freqlist[-1][lab.index( B ), lab.index( A ) ] = frac
+
+    if freqs > 1:
+        return freqlist
+
     return alpha 
 
 def read_beta_ccsd( args ):

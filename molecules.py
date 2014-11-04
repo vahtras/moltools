@@ -184,7 +184,9 @@ class Atom(object):
             self.y = float( kwargs.get( "y", 0.0 ))
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
+            self.name = kwargs.get( "name", "111-XYZ-X1" )
             self.number = kwargs.get( "number", 0 )
+            self.pdbname = kwargs.get( "pdbname", 'X1' )
             self.r = [self.x, self.y, self.z ]
 
     def potline(self, max_l, pol, hyper):
@@ -192,7 +194,7 @@ class Atom(object):
                 str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
     def __str__(self):
-        return "%s %f %f %f" %(self.element, self.x, self.y, self.z)
+        return "%s %f %f %f" %(self.name, self.x, self.y, self.z)
 
     def __sub__(self, other ):
         return self.get_array() - other.get_array()
@@ -584,6 +586,19 @@ class Molecule(list):
                 tmp.append(i)
         return tmp
 
+    @staticmethod
+    def from_mol_file( molfile, AA = False):
+        pat_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+) *$')
+        tmp_molecule = Molecule()
+        for i in open( molfile ).readlines():
+            if pat_xyz.search(i):
+                matched = pat_xyz.match(i).groups()
+                kwargs = { "name" :  matched[0], "x" : matched[1],
+                        "y" : matched[2], "z" : matched[3], "AA" : AA,
+                        "pdbname" : matched[0].split('-')[-1] }
+                tmpAtom = Atom( **kwargs )
+                tmp_molecule.append( tmpAtom )
+        return tmp_molecule
 
     @staticmethod
     def mollist_to_mol_string( mollist , name ):
