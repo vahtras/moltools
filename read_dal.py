@@ -106,8 +106,11 @@ def qmmm_generation( args ):
                             Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
                             Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
 
+                        if args.potstyle == "QMMM":
+                            open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
+                        elif args.potstyle == "PEQM":
+                            open( out_pot , 'w' ).write( c.get_pe_pot_string()   )
                         open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
-                        open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
 
                         print "wrote: %s %s" %(out_mol, out_pot)
     raise SystemExit
@@ -639,6 +642,12 @@ def run_argparse( args ):
     A.add_argument( "-dist", action = "store_true", default = False )
 
 # ----------------------------
+# READ ALPHA
+# ----------------------------
+
+    A.add_argument( "-alpha", type = str, )
+
+# ----------------------------
 # BETA ANALYSIS RELATED
 # ----------------------------
 
@@ -686,6 +695,10 @@ def run_argparse( args ):
 # ----------------------------
 
     A.add_argument( "-qmmm_generation", action = "store_true", default = False )
+
+    A.add_argument( "-potstyle", default = "QMMM",
+            choices = ["QMMM", "PEQM"])
+
     A.add_argument( "-qm_waters", type = int, nargs = '*',
             default = [1] )
     A.add_argument( "-mm_waters", type = int, nargs = '*',
@@ -1103,6 +1116,10 @@ def main():
 
     """
     args = run_argparse( sys.argv )
+
+    if args.alpha:
+        a = read_alpha( args.alpha, freq = "0.0773571" )
+        print a
 
     if args.beta_analysis:
         beta_analysis(args)
