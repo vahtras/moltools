@@ -593,9 +593,10 @@ class Molecule(list):
         for i in open( molfile ).readlines():
             if pat_xyz.search(i):
                 matched = pat_xyz.match(i).groups()
+                pd = matched[0].split('-')[-1]
                 kwargs = { "name" :  matched[0], "x" : matched[1],
                         "y" : matched[2], "z" : matched[3], "AA" : AA,
-                        "pdbname" : matched[0].split('-')[-1] }
+                        "pdbname" : pd }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
         return tmp_molecule
