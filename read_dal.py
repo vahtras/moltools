@@ -80,7 +80,7 @@ def qmmm_generation( args ):
 
     pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( "0.pdb" ) ]
 
-    dists = ["", "_dist"]
+    dists = ["nodist", "dist"]
 
 
     for files in pdb_files:
@@ -92,13 +92,13 @@ def qmmm_generation( args ):
                     for dist in dists:
                         c.set_qm_mm( N_qm = n_qm, N_mm = n_mm )
 
-                        out_mol = "%s_%dqm_%dmm_%s%s.mol" % ( files.rstrip( '.' + ending ),
+                        out_mol = "%s_%dqm_%dmm_%s_%s.mol" % ( files.rstrip( '.' + ending ),
                                 n_qm, n_mm, freq , dist )
-                        out_pot = "%s_%dqm_%dmm_%s%s.pot" % ( files.rstrip( '.' + ending ),
+                        out_pot = "%s_%dqm_%dmm_%s_%s.pot" % ( files.rstrip( '.' + ending ),
                                 n_qm, n_mm, freq , dist )
                         for wat in [mol for mol in c if mol.in_mm ]:
                             kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
-                                dist == "_dist" , freq ))
+                                dist == "dist" , freq ))
                             for at in wat:
                                 Property.add_prop_from_template( at, kwargs_dict )
                             t1, t2, t3  = wat.get_euler()
@@ -804,6 +804,7 @@ def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
     if freqs > 1:
         return freqlist
 
+    print "ASFD"
     return alpha 
 
 def read_beta_ccsd( args ):
