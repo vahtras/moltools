@@ -58,8 +58,6 @@ class Property( dict ):
 
 
     def __str__(self):
-        print self["charge"]
-        raise SystemExit
         return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
         #return "%.5f %.5f %.5f %.5f  %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f \n" %(
         #        self["charge"], self["dipole"][0], self["dipole"][1], self["dipole"][2],
@@ -558,11 +556,12 @@ class Molecule(list):
 
         return [ b0, b1, b2 ]
 
-    def get_mol_string(self, basis = "cc-pVDZ"):
+    def get_mol_string(self, basis = "cc-pVDZ" ):
         st = ""
         uni = Molecule.unique([ at.element for at in self])
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
         for el in uni:
+            print el
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in self if (all_el.element == el)] ),
                     basis )
@@ -1137,7 +1136,17 @@ class Cluster(list):
                 dist[i] = ( np.linalg.norm(self[i].center - self[j].center) )
         dist.sort()
         return dist
-    def get_qm_mol_string(self, basis = "cc-pVDZ"):
+    def get_qm_mol_string(self, basis = ("cc-pVDZ", )):
+# If basis len is more than one, treat it like molecular ano type
+# Where first element is for first row of elements
+
+        if len( basis ) > 1:
+            # Set row index number to periodic table one
+            el_to_rowind = {"H" : 0, "O" : 1,  }
+        else:
+            # Keep all 0, since basis is only len 1
+            el_to_rowind = {"H" : 0, "O" : 0,  }
+
         st = ""
         comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
         comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
@@ -1149,7 +1158,7 @@ class Cluster(list):
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm )] ),
-                    basis )
+                     basis[ el_to_rowind[el] ] )
             for i in [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st

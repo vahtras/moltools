@@ -74,11 +74,11 @@ def write_related( args ):
     print "Finished writing mol files %s" %name
     raise SystemExit
 
-def qmmm_generation( args ):
+def qmmm_generation( ending = "pdb", qm_waters = [1],
+        mm_waters = [0], potfreqs = ["0.0"] ,potstyle = "QMMM"):
 
-    ending = args.file_type
 
-    pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( "0.pdb" ) ]
+    pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( ".pdb" ) ]
 
     dists = ["nodist", "dist"]
 
@@ -86,9 +86,9 @@ def qmmm_generation( args ):
     for files in pdb_files:
         c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
                 N_waters = 340 )
-        for n_qm in args.qm_waters:
-            for n_mm in args.mm_waters:
-                for freq in args.potfreqs:
+        for n_qm in qm_waters:
+            for n_mm in mm_waters:
+                for freq in potfreqs:
                     for dist in dists:
                         c.set_qm_mm( N_qm = n_qm, N_mm = n_mm )
 
@@ -106,11 +106,13 @@ def qmmm_generation( args ):
                             Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
                             Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
 
-                        if args.potstyle == "QMMM":
+                        if potstyle == "QMMM":
                             open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
-                        elif args.potstyle == "PEQM":
+                        elif potstyle == "PEQM":
                             open( out_pot , 'w' ).write( c.get_pe_pot_string()   )
-                        open( out_mol , 'w' ).write( c.get_qm_mol_string()     )
+                        open( out_mol , 'w' ).write( \
+                                c.get_qm_mol_string( basis = ("ano-1 2 1",
+                                    "ano-1 3 2 1") )     )
 
                         print "wrote: %s %s" %(out_mol, out_pot)
     raise SystemExit
@@ -804,7 +806,6 @@ def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
     if freqs > 1:
         return freqlist
 
-    print "ASFD"
     return alpha 
 
 def read_beta_ccsd( args ):
@@ -1142,8 +1143,7 @@ def main():
     args = run_argparse( sys.argv )
 
     if args.alpha:
-        a = read_alpha( args.alpha, freq = "0.0773571" )
-        print a
+        a = read_alpha( args.alpha, )
 
     if args.beta_analysis:
         beta_analysis(args)
@@ -1152,7 +1152,7 @@ def main():
         alpha_analysis(args)
 
     if args.qmmm_generation:
-        qmmm_generation( args )
+        qmmm_generation( qm_waters = args.qm_waters, potfreqs = args.potfreqs ,potstyle = args.potstyle)
 
     if args.qmmm_analysis:
         qmmm_analysis( args )
