@@ -212,6 +212,8 @@ class Atom(object):
 
     def __sub__(self, other ):
         return self.r - other.r
+    def __add__(self, other ):
+        return self.r + other.r
 
     def get_array(self):
         return np.array( [self.x , self.y, self.z ] ).copy()
@@ -290,7 +292,7 @@ class Molecule( list ):
         return vec
     @staticmethod
     def get_Ry( theta ):
-        vec = np.array( [[ m.cos(theta),0, m.sin(theta)],
+        vec = np.array(    [[ m.cos(theta),0, m.sin(theta)],
                             [ 0,    1,  0],
                             [ -m.sin(theta), 0, m.cos(theta)]])
         return vec
@@ -705,6 +707,11 @@ class Water( Molecule ):
         self.in_mm = False
         self.in_qmmm = False
 
+    def __add__(self, other ):
+        assert len(other) == 3
+        for at in self:
+            at += other
+
     def center(self):
         tmp = (self.o.r - [0,0,0]).copy()
         self.translate( tmp )
@@ -816,7 +823,8 @@ class Water( Molecule ):
                 self.res_id, self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, dist ) + "\n"
 
     def __str__(self):
-        return "WAT" + str(self.res_id) 
+        return "\n".join( ["%d %.3f %.3f %.3f" % (at.res_id,
+            at.x, at.y, at.z) for at in self] )
 
     
     def exclists(self):
@@ -884,19 +892,20 @@ class Water( Molecule ):
 #Rotate by theta around y axis so that the dipole is in the z axis 
         theta2 = m.atan2( -dip[0], dip[2])
 
-        H1 =  np.dot( self.get_Ry( theta2 ) , H1 )
-        H2 =  np.dot( self.get_Ry( theta2 ) , H2 )
-        O1 =  np.dot( self.get_Ry( theta2 ) , O1 )
+        H1 =  np.dot( self.get_Ry_inv( theta2 ) , H1 )
+        H2 =  np.dot( self.get_Ry_inv( theta2 ) , H2 )
+        O1 =  np.dot( self.get_Ry_inv( theta2 ) , O1 )
 
         dip = np.dot( self.get_Ry( theta2 ) , dip )
 
-#Rotate around Z axis so that hydrogens are in xz plane.
-        if H2[1] >0:
-            xc = H2[0]
-            yc = H2[1]
-        else:
+#Rotate around Z axis so that hydrogens are in xz plane., 
+        if H1[0] >= 0:
+# H1 is the coordinate of our new h1 molecule
             xc = H1[0]
             yc = H1[1]
+        else:
+            xc = H2[0]
+            yc = H2[1]
         theta3 = m.atan2( yc , xc)
 
         def eq(a, b, thr = 0.0001): 
@@ -933,29 +942,29 @@ class Water( Molecule ):
         H1 -= TMP ; H2 -= TMP; O -= TMP
 
         H1 = np.dot( self.get_Rz_inv(d3) , H1 )
-        H1 = np.dot( self.get_Ry(d2) , H1 )
+        H1 = np.dot( self.get_Ry_inv(d2) , H1 )
         H1 = np.dot( self.get_Rz_inv(d1) , H1 )
 
         H2 = np.dot( self.get_Rz_inv(d3) , H2 )
-        H2 = np.dot( self.get_Ry(d2) , H2 )
+        H2 = np.dot( self.get_Ry_inv(d2) , H2 )
         H2 = np.dot( self.get_Rz_inv(d1) , H2 )
 
         O = np.dot( self.get_Rz_inv(d3) , O )
-        O = np.dot( self.get_Ry(d2) , O )
+        O = np.dot( self.get_Ry_inv(d2) , O )
         O = np.dot( self.get_Rz_inv(d1) , O )
 
 # Rotate with angles t1, t2, t3
 
         H1 = np.dot( self.get_Rz(t1) , H1 )
-        H1 = np.dot( self.get_Ry_inv(t2) , H1 )
+        H1 = np.dot( self.get_Ry(t2) , H1 )
         H1 = np.dot( self.get_Rz(t3) , H1 )
 
         H2 = np.dot( self.get_Rz(t1) , H2 )
-        H2 = np.dot( self.get_Ry_inv(t2) , H2 )
+        H2 = np.dot( self.get_Ry(t2) , H2 )
         H2 = np.dot( self.get_Rz(t3) , H2 )
 
         O = np.dot( self.get_Rz(t1) , O )
-        O = np.dot( self.get_Ry_inv(t2) , O )
+        O = np.dot( self.get_Ry(t2) , O )
         O = np.dot( self.get_Rz(t3) , O )
 
 #Put back in oxygen original point
@@ -963,7 +972,7 @@ class Water( Molecule ):
 
         self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
-        self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
+        self.o.x  =  O[0] ;self.o.y  = O[1]  ; self.o.z = O[2] 
 
     def to_au(self):
         self.h1.to_au()

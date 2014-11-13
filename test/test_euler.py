@@ -55,7 +55,7 @@ class WaterTest( unittest.TestCase ):
         w.h2.z = z2
 
         print w.p
-        assert 2==3
+        #assert 2==3
 
 
     def eq(self, a, b):

@@ -58,12 +58,10 @@ class WaterTest( unittest.TestCase ):
         self.eq( w.o.r, [0,0,0] )
 
 #rotate around z axis by 90 degree
-        #w.rotate( np.pi/2 ,0 ,0)
-        #self.eq( w.o.r, [0,0,0] )
-        #self.eq( w.h1.y, 0 )
+        self.eq( w.o.r, [0,0,0] )
         #self.eq( w.h2.y, 0 )
+        #self.eq( w.h1.y, 0 )
     
-
 
     def test_y_rotation(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
