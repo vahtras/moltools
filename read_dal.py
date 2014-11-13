@@ -75,7 +75,8 @@ def write_related( args ):
     raise SystemExit
 
 def qmmm_generation( ending = "pdb", qm_waters = [1],
-        mm_waters = [0], potfreqs = ["0.0"] ,potstyle = "QMMM"):
+        mm_waters = [0], potfreqs = ["0.0"] ,potstyle = "QMMM",
+        basis = "ANOPVDZ" ):
 
 
     pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( ".pdb" ) ]
@@ -97,7 +98,7 @@ def qmmm_generation( ending = "pdb", qm_waters = [1],
                         out_pot = "%s_%dqm_%dmm_%s_%s.pot" % ( files.rstrip( '.' + ending ),
                                 n_qm, n_mm, freq , dist )
                         for wat in [mol for mol in c if mol.in_mm ]:
-                            kwargs_dict = Template().get( *("TIP3P", "HF", "PVDZ",
+                            kwargs_dict = Template().get( *("TIP3P", "HF", basis,
                                 dist == "dist" , freq ))
                             for at in wat:
                                 Property.add_prop_from_template( at, kwargs_dict )
@@ -289,13 +290,16 @@ def qmmm_analysis( args ):
     freqs.sort( key = lambda x: float(x))
     N_qm.sort( key = lambda x: int(x))
     N_mm.sort( key = lambda x: int(x))
-    dists = ["", "_dist",]
+    dists = ["nodist", "dist",]
 
-    potfreqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ]
     potfreqs = args.potfreqs
 
+    potfreqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ]
+    N_qm = range( 10 )
+    N_mm = range( 101 )
+
 # component dictionary, plots specific alpha components 
-    f_to_ind = {"0.0":0, "0.0238927":1, "0.0428227":2, "0.0773571":3}
+    f_to_ind = {     "0.0":0, "0.0238927":1, "0.0428227":2, "0.0773571":3}
     comp_to_ind = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
     c_to_ind = {"xx":0, "yy":1, "zz":2, "mean":3, "aniso": 4}
 
@@ -307,41 +311,36 @@ def qmmm_analysis( args ):
 
     x = np.zeros( (10, 9, 100, 4, 4, 2, 5 ) )
     for n_qm in N_qm:
-        if n_qm not in args.n_qm:
-            continue
         for n_mm in N_mm:
-            if n_mm not in args.n_mm:
-                continue
             for snap in snaps:
-                if snap not in args.snaps:
-                    continue
-                for freq1 in freqs:
-                    if freq1 not in args.freqs:
-                        continue
+                for freq1 in potfreqs:
                     for freq2 in potfreqs:
                         for dist in dists:
-                            out = "_".join( [args.dal,
+                            out = "_".join( ["hflin",
                                 "%s"% (freq1) ,
-                                "%s%s"%(args.mol,snap),
+                                "%s%s"%( "tip3p" ,snap),
                                 "%sqm"%(n_qm),
-                                "%smm" %(n_mm),
-                                "%s%s.out" % (freq2, dist)] )
+                                "%smm"%(n_mm),
+                                "%s" %freq2,
+                                "%s.out" %dist] )
 
-                            mol = "_".join( ["%s%s"%(args.mol,snap), "%sqm"%(n_qm),
-                                "%smm" %(n_mm), "%s%s.mol" %(freq2, dist)] )
+                            mol = "_".join( ["%s%s"%("tip3p",snap),
+                                "%sqm"%n_qm,
+                                "%smm" %n_mm,
+                                "%s" % freq2,
+                                "%s.mol" % dist] )
 
                             if not os.path.isfile( os.path.join( os.getcwd(), out)):
                                 continue
 
                             if not os.path.isfile( os.path.join( os.getcwd(), mol)):
                                 continue
-
                             snap_ind = int(snap)
                             qm_ind = int(n_qm) - 1
                             mm_ind = int(n_mm) - 1
                             freq1_ind = f_to_ind[freq1]
                             freq2_ind = f_to_ind[freq2]
-                            if dist == "_dist":
+                            if dist == "dist":
                                 dist_ind = 1
                             else:
                                 dist_ind = 0
@@ -363,13 +362,15 @@ def qmmm_analysis( args ):
                                     freq1_ind, freq2_ind, dist_ind, 3 ] = a_qm2
                             x[ snap_ind, qm_ind, mm_ind, 
                                     freq1_ind, freq2_ind, dist_ind, 4 ] = a_qm3
-
 #Average over all snapshots requested, WARNING may give wrong result if no match
 #    x1 = x.sum( axis = 0 ) / len ( args.snaps )
 
+    x_fin = x[0, :, :, 0:4:3 , 0:4:3 , :, 3]
+    name = '/home/ignat/projects/alpha_water/tot_data/data.h5'
     if args.hdf:
-        h5file = h5py.File("qmmm.h5", 'w')
-        h5file["qmmm"] = x
+        h5file = h5py.File( name , 'a')
+        grp = h5file.create_dataset( "qmmm/tip3p", data  = x_fin )
+        grp.attrs["info"] = "one snapshot, 1-9 qm 1 - 100 MM at static and 589 nm"
         h5file.close()
     raise SystemExit
 
@@ -706,6 +707,9 @@ def run_argparse( args ):
     A.add_argument( "-mm_waters", type = int, nargs = '*',
             default = [1] )
     A.add_argument( "-file_type", type = str, default = "pdb" )
+    A.add_argument( "-tname", type = str, default = "TIP3P" )
+    A.add_argument( "-tmethod", type = str, default = "HF" )
+    A.add_argument( "-tbasis", type = str, default = "ANOPVDZ" )
 
 #also share same arguments -snaps -freqs with -alpha_analysis
 
@@ -739,9 +743,6 @@ def run_argparse( args ):
     A.add_argument( "-oAA", default = False, action='store_true' , help='Default coordinate type AA or AU for -op output potential file, default: "AU"' )
 
 
-    A.add_argument( "-tname", type = str, default = "TIP3P" )
-    A.add_argument( "-tmethod", type = str, default = "HF" )
-    A.add_argument( "-tbasis", type = str, default = "PVDZ" )
     A.add_argument( "-tw", type = float, default = 0.0 )
 
     A.add_argument( "-wat", action = 'store_true' , default=  True )
@@ -1152,7 +1153,8 @@ def main():
         alpha_analysis(args)
 
     if args.qmmm_generation:
-        qmmm_generation( qm_waters = args.qm_waters, potfreqs = args.potfreqs ,potstyle = args.potstyle)
+        qmmm_generation( qm_waters = args.qm_waters, mm_waters = args.mm_waters,
+                potfreqs = args.potfreqs ,potstyle = args.potstyle)
 
     if args.qmmm_analysis:
         qmmm_analysis( args )
