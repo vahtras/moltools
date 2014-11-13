@@ -6,7 +6,8 @@ import argparse, re, fractions
 import numpy as np
 import math as m
 
-from molecules import Water, Atom, Property, Methanol
+from template import Template
+from molecules import Molecule, Water, Atom, Property, Cluster
 
 a0 = 0.52917721092
 
@@ -34,6 +35,9 @@ class Generator( dict ):
         self[ ("methanol", "d_hcoh", "h4", "degree" ) ] =  60.0
         self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
         self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
+
+        if kwargs is not {}:
+            self.options = kwargs.get( 'r', {"max": 10 , "min" : 3, "points":1} )
 
     @staticmethod
     def build_molecule( molecule ):
@@ -68,8 +72,7 @@ class Generator( dict ):
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_mol( [0, 0, 0], "methanol", AA = AA)
-
+                                w1 = self.get_mol( [0, 0, 0], args.params, AA = AA)
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_water_params( [x,y,z], r_oh, a_hoh)
                                 w2.rotate( l, m, n )
@@ -77,7 +80,9 @@ class Generator( dict ):
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
 
-                                Molecule.mollist_to_mol_string( [w1, w2], name )
+                                f_ = open(name, 'w')
+                                m = Molecule.mollist_to_mol_string( [w1, w2], name )
+                                f_.write( m)
 
     def vary_parameters( self, *args ):
         """Given two parameters, for e.g. r and theta, keeps all other static"""
@@ -131,8 +136,8 @@ class Generator( dict ):
         return w
 
     def get_mol( self, center, mol, AA = True ):
-        """return molecule in origo, all molecules have different definition
-        of euler
+        """return molecule in center, all molecules have different definition
+        of euler angles
 
         for water place O in origo
         for methanol place C=O bond in origo
@@ -140,7 +145,6 @@ class Generator( dict ):
         """
 
         if mol == "water":
-
 #Geometrical parameters
             r_oh = self[ ("water","r_oh", "AA") ]
             a_hoh = self[ ("water","a_hoh","degree") ]
@@ -148,23 +152,35 @@ class Generator( dict ):
                 r_oh = r_oh / a0
 
             d = (90 - a_hoh/2 ) * np.pi / 180
-            origin = np.array( [ 0, 0, 0] )
 
-            h1 = Atom( **{ "AA" : AA, "element" : "H"} )
-            h2 = Atom( **{ "AA" : AA, "element" : "H"} )
-            o =  Atom( **{ "AA" : AA, "element" : "O"} )
 
-            o.x = center[0]
-            o.y = center[1]
-            o.z = center[2] 
+            xo = center[0]
+            yo = center[1]
+            zo = center[2] 
 
-            h1.x = (center[0] + r_oh * np.cos(d))
-            h1.y = center[1] 
-            h1.z = (center[2] + r_oh* np.sin(d))
+            xh1 = (center[0] + r_oh * np.cos(d))
+            yh1 =  center[1] 
+            zh1 = (center[2] + r_oh* np.sin(d))
 
-            h2.x = (center[0] - r_oh * np.cos(d)) 
-            h2.y = center[1] 
-            h2.z = (center[2] + r_oh* np.sin(d))
+            xh2 = (center[0] - r_oh * np.cos(d)) 
+            yh2 = center[1] 
+            zh2 = (center[2] + r_oh* np.sin(d))
+
+            h1 = Atom( **{ "AA" : AA,
+                "x" : xh1,
+                "y" : yh1,
+                "z" : zh1,
+                "element" : "H"} )
+            h2 = Atom( **{ "AA" : AA,
+                "x" : xh2,
+                "y" : yh2,
+                "z" : zh2,
+                "element" : "H"} )
+            o = Atom( **{ "AA" : AA,
+                "x" : xo,
+                "y" : yo,
+                "z" : zo,
+                "element" : "O"} )
 
             w = Water()
             w.append( o )
@@ -413,6 +429,72 @@ class Generator( dict ):
 
         return x , y , z
 
+    def build_pna( self,  xyz = "tmp.xyz", waters = 0, 
+            minr = 1.0 ):
+        pna = Molecule.from_xyz( xyz )
+        freqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ] 
+
+        np.random.seed(411)
+
+        c = Cluster()
+        c.append(pna, in_qm = True)
+        cnt = 0
+        while cnt < waters:
+# Random rotation angles
+            t1 = np.random.uniform( 0, np.pi/2 )
+            t2 = np.random.uniform( 0, np.pi   )
+            t3 = np.random.uniform( 0, np.pi/2 )
+
+# random length, rho and tau 
+            r =  np.random.uniform( minr , minr * 10)
+            tau =  np.random.uniform( 0, np.pi*2)
+            theta =  np.random.uniform( 0,np.pi)
+
+            center = self.polar_to_cartesian( r, tau, theta )
+
+            wat = self.get_mol( center = pna.com + center,
+                    mol = "water")
+
+            wat.res_id = cnt
+            for at in wat:
+                at.res_id = wat.res_id
+
+
+            wat = self.get_mol( center = [0,0,0],
+                    mol = "water")
+
+            print t1, t2, t3
+            wat.rotate( t1, t2, t3, )
+            print  wat.get_euler()
+
+            raise SystemExit
+
+            if c.mol_too_close( wat ):
+                continue
+            raise SystemExit
+
+#We are satisfied with this position, add properties to the water, and rotate them according to t1, t2, t3 so they match the water orientation
+            kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
+                dist == "dist",f_mm ) )
+            for at in wat:
+                Property.add_prop_from_template( at, kwargs_dict )
+            Property.transform_ut_properties( wat.h1.Property, t1,t2,t3 )
+            Property.transform_ut_properties( wat.h2.Property, t1,t2,t3 )
+            Property.transform_ut_properties( wat.o.Property,  t1,t2,t3 )
+
+            c.append( wat, in_mm = True )
+            cnt += 1
+
+        for f_mm in freqs:
+            for dist in ["nodist", "dist"]:
+#Write out QM and MM region separately with properties
+                open("pna.mol" ,'w').write(c.get_qm_mol_string(
+                    basis= ("ano-1 2 1", "ano-1 3 2 1"),
+                    AA = True))
+                open("%s_%s.pot" %(f_mm, dist ),'w').write(c.get_qmmm_pot_string( AA = True))
+                open("tmp.xyz", 'w').write( c.get_xyz_string() )
+            #water = g.get_mol( center = 
+
 if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
@@ -449,9 +531,16 @@ if __name__ == '__main__':
     A.add_argument( "-basis", type = str, default = "cc-pVDZ" )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
 
+#########################
+#      PNA RELATED
+#########################
+
+    A.add_argument( '-pna', action = 'store_true', default = False )
+
+########################################################################
+
     args = A.parse_args()
 
-    g = Generator()
 
     opts =  {
        "r"    :{"min":args.r,    "max": args.r_max,    "points":args.r_points,    },
@@ -462,13 +551,16 @@ if __name__ == '__main__':
        "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
              }
 
+    g = Generator( **opts )
+
     if args.params:
         g.vary_parameters( opts )
         g.gen_mols_params( args.params , AA = False )
 
-    elif args.get_mol:
+    if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
-    else:
-        print "Usage; use_generator [-params water] [-get_mol methanol]"
 
+    if args.pna:
+        g.build_pna( xyz = "pna_opt.xyz", waters = 10, )
+                
 
