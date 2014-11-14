@@ -9,6 +9,7 @@ from molecules import Water, Atom, Property
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
+        np.random.seed(111)
         self.ut_alpha = np.random.random( (6, ) )
         self.ut_beat = np.random.random(  (10, ) )
 
@@ -23,7 +24,7 @@ class WaterTest( unittest.TestCase ):
     def test_translation(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
         w.translate( self.w.o.r )
-        assert np.equal( w.o.r , self.w.o.r ).all()
+        self.eq( w.com , self.w.o.r )
 
         w.translate( [1,1,1] )
         w.translate( [0,0,0] )
@@ -32,26 +33,41 @@ class WaterTest( unittest.TestCase ):
         w.translate( [2333,1,1] )
         w.translate( [0,0,0] )
 
-        assert np.equal( w.o.r , [0,0,0] ).all()
+        self.eq( w.com, [0,0,0], decimal = 7 )
 
 
     def test_center_water(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 
 #Move the water to random place
-        print w.o.r
         w.translate( np.random.uniform(-100,100, [3]  ))
-        print w.o.r
 #Call center function
 
         w.center()
-        print w.o.r
 #Assert that oxygen is in origo
 
-        assert np.equal( w.o.r, [0,0,0] ).all()
+        self.eq( w.com, [0,0,0], decimal = 7 )
 
     def test_get_euler(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
+
+    def test_rotate_around_z(self):
+        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w.translate( self.w.com )
+        self.eq( w.com, self.w.com )
+        w.rotate( np.pi/2 , 0 , np.pi/2 )
+        self.eq( w.com, self.w.com )
+
+    def test_rotate_around_z(self):
+        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+
+        w.translate( self.w.com )
+        t1, t2, t3 = self.w.get_euler()
+        w.rotate( t1, t2, t3 )
+
+        self.eq( w.com, self.w.com )
+        #assert 2 ==3
+
 
 
     def test_rotate_inv_Z(self):
@@ -120,11 +136,8 @@ class WaterTest( unittest.TestCase ):
     def test_(self):
         assert len( self.ut_alpha ) == 6
 
-    def eq(self, a, b):
-        np.testing.assert_almost_equal( a, b, decimal = 3)
-
-    def eq(self, a, b):
-        np.testing.assert_almost_equal( a, b, decimal = 3)
+    def eq(self, a, b, decimal = 4):
+        np.testing.assert_almost_equal( a, b, decimal = decimal)
 
 if __name__ == '__main__':
     unittest.main()

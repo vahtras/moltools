@@ -21,6 +21,7 @@ class Generator( dict ):
     """
     def __init__(self, *args, **kwargs):
 
+#This waater is TIP3P model, generalzie later
         self[ ("water","a_hoh", "degree") ] = 104.5
         self[ ("water","r_oh", "AA") ] = 0.9720
 
@@ -43,7 +44,7 @@ class Generator( dict ):
     def build_molecule( molecule ):
         """ molecule is a string to build, return class """
 
-    def gen_mols_params(self, mol, AA = False,):
+    def gen_mols_param(self, mol = "water", AA = True):
 
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
@@ -72,16 +73,22 @@ class Generator( dict ):
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_mol( [0, 0, 0], args.params, AA = AA)
+                                c= Cluster()
+                                w1 = self.get_mol( [0, 0, 0], mol , AA = AA)
+                                c.append( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
-                                w2 = self.get_water_params( [x,y,z], r_oh, a_hoh)
+                                w2 = self.get_mol( [x,y,z], mol, AA = AA)
                                 w2.rotate( l, m, n )
+
+                                c.append( w2, in_qm = True )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
 
+                                m = c.get_qm_mol_string( AA = AA,
+                                        basis = ('ano-1 2 1','ano-1 3 2 1' )
+                                        )
                                 f_ = open(name, 'w')
-                                m = Molecule.mollist_to_mol_string( [w1, w2], name )
                                 f_.write( m)
 
     def vary_parameters( self, *args ):
@@ -107,33 +114,6 @@ class Generator( dict ):
                     if i == "rho3":
                         self.varyRho3 = True
                         self.optionsRho3 = j[i]
-
-    def get_water_params(self, origin, r, theta, AA = True ):
-        h1 = Atom() ; h2 = Atom() ; o = Atom()
-        d = (m.pi/2 - theta/2)
-        o.element = "O" ; h1.element = "H" ; h2.element = "H"
-        o.x = origin[0] ; o.y = origin[1] ; o.z = origin[2] 
-        h1.x = (origin[0] + r * m.cos(d)) ; h1.y = origin[1] ; h1.z = (origin[2] + r*m.sin(d))
-        h2.x = (origin[0] - r * m.cos(d)) ; h2.y = origin[1] ; h2.z = (origin[2] + r*m.sin(d))
-        w = Water(); w.append( o) ;w.append( h2 ) ;w.append( h1 ) 
-        w.a_hoh = theta
-        w.r_oh = r
-        w.center = origin
-        w.euler1 = 0.00
-        w.euler2 = 0.00
-        w.euler3 = 0.00
-
-        if AA:
-            w.AA = True
-            w.h1.AA = True
-            w.h2.AA = True
-            w.o.AA  = True
-        else:
-            w.AA = False
-            w.h1.AA = False
-            w.h2.AA = False
-            w.o.AA  = False
-        return w
 
     def get_mol( self, center, mol, AA = True ):
         """return molecule in center, all molecules have different definition
@@ -430,11 +410,12 @@ class Generator( dict ):
         return x , y , z
 
     def build_pna( self,  xyz = "tmp.xyz", waters = 0, 
-            minr = 1.0 ):
+            min_r = 2.0,
+            mult_r = 10):
         pna = Molecule.from_xyz( xyz )
         freqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ] 
 
-        np.random.seed(411)
+        np.random.seed(args.seed)
 
         c = Cluster()
         c.append(pna, in_qm = True)
@@ -446,7 +427,7 @@ class Generator( dict ):
             t3 = np.random.uniform( 0, np.pi/2 )
 
 # random length, rho and tau 
-            r =  np.random.uniform( minr , minr * 10)
+            r =  np.random.uniform( min_r , min_r * mult_r)
             tau =  np.random.uniform( 0, np.pi*2)
             theta =  np.random.uniform( 0,np.pi)
 
@@ -455,53 +436,47 @@ class Generator( dict ):
             wat = self.get_mol( center = pna.com + center,
                     mol = "water")
 
+            wat.rotate( t1, t2, t3 )
             wat.res_id = cnt
             for at in wat:
                 at.res_id = wat.res_id
 
-            wat = self.get_mol( center = [0,0,0],
-                    mol = "water")
-
-            print wat.p
-            wat.rotate( np.pi/2, -np.pi/2, np.pi )
-            print wat.p
-            #wat.rotate( t1, t2, t3, )
-
-            raise SystemExit
-
             if c.mol_too_close( wat ):
                 continue
-            raise SystemExit
 
 #We are satisfied with this position, add properties to the water, and rotate them according to t1, t2, t3 so they match the water orientation
-            kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
-                dist == "dist",f_mm ) )
-            for at in wat:
-                Property.add_prop_from_template( at, kwargs_dict )
-            Property.transform_ut_properties( wat.h1.Property, t1,t2,t3 )
-            Property.transform_ut_properties( wat.h2.Property, t1,t2,t3 )
-            Property.transform_ut_properties( wat.o.Property,  t1,t2,t3 )
-
             c.append( wat, in_mm = True )
             cnt += 1
 
         for f_mm in freqs:
             for dist in ["nodist", "dist"]:
+                for wat in [ m for m in c if m.in_mm ]:
+                    t1, t2, t3 =  wat.get_euler()
+                    kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
+                        dist == "dist",f_mm ) )
+                    for at in wat:
+                        Property.add_prop_from_template( at, kwargs_dict )
+                    Property.transform_ut_properties( wat.h1.Property, t1,t2,t3 )
+                    Property.transform_ut_properties( wat.h2.Property, t1,t2,t3 )
+                    Property.transform_ut_properties( wat.o.Property,  t1,t2,t3 )
 #Write out QM and MM region separately with properties
                 open("pna.mol" ,'w').write(c.get_qm_mol_string(
                     basis= ("ano-1 2 1", "ano-1 3 2 1"),
                     AA = True))
-                open("%s_%s.pot" %(f_mm, dist ),'w').write(c.get_qmmm_pot_string( AA = True))
+                open("%dmm_%s_%s.pot" %(waters, f_mm, dist ),'w').write(c.get_qmmm_pot_string( AA = True))
                 open("tmp.xyz", 'w').write( c.get_xyz_string() )
-            #water = g.get_mol( center = 
 
 if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
-#Related to generating two water molecules with specified 6 parameters
-    A.add_argument( "-params", type = str, 
-            choices = ["water",
-                "methanol" , "ethane"] )
+
+#Related to generating molecules with specified parameters
+# Right now 2 waters implemented with 6 parameters
+
+    A.add_argument( "-param", action = 'store_true', default = False )
+    A.add_argument( "-param_mol", type = str, default = 'water' )
+
+
 
     A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
@@ -535,7 +510,12 @@ if __name__ == '__main__':
 #      PNA RELATED
 #########################
 
+    A.add_argument( '-seed', type = int, default = 111 )
+
     A.add_argument( '-pna', action = 'store_true', default = False )
+    A.add_argument( '-pna_waters', type = int, default = 10 )
+    A.add_argument( '-pna_min_r', type = float, default = 0 )
+    A.add_argument( '-pna_mult_r', type = float, default = 10 )
 
 ########################################################################
 
@@ -553,14 +533,20 @@ if __name__ == '__main__':
 
     g = Generator( **opts )
 
-    if args.params:
+    if args.param:
         g.vary_parameters( opts )
-        g.gen_mols_params( args.params , AA = False )
+        g.gen_mols_param( 
+                mol = args.param_mol ,
+                AA = False )
+        raise SystemExit
 
     if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
 
     if args.pna:
-        g.build_pna( xyz = "pna_opt.xyz", waters = 10, )
+        g.build_pna( xyz = "pna_opt.xyz", 
+                waters = args.pna_waters,
+                min_r = args.pna_min_r,
+                mult_r = args.pna_mult_r )
                 
 

@@ -265,7 +265,7 @@ class Molecule( list ):
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
     def translate(self, r):
-        vec = r - self.o.r
+        vec = r - self.com
         for at in self:
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
@@ -273,11 +273,7 @@ class Molecule( list ):
 
     @property
     def com(self):
-        if self._com is not None:
-            return self._com
-        self._com = np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
-
-        return self._com
+        return np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
 
     @staticmethod
     def get_Rz( theta ):
@@ -653,9 +649,9 @@ class Molecule( list ):
     def mollist_to_mol_string( mollist , name ):
         print mollist
         raise SystemExit
+
     @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
-
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
             raise SystemExit
@@ -675,7 +671,22 @@ class Molecule( list ):
                 "z" : z,
                 "AA" : in_AA,
                 }))
+
+        if in_AA:
+            if not out_AA:
+                m.to_AU()
         return m
+
+    def to_AU(self):
+        for at in self:
+            at.x = at.x / a0
+            at.y = at.y / a0
+            at.z = at.z / a0
+    def to_AA(self):
+        for at in self:
+            at.x *= a0
+            at.y *= a0
+            at.z *= a0
 
 class Water( Molecule ):
     """ Derives all general rotating methods from Molecule
@@ -973,17 +984,6 @@ class Water( Molecule ):
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
         self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
 
-    def to_au(self):
-        self.h1.to_au()
-        self.h2.to_au()
-        self.o.to_au()
-
-    def to_AA(self):
-        self.h1.to_aa()
-        self.h2.to_aa()
-        self.o.to_aa()
-# in_AA specifies if input coords are in angstrom
-
     def get_xyz(self):
         st = "%d\n\n" % len(self)
         for at in self:
@@ -1254,7 +1254,7 @@ class Cluster(list):
         dist.sort()
         return dist
 
-    def get_qm_mol_string(self, basis = ("cc-pVDZ", ) , AA = False):
+    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
@@ -1533,7 +1533,7 @@ class Cluster(list):
         for mols in self:
             for ats in mols:
                 for at in mol:
-                    if at.dist_to_atom( ats ) < 2.4:
+                    if at.dist_to_atom( ats ) < 2.0:
                         return True
         return False
 
