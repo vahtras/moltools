@@ -263,10 +263,11 @@ class Molecule( list ):
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
     def translate(self, r):
+        vec = r - self.o.r
         for at in self:
-            at.x = r[0] - at.x 
-            at.y = r[1] - at.y 
-            at.z = r[2] - at.z 
+            at.x = vec[0] + at.x 
+            at.y = vec[1] + at.y 
+            at.z = vec[2] + at.z 
 
     @property
     def com(self):
@@ -278,7 +279,7 @@ class Molecule( list ):
 
     @staticmethod
     def get_Rz( theta ):
-        vec = np.array( [[ m.cos(theta), -m.sin(theta), 0],
+        vec = np.array(    [[ m.cos(theta),-m.sin(theta), 0],
                             [ m.sin(theta), m.cos(theta), 0],
                             [ 0,    0,  1]])
         return vec
@@ -290,13 +291,13 @@ class Molecule( list ):
         return vec
     @staticmethod
     def get_Ry( theta ):
-        vec = np.array( [[ m.cos(theta),0, m.sin(theta)],
+        vec = np.array(    [[ m.cos(theta),0, m.sin(theta)],
                             [ 0,    1,  0],
                             [ -m.sin(theta), 0, m.cos(theta)]])
         return vec
     @staticmethod
     def get_Ry_inv( theta ):
-        vec = np.array( [[ m.cos(theta),0, -m.sin(theta)],
+        vec = np.array(    [[ m.cos(theta),0, -m.sin(theta)],
                             [ 0,    1,  0],
                             [ m.sin(theta), 0, m.cos(theta)]])
         return vec
@@ -706,9 +707,8 @@ class Water( Molecule ):
         self.in_qmmm = False
 
     def center(self):
-        tmp = (self.o.r - [0,0,0]).copy()
+        tmp = np.array( [0,0,0] )
         self.translate( tmp )
-        #self.r -= tmp
 
     @staticmethod
     def get_standard():
@@ -861,7 +861,7 @@ class Water( Molecule ):
 
     def get_euler(self):
         """Return euler angles rho1, rho2, rho3 
-        required to rotate water to its default placement
+        required to  water to its default placement
         for which the template properties are calculated """
 
         H1 = self.h1.r.copy()
@@ -882,7 +882,7 @@ class Water( Molecule ):
         dip = np.dot( self.get_Rz_inv( theta1 ) , dip )
 
 #Rotate by theta around y axis so that the dipole is in the z axis 
-        theta2 = m.atan2( -dip[0], dip[2])
+        theta2 = m.atan2( -dip[0], dip[2] )
 
         H1 =  np.dot( self.get_Ry( theta2 ) , H1 )
         H2 =  np.dot( self.get_Ry( theta2 ) , H2 )
@@ -899,22 +899,29 @@ class Water( Molecule ):
             yc = H1[1]
         theta3 = m.atan2( yc , xc)
 
-        def eq(a, b, thr = 0.0001): 
+        
+        def eq(a, b, thr = 0.001): 
             if abs(a-b) < thr:return True
             else: return False
 
-        if eq( theta1 ,np.pi, ):
-            theta1 = 0.0
-        if eq( theta2 ,np.pi, ):
-            theta2 = 0.0
-        if eq( theta3 ,np.pi, ):
-            theta3 = 0.0
-        if eq( theta1 ,-np.pi, ):
-            theta1 = 0.0
-        if eq( theta2 ,-np.pi, ):
-            theta2 = 0.0
-        if eq( theta3 ,-np.pi, ):
-            theta3 = 0.0
+        #if eq( theta3, -np.pi ):
+        #    theta3 = abs( theta3 )
+
+        #if eq( theta2, -np.pi ):
+        #    theta2 = abs( theta2 )
+
+        #if eq( theta2, -np.pi ):
+        #    theta1 = abs( theta1 )
+
+        #if eq( theta1 , np.pi, ):
+        #    theta1 = 0.0
+        #if eq( theta1 , np.pi, ):
+        #    theta1 = 0.0
+
+        #if eq( theta1 , np.pi, ):
+        #    theta1 = 0.0
+        #if eq( theta1 , -np.pi, ):
+        #    theta1 = 0.0
 
         return theta3, theta2, theta1
 

@@ -37,6 +37,25 @@ class WaterTest( unittest.TestCase ):
 
         self.eq( [t1, t2, t3] , np.zeros(3) )
 
+    def test_negative_x_get_euler(self):
+        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+
+        x1 = -0.5
+        x2 = -0.5
+        y1 =  0.5
+        y2 = -0.5
+        z1 = 0
+        z2 = 0
+
+        w.h1.x = x1 
+        w.h2.x = x2 
+        w.h1.y = y1
+        w.h2.y = y2
+        w.h1.z = z1
+        w.h2.z = z2
+
+        self.eq ( w.get_euler(), [ np.pi/2 , np.pi/2, 0 ] )
+
     def test_negative_y_get_euler(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
         
@@ -49,13 +68,15 @@ class WaterTest( unittest.TestCase ):
 
         w.h1.x = x1 
         w.h2.x = x2 
+
         w.h1.y = y1
         w.h2.y = y2
+
         w.h1.z = z1
         w.h2.z = z2
-
         print w.p
-        assert 2==3
+
+        #self.eq ( w.get_euler(), [ np.pi/2 , np.pi/2, np.pi/2]  )
 
 
     def eq(self, a, b):

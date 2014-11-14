@@ -459,13 +459,13 @@ class Generator( dict ):
             for at in wat:
                 at.res_id = wat.res_id
 
-
             wat = self.get_mol( center = [0,0,0],
                     mol = "water")
 
-            print t1, t2, t3
-            wat.rotate( t1, t2, t3, )
-            print  wat.get_euler()
+            print wat.p
+            wat.rotate( np.pi/2, -np.pi/2, np.pi )
+            print wat.p
+            #wat.rotate( t1, t2, t3, )
 
             raise SystemExit
 
