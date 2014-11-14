@@ -62,21 +62,37 @@ class WaterTest( unittest.TestCase ):
         #self.eq( w.h2.y, 0 )
         #self.eq( w.h1.y, 0 )
     
-
-    def test_y_rotation(self):
+    def test_rotate_y(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 #rotate around y axis by 90 degree, assert
-        w.rotate( 0 , np.pi/2 ,0)
+        w.rotate( np.pi/2, np.pi/2, np.pi/2 )
+
+        self.eq( w.h1.z, 0 )
+        self.eq( w.h2.z, 0 )
+
+    def test_from_xy_plane(self):
+        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+#rotate around y axis by 90 degree, assert
+        w.h1.x = -1
+        w.h1.y = -1
+        w.h1.z = 0
+
+        w.h2.x = 1
+        w.h2.y = -1
+        w.h2.z = 0
+
         #self.eq( w.p, [-1, 0, 0] )
+        #w.rotate( np.pi, 0 ,0)
+
+        t1, t2 ,t3 = w.get_euler()
+
+        #w.rotate( np.pi/2 , 0 ,0)
 
     def test_ut_2_to_square(self):
         assert len( self.ut_alpha ) == 6
 
     def test_(self):
         assert len( self.ut_alpha ) == 6
-
-    def eq(self, a, b):
-        np.testing.assert_almost_equal( a, b, decimal = 3)
 
     def eq(self, a, b):
         np.testing.assert_almost_equal( a, b, decimal = 3)
