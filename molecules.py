@@ -212,6 +212,8 @@ class Atom(object):
 
     def __sub__(self, other ):
         return self.r - other.r
+    def __add__(self, other ):
+        return self.r + other.r
 
     def get_array(self):
         return np.array( [self.x , self.y, self.z ] ).copy()
@@ -899,8 +901,7 @@ class Water( Molecule ):
             yc = H1[1]
         theta3 = m.atan2( yc , xc)
 
-        
-        def eq(a, b, thr = 0.001): 
+        def eq(a, b, thr = 0.0001): 
             if abs(a-b) < thr:return True
             else: return False
 

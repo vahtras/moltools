@@ -22,6 +22,8 @@ class WaterTest( unittest.TestCase ):
 
     def test_translation(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w.translate( self.w.o.r )
+        assert np.equal( w.o.r , self.w.o.r ).all()
 
         w.translate( [1,1,1] )
         w.translate( [0,0,0] )
@@ -37,9 +39,13 @@ class WaterTest( unittest.TestCase ):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 
 #Move the water to random place
+        print w.o.r
         w.translate( np.random.uniform(-100,100, [3]  ))
+        print w.o.r
 #Call center function
+
         w.center()
+        print w.o.r
 #Assert that oxygen is in origo
 
         assert np.equal( w.o.r, [0,0,0] ).all()
