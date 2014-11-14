@@ -36,9 +36,12 @@ def tensor_to_ut( beta ):
 class Property( dict ):
     def __init__(self):
 
-        self.max_l = 2
-        self.pol = 22
-        self.hyper = 2
+        self["charge"] = np.zeros( 1 )
+        self["dipole"] = np.zeros( 3 )
+        self["quadrupole"] = np.zeros( 6 )
+        self["alpha"] =  np.zeros( 6 ) 
+        self["alpha"] =  np.zeros( 6 ) 
+        self["beta"] =  np.zeros( 10 ) 
 
     def __add__(self, other):
         tmp = {}
@@ -56,23 +59,9 @@ class Property( dict ):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
 
-
     def __str__(self):
         return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
-        #return "%.5f %.5f %.5f %.5f  %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f \n" %(
-        #        self["charge"], self["dipole"][0], self["dipole"][1], self["dipole"][2],
 
-        #        self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2],
-        #        self["quadrupole"][3],self["quadrupole"][4], self["quadrupole"][5],
-
-        #        self["alpha"][0], self["alpha"][1], self["alpha"][2], self["alpha"][3],
-        #        self["alpha"][4], self["alpha"][5],
-        #        
-        #        self["beta"][0], self["beta"][1], self["beta"][2],
-        #        self["beta"][3], self["beta"][4], self["beta"][5],
-        #        self["beta"][6], self["beta"][7], self["beta"][8],
-        #        self["beta"][9]
-        #        )
 
     def potline(self, max_l , pol, hyper):
         string = ""
@@ -646,11 +635,6 @@ class Molecule( list ):
         return tmp_molecule
 
     @staticmethod
-    def mollist_to_mol_string( mollist , name ):
-        print mollist
-        raise SystemExit
-
-    @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
@@ -1150,6 +1134,7 @@ class Water( Molecule ):
     def get_string_from_waters( waters, max_l = 1, pol = 2 , hyper = 0, dist = False, AA = False ):
         """ Converts list of waters into Olav string for hyperpolarizable .pot"""
 # If the properties are in distributed form, I. E. starts from Oxygen, then H in +x and H -x
+
         if AA:
             str_ = "AA"
         else:
@@ -1158,8 +1143,7 @@ class Water( Molecule ):
                 max_l, pol, hyper )
         for i in waters:
             for at in i:
-                string +=  "%d %.5f %.5f %.5f " % tuple(
-                        [int(at.res_id)] + at.r)
+                string +=  " ".join([str(at.res_id)] + map(str,at.r)) + " "
                 string += at.Property.potline( max_l=max_l, pol=pol, hyper= hyper)
                 string += '\n'
         return string
