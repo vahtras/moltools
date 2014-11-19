@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from gaussian import *
 
 from template import Template
-from molecules import Atom, Water, Property
+from molecules import Atom, Molecule, Water, Property
 from dic import Dic
 
 #from calculator import Calculator
@@ -115,18 +115,19 @@ class Calculator:
                 y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
         return  x , y 
 
-    def get_data( self, args , in_AA = False):
+    def get_data( self, args , basis = "ANOPVDZ", dist = False,
+            in_AA = False):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
 
         for i in self.get_matching_out_and_mol():
-            for dist in range(2):
+            for dist in range(1):
 # Gather the water molecules from the .mol file
                 tmp_waters = []
                 for j in Water.read_waters( i + ".mol", in_AA = in_AA ):
                     t1, t2, t3 =  j.get_euler()
 
-                    templ = Template().get(*("TIP3P","HF","ANOPVDZ",dist==1,"0.0"))
+                    templ = Template().get(*("TIP3P","HF",basis,args.dist,"0.0"))
                     for at in j:
                         Property.add_prop_from_template( at, templ )
                         Property.transform_ut_properties( at.Property, t1, t2, t3 )
@@ -184,6 +185,8 @@ class Calculator:
                             polar.set_damp( tmp_Rq, tmp_Rp )
 
                         if "hyper" in args.l:
+                    #        print Water.get_string_from_waters( tmp_waters,
+                    #                max_l = 2, pol = 22, hyper = 1, dist = True )
                             hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
                                 max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
                             hyper.set_damp( tmp_Rq, tmp_Rp )
@@ -233,7 +236,7 @@ class Calculator:
 
                     reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
 
-                    #b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
+                    b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
                     val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
                     r, tau, theta, rho1, rho2, rho3 = i.split('-')
@@ -241,16 +244,6 @@ class Calculator:
                 else:
 # Get absolute values using the quadratic model
                     if args.noqm:
-
-                        tmp_waters = []
-                        for j in Water.read_waters( i + ".mol", in_AA = False ):
-                            t1, t2, t3 =  j.get_euler()
-
-                            templ = Template().get( *("OLAV","HF","PVDZ",args.dist,0.0) )
-                            for at in j:
-                                Property.add_prop_from_template( at, templ )
-                            tmp_waters.append( j )
-
                         if args.model == "pointdipole":
                             static= PointDipoleList.from_string( self.get_string( tmp_waters ,
                                     max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
@@ -264,19 +257,19 @@ class Calculator:
                             tmp_Rp = float(args.Rp)
                             if "static" in args.l:
                                 static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
+                                    max_l = 1 , pol = 0 , hyper = 0 ,  dist = args.dist ))
                                 for j in static:
                                     j._R_q = tmp_Rq
                                     j._R_p = tmp_Rp
                             if "polar" in args.l:
                                 polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
+                                    max_l = 1, pol = 2 , hyper = 1 , dist = args.dist ))
                                 for j in polar:
                                     j._R_q = tmp_Rq
                                     j._R_p = tmp_Rp
                             if "hyper" in args.l:
                                 hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
+                                    max_l = 1, pol = 22,  hyper = 1 , dist = args.dist ))
                                 for j in hyper:
                                     j._R_q = tmp_Rq
                                     j._R_p = tmp_Rp
@@ -620,7 +613,11 @@ class Calculator:
 #add the actual data x and y    
 
                         for i in range(len( x )):
-                            string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
+                            try:
+                                string += "%s %.4f\n" %( x[i], y[i][in1][in2] )
+                            except IndexError:
+                                print y[i]
+                                raise SystemExit
                         string += '@ SORT s%d X ASCENDING\n' % localCounter
                         string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
                         string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
@@ -886,7 +883,7 @@ if __name__ == '__main__':
 
     A.add_argument( "-model"  , type = str, default = "gaussian", choices = [ "pointdipole", "quadrupole", "gaussian"] )
     A.add_argument( "-molecule"  , type = str, default = "water", choices = [ "water", "methanol"] )
-    A.add_argument( "-basis"  , type = str, default = "PVDZ" )
+    A.add_argument( "-basis"  , type = str, default = "ANOPVDZ" )
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
     A.add_argument( "-R"  , type = str, default = "0.00001" )
@@ -899,6 +896,7 @@ if __name__ == '__main__':
 
     A.add_argument( "-qm"   , type = str,  default = "hfqua", dest = "qm_method" )
     A.add_argument( "-rel", action = 'store_true' , default = False)
+    A.add_argument( "-in_AA", action = 'store_true' , default = False)
 
 #Only write the absolute value calculated with chosen model args.model
     A.add_argument( "-noqm", action = 'store_true' , default = False)
@@ -964,7 +962,8 @@ if __name__ == '__main__':
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
 
-    c.get_data( args )
+    c.get_data( args, basis = args.basis, dist = args.dist,
+            in_AA = args.in_AA )
     string = c.get_xvg_string( args )
 
     open( args.output , 'w').write( string )

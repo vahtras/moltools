@@ -23,7 +23,7 @@ class Generator( dict ):
 
 #This waater is TIP3P model, generalzie later
         self[ ("water","a_hoh", "degree") ] = 104.5
-        self[ ("water","r_oh", "AA") ] = 0.9720
+        self[ ("water","r_oh", "AA") ] = 0.9572
 
         self[ ("methanol", "r_oh", "AA" ) ] = 0.967
         self[ ("methanol", "r_co", "AA" ) ] = 1.428
@@ -44,7 +44,9 @@ class Generator( dict ):
     def build_molecule( molecule ):
         """ molecule is a string to build, return class """
 
-    def gen_mols_param(self, mol = "water", AA = True):
+    def gen_mols_param(self, mol = "water", 
+            basis = ["ano-1 2 1", "ano-1 3 2 1"],
+            AA = True):
 
         r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
                 complex( "%sj"%self.optionsR[ "points" ] ) ]
@@ -86,7 +88,7 @@ class Generator( dict ):
                                 name += ".mol"
 
                                 m = c.get_qm_mol_string( AA = AA,
-                                        basis = ('ano-1 2 1','ano-1 3 2 1' )
+                                        basis = tuple(basis),
                                         )
                                 f_ = open(name, 'w')
                                 f_.write( m)
@@ -503,7 +505,8 @@ if __name__ == '__main__':
     A.add_argument( "-get_mol", 
             type = str, choices = ["water",
                 "methanol" , "ethane"] )
-    A.add_argument( "-basis", type = str, default = "cc-pVDZ" )
+    A.add_argument( "-basis", type = str, nargs = "*",
+            default =["ano-1 2 1", "ano-1 3 2 1" ] )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
 
 #########################
@@ -521,7 +524,6 @@ if __name__ == '__main__':
 
     args = A.parse_args()
 
-
     opts =  {
        "r"    :{"min":args.r,    "max": args.r_max,    "points":args.r_points,    },
        "tau"  :{"min":args.tau,  "max": args.tau_max,  "points":args.tau_points,  },
@@ -537,6 +539,7 @@ if __name__ == '__main__':
         g.vary_parameters( opts )
         g.gen_mols_param( 
                 mol = args.param_mol ,
+                basis = args.basis,
                 AA = False )
         raise SystemExit
 
