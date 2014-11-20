@@ -741,13 +741,16 @@ class Water( Molecule ):
         
         return w
 
+#Center of oxygen
+    @property
+    def coo(self):
+        return self.o.r
+
+#Center of charge
     @property
     def coc(self):
-        if self._coc is not None:
-            return _coc
-        self._coc = sum( [at.r * charge_dict[at.element] for at in self])\
+        return sum( [at.r * charge_dict[at.element] for at in self])\
                 /sum( map(float,[charge_dict[at.element] for at in self]) )
-        return self._coc
 
     def append(self, atom):
         if len(self) > 3:
@@ -836,14 +839,10 @@ class Water( Molecule ):
         return np.cross( r1, r2 )
 
     def dist_to_point( self , point ):
-        return m.sqrt( (self.center[0] - point[0])**2 +\
-                (self.center[1] - point[1])**2  + ( self.center[2] -point[2])**2 )
+        return np.sqrt(np.sum((self.coo - np.array(point)**2)))
 
     def dist_to_water(self, other):
-        xyz1 = self.center
-        xyz2 = other.center
-        return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
-            (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
+        return np.sqrt(np.sum((self.coo - other.coo)**2) )
 
     def set_property_on_each_atom(self):
         for i, prop in enumerate ( self.Property ):
@@ -1125,9 +1124,10 @@ class Water( Molecule ):
         for wat in waters:
             for atom in wat:
                 atom.res_id = wat.res_id
-        if not out_AA:
-            for wat in waters:
-                wat.to_au()
+        if in_AA:
+            if not out_AA:
+                for wat in waters:
+                    wat.to_AU()
         return waters
      
     @staticmethod
@@ -1228,13 +1228,22 @@ class Cluster(list):
 
         super( Cluster, self ).append( mol )
 
-    def min_dist(self):
+    def min_dist_coo(self):
+        dist = np.zeros( len(self), )
+        for i in range(len(self)):
+            for j in range(len(self)):
+                if i == j:
+                    continue
+                dist[i] = ( np.linalg.norm(self[i].coo - self[j].coo) )
+        dist.sort()
+        return dist
+    def min_dist_com(self):
         dist = np.zeros( len(self) )
         for i in range(len(self)):
             for j in range(i ,len(self)):
                 if i == j:
                     continue
-                dist[i] = ( np.linalg.norm(self[i].center - self[j].center) )
+                dist[i] = ( np.linalg.norm(self[i].com - self[j].com) )
         dist.sort()
         return dist
 
@@ -1351,7 +1360,6 @@ class Cluster(list):
         """From file with name fname, return a Cluster with all waters encountered"""
         atoms = []
         c = Cluster()
-
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
             pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
             for i in open( fname ).readlines():
@@ -1414,6 +1422,7 @@ class Cluster(list):
                             j.in_water = True
                 tmp.res_id = cnt
                 cnt += 1
+                c.append(tmp)
                 waters.append( tmp )
         elif fname.endswith( ".pdb" ):
 #Find out the size of the box encompassing all atoms
@@ -1477,7 +1486,6 @@ class Cluster(list):
             waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
             for i in waters:
                 c.append(i)
-
         elif fname.endswith( ".out" ):
             for i in atoms:
                 if i.element == "H":
@@ -1507,9 +1515,10 @@ class Cluster(list):
         for wat in c:
             for atom in wat:
                 atom.res_id = wat.res_id
-        if not out_AA:
-            for wat in c:
-                wat.to_au()
+        if in_AA:
+            if not out_AA:
+                for wat in c:
+                    wat.to_AU()
         return c
 
 
