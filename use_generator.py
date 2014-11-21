@@ -44,6 +44,19 @@ class Generator( dict ):
     def build_molecule( molecule ):
         """ molecule is a string to build, return class """
 
+    @staticmethod
+    def get_hfqua_dal():
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+**RESPONSE
+*QUADRATIC
+.DIPLEN
+**END OF DALTON INPUT"""
+
     def gen_mols_param(self, mol = "water", 
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
             AA = True):

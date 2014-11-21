@@ -14,12 +14,23 @@ class WaterTest( unittest.TestCase ):
         self.ut_beat = np.random.random(  (10, ) )
 
         self.g = Generator()
-        self.w = self.g.get_mol( center = np.random.uniform( -10, 10, [3] ), mol = "water" )
+        self.w = self.g.get_mol( center = np.random.uniform( -10, 10, [3] ), mol = "water" ,)
 
         self.t1 = np.random.uniform( 0, np.pi/2 )
         self.t2 = np.random.uniform( 0, np.pi   )
         self.t3 = np.random.uniform( 0, np.pi/2 )
+        self.w.rotate( self.t1, self.t2, self.t3 )
+
         assert len( self.w ) == 3
+
+    #def test_random_rotation(self):
+    #    t1, t2, t3 = self.w.get_euler
+    #    w = self.g.get_mol( center = np.random.uniform( -1,1,[3] ), mol= "water" )
+    #    w.rotate( t1, t2, t3 )
+    #    w.translate( self.w.r )
+
+    #    self.eq( w.com, self.w.com )
+
 
     def test_translation(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
@@ -58,17 +69,12 @@ class WaterTest( unittest.TestCase ):
         w.rotate( np.pi/2 , 0 , np.pi/2 )
         self.eq( w.com, self.w.com )
 
-    def test_rotate_around_z(self):
+    def test_rotate_to_random(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
-
-        w.translate( self.w.com )
+        w.translate_o( self.w.o.r )
         t1, t2, t3 = self.w.get_euler()
         w.rotate( t1, t2, t3 )
-
         self.eq( w.com, self.w.com )
-        #assert 2 ==3
-
-
 
     def test_rotate_inv_Z(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
@@ -90,6 +96,7 @@ class WaterTest( unittest.TestCase ):
         #self.eq( w.h2.y, 0 )
     def test_get_euler(self):
         pass
+
     def test_rotate_dip(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 

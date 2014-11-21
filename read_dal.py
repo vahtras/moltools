@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os,sys, re, argparse
+import os,sys, re, argparse, ctypes, multiprocessing
 import numpy as np
 import fractions as fr
 import math as m
@@ -154,147 +154,210 @@ def qmmm_generation( ending = "pdb",
                         print "wrote: %s %s" %(out_mol, out_pot)
     raise SystemExit
 
-def beta_analysis(args, basis = "ANOPVDZ", dal = "hfqua_",
-        freqs = ["0.0",], in_AA = False, out_AA = False):
+def beta_analysis(args,
+        dist = True,
+        basis = "ANOPVDZ",
+        dal = "hfqua_",
+        freqs = ["0.0",], in_AA = False, out_AA = False,
+        ncpu = 4):
 
     outs = [f for f in os.listdir(os.getcwd()) if f.endswith(".out") ]
-    x = np.zeros( (len(outs), 6))
-    for ind, i in enumerate(outs):
+
+    dists = np.zeros( (101,8, 8,2) ) 
+
+    d_cl = np.zeros( (101,8, 3,2) ) 
+    a_cl = np.zeros( (101,8, 6,2) ) 
+    b_cl = np.zeros( (101,8, 10,2) ) 
+
+    d_qm = np.zeros( (101,8, 3, 2) ) 
+    a_qm = np.zeros( (101,8, 6, 2) ) 
+    b_qm = np.zeros( (101,8, 10,2) ) 
+
+    ps = re.compile(r'tip3p(\d+)_')
+    pqm = re.compile(r'_(\d+)qm')
+
+    for ind, ii in enumerate(outs):
+        for dist in [False, True]:
 #properties for POT
-        dipole = np.zeros( [3] )
-        alpha = np.zeros( [3, 3] )
-        beta = np.zeros( [3, 3, 3])
+            snap = ps.search(ii).group(1)
+            qm = pqm.search(ii).group(1)
+
+            snapind= int(snap)
+            qmind = int(qm)-2
+            if dist:
+                distind = 1
+            else:
+                distind = 0
+
+            dipole = np.zeros( [3] )
+            alpha = np.zeros( [3, 3] )
+            beta = np.zeros( [3, 3, 3])
 
 #properties for QM
-        dipole_qm = np.zeros( [3] )
-        alpha_qm = np.zeros( [3, 3] )
-        beta_qm = np.zeros( [3, 3, 3] )
+            dipole_qm = np.zeros( [3] )
+            alpha_qm = np.zeros( [3, 3] )
+            beta_qm = np.zeros( [3, 3, 3] )
 
-        out = os.path.join(os.getcwd(), i )
-        mol = os.path.join(os.getcwd(), i.replace( dal, "").replace(".out",".mol" ))
+            out = os.path.join(os.getcwd(), ii )
+            mol = os.path.join(os.getcwd(), ii.replace( dal, "").replace(".out",".mol" ))
 
-        if is_ccsd( out ):
-            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( out )
-        else:
-            atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, "0.0",
-                    in_AA = in_AA, out_AA = out_AA )
+            if is_ccsd( out ):
+                atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( out )
+            else:
+                atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, "0.0",
+                        in_AA = in_AA, out_AA = out_AA )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
-        print "Dipole: "
-        for i in range(3):
-            print "%.5f" % (dipole_qm[ i ] )
+            print "Dipole: "
+            for i in range(3):
+                print "%.5f" % (dipole_qm[ i ] )
 
-        print "\nAlpha: "
-        for i, j in enumerate ( ut.upper_triangular( 2 )) :
-            print "%.5f" % (alpha_qm[ j ] )
+            print "\nAlpha: "
+            for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                print "%.5f" % (alpha_qm[ j ] )
 
-        print "\nBeta: "
-        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
-            print "%.5f" % (beta_qm[ jk ] )
+            print "\nBeta: "
+            for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+                print "%.5f" % (beta_qm[ jk ] )
 
-        alpha_qm = Water.square_2_ut( alpha_qm )
-        beta_qm = Water.square_3_ut( beta_qm )
+            alpha_qm = Water.square_2_ut( alpha_qm )
+            beta_qm = Water.square_3_ut( beta_qm )
 
 #Read coordinates for water molecules where to put properties to
-        waters = Water.read_waters( mol , in_AA = args.in_AA , out_AA = out_AA , N_waters = args.waters)
+            waters = Water.read_waters( mol , in_AA = args.in_AA , out_AA = out_AA , N_waters = args.waters)
 #
 # Read in rotation angles for each water molecule follow 
 # by transfer of dipole, alpha and beta to coordinates
-        for wat in waters:
-            t1, t2, t3  = wat.get_euler()
-            if args.dist:
-                kwargs_dict = Template().get( *("TIP3P", "HF", basis,
-                    args.dist, "0.0"))
-                for at in wat:
-                    Property.add_prop_from_template( at, kwargs_dict )
-                    Property.transform_ut_properties( at.Property, t1, t2 ,t3)
-            else:
-                kwargs_dict = Template().get( *("TIP3P", "HF", basis,
-                    args.dist, "0.0") )
-                for at in wat:
-                    Property.add_prop_from_template( at, kwargs_dict )
-                    Property.transform_ut_properties( at.Property, t1, t2 ,t3)
-                    
-        static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = args.dist , AA = args.oAA ))
-        polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = args.dist , AA = args.oAA ))
-        hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
-            hyper = 1, dist = args.dist , AA = args.oAA ))
+            for wat in waters:
+                t1, t2, t3  = wat.get_euler()
+                if dist:
+                    kwargs_dict = Template().get( *("TIP3P", "HF", basis,
+                        dist, "0.0"))
+                    for at in wat:
+                        Property.add_prop_from_template( at, kwargs_dict )
+                        Property.transform_ut_properties( at.Property, t1, t2 ,t3)
+                else:
+                    kwargs_dict = Template().get( *("TIP3P", "HF", basis,
+                        dist, "0.0") )
+                    for at in wat:
+                        Property.add_prop_from_template( at, kwargs_dict )
+                        Property.transform_ut_properties( at.Property, t1, t2 ,t3)
+                        
+            static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = dist , AA = args.oAA ))
+            polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = dist , AA = args.oAA ))
+            hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
+                hyper = 1, dist = dist , AA = args.oAA ))
 
-        hyper.set_damp( args.R , args.R  )
+            hyper.set_damp( args.R , args.R  )
 
-        static.solve_scf()
-        polar.solve_scf()
-        hyper.solve_scf()
+            static.solve_scf()
+            polar.solve_scf()
+            hyper.solve_scf()
 
-        sd = static.total_dipole_moment( dist = args.dist )
-        pd = polar.total_dipole_moment(  dist = args.dist)
-        hd = hyper.total_dipole_moment(  dist = args.dist)
+            sd = static.total_dipole_moment( dist = dist )
+            pd = polar.total_dipole_moment(  dist = dist)
+            hd = hyper.total_dipole_moment(  dist = dist)
 
-        pa =  Water.square_2_ut( polar.alpha() )
-        ha =  Water.square_2_ut( hyper.alpha() )
-        hb =  Water.square_3_ut( hyper.beta() )
+            pa =  Water.square_2_ut( polar.alpha() )
+            ha =  Water.square_2_ut( hyper.alpha() )
+            hb =  Water.square_3_ut( hyper.beta() )
 
-        lab1 = ["X", "Y", "Z"]
-        lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
-        lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
+            c = Cluster()
+            for i in waters:
+                c.append(i)
+            dists[ snapind, qmind, :qmind+1, distind] = \
+                    c.min_dist_coo()
+            
+            d_cl[ snapind, qmind, :, distind] = \
+                    hd
+            a_cl[ snapind, qmind, :, distind] = \
+                    ha
+            b_cl[ snapind, qmind, :, distind] = \
+                    hb
 
-        print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
-        for i in range(3):
-            print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
+            d_qm[ snapind, qmind, :, distind] = \
+                    dipole_qm
+            a_qm[ snapind, qmind, :, distind] = \
+                    alpha_qm
+            b_qm[ snapind, qmind, :, distind] = \
+                    beta_qm
+            continue
 
-        print "\nAlpha;\t QM,\t Linea,\t Quadratic"
-        for i, j in enumerate ( ut.upper_triangular( 2 )) :
-            print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
-                    alpha_qm[i],\
-                    pa[i],\
-                    ha[i]  )
+            lab1 = ["X", "Y", "Z"]
+            lab2 = ["XX", "XY", "XZ", "YY", "YZ", "ZZ"]
+            lab3 = ["XXX", "XXY", "XXZ", "XYY", "XYZ", "XZZ", "YYY", "YYZ", "YZZ", "ZZZ"]
 
-        print "\nBeta;\t QM,\t Quadratic"
-        for i, jk in enumerate ( ut.upper_triangular( 3 )) :
-            print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
+            print "Dip;\t QM,\t Zero,\t Linea,\t Quadratic"
+            for i in range(3):
+                print "%s:\t %.2f\t %.2f\t %.2f\t %.2f" % (lab1[i], dipole_qm[i], sd[i], pd[i], hd[i] )
 
-        norm = np.sqrt( np.sum(  (beta_qm - hb)**2 ) )
-        print "Square of the sum of component differences: %.5f"  % norm
+            print "\nAlpha;\t QM,\t Linea,\t Quadratic"
+            for i, j in enumerate ( ut.upper_triangular( 2 )) :
+                print "%s:\t %.2f\t %.2f\t %.2f" % (lab2[i],\
+                        alpha_qm[i],\
+                        pa[i],\
+                        ha[i]  )
 
-        hb = Water.ut_3_square(hb)
-        beta_qm = Water.ut_3_square( beta_qm )
+            print "\nBeta;\t QM,\t Quadratic"
+            for i, jk in enumerate ( ut.upper_triangular( 3 )) :
+                print "%s:\t %.2f\t %.2f" % (lab3[i], beta_qm[ i ], hb[i] )
 
-        hb_z = np.einsum('iij->j' ,hb )
-        qm_z = np.einsum('iij->j', beta_qm )
+            norm = np.sqrt( np.sum(  (beta_qm - hb)**2 ) )
+            print "Square of the sum of component differences: %.5f"  % norm
 
-        c = Cluster()
-        for i in waters:
-            c.append(i)
+            hb = Water.ut_3_square(hb)
+            beta_qm = Water.ut_3_square( beta_qm )
 
-        print "\n\nThe projected beta, a.k.a. beta parallel component"
-        print "Quantum mechanical:"
-        qm = np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
-        print qm
-        print "Quadratic model: "
-        mm=  np.dot( hb_z, hd ) / np.linalg.norm( hd )
-        print mm
-        #print "Damping: charge: %.3f dipole: %.3f" %(args.Rp, args.Rq )
-        #print args.R
-        dists = c.min_dist_coo()
-        def format( vec ):
-            return len(vec)*"%.3f " %tuple(vec)
+            hb_z = np.einsum('iij->j' ,hb )
+            qm_z = np.einsum('iij->j', beta_qm )
 
-        hb = Water.square_3_ut(hb)
-        beta_qm = Water.square_3_ut(beta_qm)
+            c = Cluster()
+            for i in waters:
+                c.append(i)
 
-        m_vec = np.where( np.absolute(beta_qm) == max(np.absolute(beta_qm))  )
-        m_ind = m_vec[0][0]
-        
-        x[ind,0] =  dists[1]
-        x[ind,1] =  (hb[0] - beta_qm[0]) / hb[0]
-        x[ind,2] =  (hb[7] - beta_qm[7]) / hb[7]
-        x[ind,3] =  (hb[9] - beta_qm[9]) / hb[9]
-        x[ind,4] =  (hb[m_ind] -beta_qm[ m_ind ]) / hb[m_ind]
-        x[ind,5] =  (mm - qm)/mm
+            print "\n\nThe projected beta, a.k.a. beta parallel component"
+            print "Quantum mechanical:"
+            qm = np.dot( qm_z, dipole_qm ) / np.linalg.norm( dipole_qm )
+            print qm
+            print "Quadratic model: "
+            mm=  np.dot( hb_z, hd ) / np.linalg.norm( hd )
+            print mm
+            #print "Damping: charge: %.3f dipole: %.3f" %(args.Rp, args.Rq )
+            #print args.R
+            dists = c.min_dist_coo()
+            def format( vec ):
+                return len(vec)*"%.3f " %tuple(vec)
+
+            hb = Water.square_3_ut(hb)
+            beta_qm = Water.square_3_ut(beta_qm)
+
+            m_vec = np.where( np.absolute(beta_qm) == max(np.absolute(beta_qm))  )
+            m_ind = m_vec[0][0]
+            
+            log = open("large_min_dist.log",'w')
+            if dists[0] > 7.0:
+                log.write("%s\n" %ii)
+            try:
+                x[ind,0] =  np.mean( [ dists[0], dists[1] ] )
+            except IndexError:
+                x[ind,0] =  dists[0]
+            x[ind,1] =  (hb[0] - beta_qm[0]) / hb[0]
+            x[ind,2] =  (hb[7] - beta_qm[7]) / hb[7]
+            x[ind,3] =  (hb[9] - beta_qm[9]) / hb[9]
+            x[ind,4] =  (hb[m_ind] -beta_qm[ m_ind ]) / hb[m_ind]
+            x[ind,5] =  (mm - qm)/mm
+
+    h5name = "beta/%s" % basis.lower()
 
     if args.hdf:
         f_ = h5py.File("data.h5",'w')
-        f_["beta/anopvdz"] = x
+        f_[ h5name + "/dists"] = dists
+        f_[ h5name + "/d_cl"] = d_cl
+        f_[ h5name + "/a_cl"] = a_cl
+        f_[ h5name + "/b_cl"] = b_cl
+        f_[ h5name + "/d_qm"] = d_qm
+        f_[ h5name + "/a_qm"] = a_qm
+        f_[ h5name + "/b_qm"] = b_qm
         f_.close()
 
 
@@ -717,6 +780,7 @@ def run_argparse( args ):
     A.add_argument( "-out_AA", action = "store_true", default = False )
     A.add_argument( "-basis", type= str, default = "ANOPVDZ" )
     A.add_argument( "-beta_dal", type= str, default = "hfqua_" )
+    A.add_argument( "-Ncpu", type= int, default = "4" )
 
 # ----------------------------
 # ALPHA ANALYSIS RELATED
@@ -1218,7 +1282,8 @@ def main():
     if args.beta_analysis:
         beta_analysis(args, basis = args.basis,
                 dal = args.beta_dal, in_AA = args.in_AA,
-                out_AA = args.out_AA)
+                out_AA = args.out_AA,
+                ncpu = args.Ncpu)
 
     if args.alpha_analysis:
         alpha_analysis(args)

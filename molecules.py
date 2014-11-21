@@ -174,6 +174,9 @@ class Atom(object):
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
+    def copy_atom(self):
+        a = Atom()
+
     @property
     def r(self):
         return np.array( [ self.x, self.y, self.z ] )
@@ -259,6 +262,15 @@ class Molecule( list ):
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+
+    def translate_o(self, r):
+        vec = r - self.o.r
+        for at in self:
+            at.x = vec[0] + at.x 
+            at.y = vec[1] + at.y 
+            at.z = vec[2] + at.z 
+
+
 
     @property
     def com(self):
@@ -591,19 +603,23 @@ class Molecule( list ):
 
         return [ b0, b1, b2 ]
 
-    def get_mol_string(self, basis = "cc-pVDZ" ):
+    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
+        if len( basis ) > 1:
+            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1  }
+        else:
+            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
         st = ""
+        s_ = ""
+        if AA: s_ += "Angstrom"
         uni = Molecule.unique([ at.element for at in self])
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm\n" %(len(uni))
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm %s\n" %(len(uni), s_)
         for el in uni:
-            print el
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in self if (all_el.element == el)] ),
-                    basis )
+                    basis[ el_to_rowind[el] ])
             for i in [all_el for all_el in self if (all_el.element == el) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st
-
     def get_xyz_string(self):
         st = "%d\n\n" % len(self)
         for i in self:
@@ -702,6 +718,10 @@ class Water( Molecule ):
         self.in_qm = False
         self.in_mm = False
         self.in_qmmm = False
+
+    def copy_water(self):
+        w = Water()
+        [w.append(i.copy_atom()) for i in self]
 
     def center(self):
         tmp = np.array( [0,0,0] )
@@ -839,7 +859,7 @@ class Water( Molecule ):
         return np.cross( r1, r2 )
 
     def dist_to_point( self , point ):
-        return np.sqrt(np.sum((self.coo - np.array(point)**2)))
+        return np.sqrt(np.sum((self.coo - np.array(point))**2))
 
     def dist_to_water(self, other):
         return np.sqrt(np.sum((self.coo - other.coo)**2) )
@@ -1229,14 +1249,17 @@ class Cluster(list):
         super( Cluster, self ).append( mol )
 
     def min_dist_coo(self):
-        dist = np.zeros( len(self), )
+        dist = np.zeros( (len(self),len(self)) )
         for i in range(len(self)):
-            for j in range(len(self)):
+            for j in range( i, len(self)):
                 if i == j:
                     continue
-                dist[i] = ( np.linalg.norm(self[i].coo - self[j].coo) )
+                dist[i,j] = np.linalg.norm(self[i].coo - self[j].coo)
         dist.sort()
-        return dist
+        new = [dist[i,i+1] for i in range(len(self)-1) ]
+        new.sort()
+        return np.array(new)
+
     def min_dist_com(self):
         dist = np.zeros( len(self) )
         for i in range(len(self)):
@@ -1398,6 +1421,22 @@ class Cluster(list):
         waters = []
         cnt = 1
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
+            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
+            for i in atoms:
+                if i.x < xmin:
+                    xmin = i.x
+                if i.y < ymin:
+                    ymin = i.y
+                if i.z < zmin:
+                    zmin = i.z
+                if i.x > xmax:
+                    xmax = i.x
+                if i.y > ymax:
+                    ymax = i.y
+                if i.z > zmax:
+                    zmax = i.z
+            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
             for i in atoms:
                 if i.element == "H":
                     continue
@@ -1422,8 +1461,19 @@ class Cluster(list):
                             j.in_water = True
                 tmp.res_id = cnt
                 cnt += 1
-                c.append(tmp)
                 waters.append( tmp )
+            waters.sort( key = lambda x: x.dist_to_point( center ))
+            center_water = waters[0]
+            cent_wlist = waters[1:]
+            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+
+            if N_waters < 1:
+                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
+                raise SystemExit
+# Ensure that cluster has ordered water structure from first index
+            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
+            for i in waters:
+                c.append(i)
         elif fname.endswith( ".pdb" ):
 #Find out the size of the box encompassing all atoms
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
@@ -1545,6 +1595,10 @@ class Cluster(list):
             i.in_qm = True
         for i in self[ N_qm  : N_qm + N_mm ]:
             i.in_mm = True
+    def copy_cluster(self):
+        tmp_c = Cluster()
+        [tmp_c.append(wat.copy_water()) for wat in self]
+        return tmp_c
 
 if __name__ == '__main__':
 
@@ -1572,6 +1626,7 @@ if __name__ == '__main__':
             w2 = g.get_water( [ x, y, z], r_oh, theta_hoh )
             w2.res_id = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
             g.writeMol( [ w1, w2 ])
+
     
 
 
