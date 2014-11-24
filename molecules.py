@@ -208,7 +208,7 @@ class Atom(object):
         return self.r + other.r
 
     def get_array(self):
-        return np.array( [self.x , self.y, self.z ] ).copy()
+        return np.array( self.r ).copy()
 
     def dist_to_atom(self, other):
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
@@ -940,6 +940,37 @@ class Water( Molecule ):
 
         return theta3, theta2, theta1
 
+    def inv_rotate(self):
+        """rotate all atom positions by
+        1) inverse Z rotation by t1
+        2) positive Y rotation by t2
+        3) inverse Z rotation by t3
+        """
+
+        t1, t2, t3 = self.get_euler()
+# Place water molecule with O in origo, and rotate it so hydrogens in xz plane
+        H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
+        TMP = self.o.get_array()
+        H1 -= TMP ; H2 -= TMP; O -= TMP
+
+        H1 = np.dot( self.get_Rz_inv(t3) , H1 )
+        H1 = np.dot( self.get_Ry(t2) , H1 )
+        H1 = np.dot( self.get_Rz_inv(t1) , H1 )
+
+        H2 = np.dot( self.get_Rz_inv(t3) , H2 )
+        H2 = np.dot( self.get_Ry(t2) , H2 )
+        H2 = np.dot( self.get_Rz_inv(t1) , H2 )
+
+        O = np.dot( self.get_Rz_inv(t3) , O )
+        O = np.dot( self.get_Ry(t2) , O )
+        O = np.dot( self.get_Rz_inv(t1) , O )
+#Put back in oxygen original point
+        H1 += TMP ; H2 += TMP; O += TMP
+
+        self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
+        self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
+        self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
+
     def rotate(self, t1, t2, t3):
         """Rotate all coordinates by t1, t2 and t3
         first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
@@ -947,24 +978,24 @@ class Water( Molecule ):
         R all in radians
 
         """
-        d1, d2, d3 = self.get_euler()
+# Place #water molecule in origo, and rotate it so hydrogens in xz plane
+        self.inv_rotate()
 
-# Place water molecule in origo, and rotate it so hydrogens in xz plane
         H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
         TMP = self.o.get_array()
         H1 -= TMP ; H2 -= TMP; O -= TMP
 
-        H1 = np.dot( self.get_Rz_inv(d3) , H1 )
-        H1 = np.dot( self.get_Ry(d2) , H1 )
-        H1 = np.dot( self.get_Rz_inv(d1) , H1 )
+        #H1 = np.dot( self.get_Rz_inv(d3) , H1 )
+        #H1 = np.dot( self.get_Ry(d2) , H1 )
+        #H1 = np.dot( self.get_Rz_inv(d1) , H1 )
 
-        H2 = np.dot( self.get_Rz_inv(d3) , H2 )
-        H2 = np.dot( self.get_Ry(d2) , H2 )
-        H2 = np.dot( self.get_Rz_inv(d1) , H2 )
+        #H2 = np.dot( self.get_Rz_inv(d3) , H2 )
+        #H2 = np.dot( self.get_Ry(d2) , H2 )
+        #H2 = np.dot( self.get_Rz_inv(d1) , H2 )
 
-        O = np.dot( self.get_Rz_inv(d3) , O )
-        O = np.dot( self.get_Ry(d2) , O )
-        O = np.dot( self.get_Rz_inv(d1) , O )
+        #O = np.dot( self.get_Rz_inv(d3) , O )
+        #O = np.dot( self.get_Ry(d2) , O )
+        #O = np.dot( self.get_Rz_inv(d1) , O )
 
 # Rotate with angles t1, t2, t3
 
