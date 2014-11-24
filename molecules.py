@@ -14,7 +14,7 @@ a0 = 0.52917721092
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 # from TIP3P charge defs.
-el_charge_dict = {"H": .417,  "O": −0.834 }
+el_charge_dict = {"H": .417, "O": -0.834 }
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066}
 
 class Property( dict ):
