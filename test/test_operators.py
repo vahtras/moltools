@@ -4,7 +4,7 @@ import numpy as np
 
 from use_generator import Generator
 from template import Template
-from molecules import Water, Atom, Property, Molecule
+from molecules import Water, Atom, Property, Molecule, Rotator
 
 class WaterTest( unittest.TestCase ):
 
@@ -33,7 +33,7 @@ class WaterTest( unittest.TestCase ):
         #t3 = np.pi/2
 
         #t1, t2, t3 = w.get_euler()
-        Rz1 = Molecule.get_Rz( t1 )
+        Rz1 = Rotator.get_Rz( t1 )
         #Ry = Molecule.get_Ry_inv( t2 )
         #Rz2 = Molecule.get_Rz( t3 )
 
