@@ -100,14 +100,15 @@ class WaterTest( unittest.TestCase ):
     def test_rotate_dip(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 
-        self.eq( w.p ,[0, 0, 0.41021007])
+        print w.p
+        self.eq( w.p ,[0, 0, 0.48873599])
 
         w.rotate( np.pi/7, 0, 0 )
-        self.eq( w.p ,[0, 0, 0.41021007])
+        self.eq( w.p ,[0, 0, 0.48873599 ])
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.rotate( 0, np.pi/2 , 0 )
-        self.eq( w.p ,[-0.41021007, 0, 0])
+        self.eq( w.p ,[-0.48873599,  0, 0])
 
         print "After 90 around Y-axis: clock"
         print w.p
@@ -117,7 +118,7 @@ class WaterTest( unittest.TestCase ):
         print w.p
         w.rotate( np.pi/2, np.pi/2, np.pi/2 )
         print w.p
-        self.eq( w.p ,[0, -0.41021007, 0])
+        self.eq( w.p ,[0, -0.48873599, 0])
 
         #w.rotate( 0, np.pi/2, 0 )
         #self.eq( w.p ,[0, 0,-0.41021007, ])

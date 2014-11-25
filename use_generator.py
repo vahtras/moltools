@@ -61,23 +61,18 @@ class Generator( dict ):
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
             AA = True):
 
-        r = np.r_[ self.optionsR[ "min" ] : self.optionsR[ "max" ] : \
-                complex( "%sj"%self.optionsR[ "points" ] ) ]
-
-        tau = np.r_[ self.optionsTau[ "min" ] : self.optionsTau[ "max" ] : \
-                complex( "%sj"%self.optionsTau[ "points" ] ) ]
-
-        theta = np.r_[ self.optionsTheta[ "min" ] : self.optionsTheta[ "max" ] : \
-                complex( "%sj"%self.optionsTheta[ "points" ] ) ]
-
-        rho1 = np.r_[ self.optionsRho1[ "min" ] : self.optionsRho1[ "max" ] : \
-                complex( "%sj"%self.optionsRho1[ "points" ] ) ]
-
-        rho2 = np.r_[ self.optionsRho2[ "min" ] : self.optionsRho2[ "max" ] : \
-                complex( "%sj"%self.optionsRho2[ "points" ] ) ]
-
-        rho3 = np.r_[ self.optionsRho3[ "min" ] : self.optionsRho3[ "max" ] : \
-                complex( "%sj"%self.optionsRho3[ "points" ] ) ]
+        r = np.linspace(self.optionsR[ "min" ] , self.optionsR[ "max" ] , \
+                self.optionsR[ "points" ])
+        tau = np.linspace(self.optionsTau[ "min" ] , self.optionsTau[ "max" ] , \
+                self.optionsTau[ "points" ])
+        theta = np.linspace(self.optionsTheta[ "min" ] , self.optionsTheta[ "max" ] , \
+                self.optionsTheta[ "points" ])
+        rho1 = np.linspace(self.optionsRho1[ "min" ] , self.optionsRho1[ "max" ] , \
+                self.optionsRho1[ "points" ])
+        rho2 = np.linspace(self.optionsRho2[ "min" ] , self.optionsRho2[ "max" ] , \
+                self.optionsRho2[ "points" ])
+        rho3 = np.linspace(self.optionsRho3[ "min" ] , self.optionsRho3[ "max" ] , \
+                self.optionsRho3[ "points" ])
 
         r_oh = self[ ("water","r_oh", "AA") ]
         a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
