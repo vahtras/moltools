@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 import itertools
 
 import numpy as np
-import math as m
 import re, os, ut
 
 a0 = 0.52917721092
@@ -205,27 +204,27 @@ class Rotator(object):
 
     @staticmethod
     def get_Rz( theta ):
-        vec = np.array(    [[ m.cos(theta),-m.sin(theta), 0],
-                            [ m.sin(theta), m.cos(theta), 0],
+        vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
+                            [ np.sin(theta), np.cos(theta), 0],
                             [ 0,    0,  1]])
         return vec
     @staticmethod
     def get_Rz_inv( theta ):
-        vec = np.array(     [[ m.cos(theta), m.sin(theta), 0],
-                            [ -m.sin(theta), m.cos(theta), 0],
+        vec = np.array(     [[ np.cos(theta), np.sin(theta), 0],
+                            [ -np.sin(theta), np.cos(theta), 0],
                             [ 0,             0,            1]])
         return vec
     @staticmethod
     def get_Ry( theta ):
-        vec = np.array(    [[ m.cos(theta),0, m.sin(theta)],
+        vec = np.array(    [[ np.cos(theta),0, np.sin(theta)],
                             [ 0,    1,  0],
-                            [ -m.sin(theta), 0, m.cos(theta)]])
+                            [ -np.sin(theta), 0, np.cos(theta)]])
         return vec
     @staticmethod
     def get_Ry_inv( theta ):
-        vec = np.array(    [[ m.cos(theta),0, -m.sin(theta)],
+        vec = np.array(    [[ np.cos(theta),0, -np.sin(theta)],
                             [ 0,    1,  0],
-                            [ m.sin(theta), 0, m.cos(theta)]])
+                            [ np.sin(theta), 0, np.cos(theta)]])
         return vec
 
     @staticmethod
@@ -762,7 +761,7 @@ class Water( Molecule ):
         origin = O1.copy()
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
 
-        theta1 = m.atan2( dip[1], dip[0])
+        theta1 = np.arctan2( dip[1], dip[0])
 
         H1 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H1 )
         H2 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H2 )
@@ -771,7 +770,7 @@ class Water( Molecule ):
         dip = np.dot( Rotator.get_Rz_inv( theta1 ) , dip )
 
 #Rotate by theta around y axis so that the dipole is in the z axis 
-        theta2 = m.atan2( -dip[0], dip[2] )
+        theta2 = np.arctan2( -dip[0], dip[2] )
 
         H1 =  np.dot( Rotator.get_Ry( theta2 ) , H1 )
         H2 =  np.dot( Rotator.get_Ry( theta2 ) , H2 )
@@ -786,7 +785,7 @@ class Water( Molecule ):
         else:
             xc = H1[0]
             yc = H1[1]
-        theta3 = m.atan2( yc , xc)
+        theta3 = np.arctan2( yc , xc)
 
         def eq(a, b, thr = 0.0001): 
             if abs(a-b) < thr:return True
@@ -1251,6 +1250,21 @@ class Cluster(list):
             for at in mol:
                 at.number = str(cnt)
                 cnt += 1
+
+    def update_water_props(self, model = "TIP3P",
+            method = "HF", basis = "ANOPVDZ", dist = False,
+            freq = "0.0"):
+        from template import Template
+
+        kwargs_dict = Template().get( *(model, method, basis,
+            dist , freq ))
+        for wat in self:
+            t1, t2, t3 = wat.get_euler()
+            for at in wat:
+                Property.add_prop_from_template( at, kwargs_dict )
+                at.Property.transform_ut_properties( t1, t2, t3)
+
+
     @staticmethod
     def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
         """From file with name fname, return a Cluster with all waters encountered"""
@@ -1425,11 +1439,11 @@ class Cluster(list):
                         continue
 #If in cartesian:
                     if i.AA:
-                        if i.dist(j) < 1.0:
+                        if i.dist_to_atom(j) < 1.0:
                             tmp.append ( j )
                             j.in_water = True
                     else:
-                        if i.dist(j) < 1.0/a0:
+                        if i.dist_to_atom(j) < 1.0/a0:
                             tmp.append ( j )
                             j.in_water = True
                 tmp.res_id = cnt
@@ -1476,30 +1490,45 @@ class Cluster(list):
 if __name__ == '__main__':
 
 # Water bonding parameters:
-    r_oh = 0.97167 ; theta_hoh = 104.5
-# Water rotation parameters
-    r = 5.0
-    #theta = 45 ; tau = 45
-    euler1 = 0.0 ; euler2 = 0.0 ; euler3 = 0.0
-    p = m.pi ; c = m.cos ; s = m.sin
-    euler1 *= p/180 ;euler2 *= p/180 ;euler3 *= p/180 ;
-    theta_hoh *= p/180
+#
+    fo = "hfqua_tip3p11_9qm.out"
+    fm = "tip3p11_9qm.mol"
+    import read_dal
+    from gaussian import GaussianQuadrupole, GaussianQuadrupoleList
 
-#Hardcoded conversions
-    for i in np.r_[0 : 180: 8j ]:
-        for j in np.r_[0 : 360 : 16j ]:
+    at, p, a, b = read_dal.read_beta_hf( fo )
+    c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
+    c.update_water_props( dist = False )
+    static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
+    c.update_water_props( dist = True )
+    static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
 
-            theta = i * p/180 
-            tau = j * p/180 
-            x = r * s(theta) * c(tau )
-            y = r * s(theta) * s(tau )
-            z = r * c(theta)
-            w1 = g.get_water( [ 0, 0, 0], r_oh, theta_hoh )
-            w1.res_id = 1 ; w1.r = r ; w1.theta = theta ; w1.tau = tau
-            w2 = g.get_water( [ x, y, z], r_oh, theta_hoh )
-            w2.res_id = 2 ; w2.r = r ; w2.theta = theta ; w2.tau = tau
-            g.writeMol( [ w1, w2 ])
+    print static_ox.total_dipole_moment()
+    print static_dist.total_dipole_moment()
+    print p
 
-    
+
+
+    raise SystemExit
+    for i in range(101):
+        for j in range(2,10):
+            fo = "hfqua_tip3p%d_%dqm.out" %(i,j)
+            fm = "tip3p%d_%dqm.mol" %(i,j)
+            if not os.path.isfile( os.path.join(os.getcwd(),fo) ):
+                continue
+
+            at, p, a, b = read_dal.read_beta_hf( fo )
+            c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
+            c.update_water_props( dist = False )
+            static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
+            c.update_water_props( dist = True )
+            static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
+            try:
+                np.testing.assert_almost_equal( np.linalg.norm(static_ox.total_dipole_moment()) , np.linalg.norm( static_dist.total_dipole_moment()),decimal = 1)
+            except:
+                print i
+                #print np.linalg.norm( static_dist.total_dipole_moment() )
+                #raise SystemExit
+
 
 

@@ -2,6 +2,7 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Property, Water, Rotator
+from use_generator import Generator
 from template import Template
 
 FILE = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
@@ -13,7 +14,23 @@ class WaterTest( unittest.TestCase ):
                 in_AA = False,
                 out_AA = False,
                 N_waters = 10)
-        
+
+    def test_beta_rotation(self):
+        """reference beta is for a tip3p rotated 1.57 radians round z axis"""
+        bxxz = -2.27
+        byyz = -14.41
+        bzzz = -5.86
+        #w = Generator().get_mol( [0,0,0] )
+        v = np.zeros( (3,3,3))
+
+# This is the vectors when alligned in x-z plane, switched xxz and yyz components
+        v[0,0,2] = byyz
+        v[1,1,2] = bxxz
+        v[2,2,2] = bzzz
+        vnew = Rotator.transform_3( v, np.pi/2, 0,0  )
+        self.eq( vnew[0,0,2], bxxz )
+        self.eq( vnew[1,1,2], byyz )
+        self.eq( vnew[2,2,2], bzzz )
 
     def test_size(self):
         c = Cluster.get_water_cluster(
