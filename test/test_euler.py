@@ -18,6 +18,33 @@ class WaterTest( unittest.TestCase ):
         self.t2 = np.random.uniform( 0, np.pi   )
         self.t3 = np.random.uniform( 0, np.pi/2 )
 
+    def test_inv_rotation(self):
+        """rotate two water molecules by random angles,
+        translate them in random space, one by oxygen other by center of mass
+        rotate them to standard orientation and center by mass"""
+        w1 = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w2 = self.g.get_mol( center = [0,0,0], mol = "water" )
+
+        t1, t2, t3 = np.random.uniform( -np.pi, np.pi, [3] )
+        d1, d2, d3 = np.random.uniform( -np.pi, np.pi, [3] )
+
+        r1, r2 = np.random.uniform( -100, 100, [2,3] )
+
+        w1.translate_o( r1 )
+        w2.translate( r1 )
+
+        w1.rotate( t1, t2, t3 )
+        w2.rotate( d1, d2, d3 )
+
+        w1.inv_rotate( )
+        w2.inv_rotate( )
+
+        w1.center()
+        w2.center()
+
+        self.eq ( w1.com, w2.com )
+
+        
     def test_center_get_euler(self):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
 
