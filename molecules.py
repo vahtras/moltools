@@ -1122,15 +1122,19 @@ class Cluster(list):
 
     def min_dist_coo(self):
         dist = np.zeros( (len(self),len(self)) )
+        new = np.zeros( len(self) - 1 )
+
         for i in range(len(self)):
             for j in range( i, len(self)):
                 if i == j:
                     continue
                 dist[i,j] = np.linalg.norm(self[i].coo - self[j].coo)
-        dist.sort()
-        new = [dist[i,i+1] for i in range(len(self)-1) ]
+        for i in range( len(dist) - 1 ):
+            c = dist[i,i+1:].copy()
+            c.sort()
+            new[i] = c[0]
         new.sort()
-        return np.array(new)
+        return new
 
     def min_dist_com(self):
         dist = np.zeros( len(self) )
