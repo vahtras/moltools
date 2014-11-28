@@ -6,3 +6,4 @@
 # For remotes after mergeconflicts
 *.orig
 pickle_para
+templates

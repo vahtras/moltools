@@ -20,7 +20,8 @@ class WaterTest( unittest.TestCase ):
         assert len( self.c.min_dist_coo() ) == 9
 
     def test_dists(self):
-        print self.c.min_dist_coo()[0]
+        print len( self.c )
+        print self.c.min_dist_coo()[:len(self.c)]
         assert 2==3
 
     def test_two_waters(self):
