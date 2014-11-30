@@ -409,6 +409,13 @@ class Molecule( list ):
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
 
+    def translate_coc(self, r):
+        vec = r - self.coc
+        for at in self:
+            at.x = vec[0] + at.x 
+            at.y = vec[1] + at.y 
+            at.z = vec[2] + at.z 
+
 
 
     @property
