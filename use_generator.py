@@ -125,7 +125,7 @@ class Generator( dict ):
                         self.varyRho3 = True
                         self.optionsRho3 = j[i]
 
-    def get_mol( self, center, mol = "water", AA = True ):
+    def get_mol( self, center = [0,0,0], mol = "water", AA = True ):
         """return molecule in center, all molecules have different definition
         of euler angles
 

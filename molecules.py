@@ -409,13 +409,6 @@ class Molecule( list ):
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
 
-    def translate_coc(self, r):
-        vec = r - self.coc
-        for at in self:
-            at.x = vec[0] + at.x 
-            at.y = vec[1] + at.y 
-            at.z = vec[2] + at.z 
-
 
 
     @property
@@ -481,7 +474,7 @@ class Molecule( list ):
         a_new[2, :, :] = self.transform_2( a2, t1, t2, t3 )
         return a_new
 
-    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
+    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = True):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1  }
         else:

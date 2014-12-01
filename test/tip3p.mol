@@ -1,0 +1,9 @@
+ATOMBASIS
+
+
+Atomtypes=2 Charge=0 Nosymm Angstrom
+Charge=8.0 Atoms=1 Basis=ano-1 4 3 2 1
+O     0.000000     0.000000     0.000000
+Charge=1.0 Atoms=2 Basis=ano-1 3 2 1
+H     0.756950327     0.000000     0.58588227
+H    -0.756950327     0.000000    0.58588227
