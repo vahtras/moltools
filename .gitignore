@@ -1,8 +1,8 @@
 *.pyc
 *.sw?
 *.mol
-!tip3p.mol
 *.out
+
 
 # For remotes after mergeconflicts
 *.orig
