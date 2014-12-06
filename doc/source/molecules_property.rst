@@ -21,8 +21,7 @@ Has support for the following properties:
 
 Most typical usage:
 
-   1) Read in 10 water molecules from a .mol file (DALTON molecule format),
-written in atomic units.
+   1) Read in 10 water molecules from a .mol file (DALTON molecule format), written in atomic units.
 
    2) Import a fix water property template given:
        - Model
