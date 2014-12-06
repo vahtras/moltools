@@ -1,25 +1,21 @@
-molecules.py/Property
+.. _Atom:
+
+Atom
 =====================
-
-Purpose:
-
 
 
 .. code-block:: python
 
-   Class Property( list ):
-      __init__(self):
+   Class Atom( object ):
+      __init__(self, *args, **kwargs):
          pass
 
 
-**Class property** which is attached to an atom.
-Has support for multi-pole moments up to quadrupoles,
-upper-triangular alpha
-and upper-triangular beta
+**Class Atom** is an atom representation.
 
+Typical usage, create an oxygen atom in origo using atomic units:
 
-Most typical usage:
+.. code-block:: python
 
-Property.add_prop_from_template( class Atom a, class Template t):
+   >>> o = Atom( {'x' : 0.0, "y" :0.0, 'z' : 0.0, "element" : "O", AA = False}
 
-Will generate a property from Template t, which is found in template.py/Template, and make it the Property of atom A, documented in molecules.py/Atom.

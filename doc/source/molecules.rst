@@ -10,7 +10,7 @@ Class Property
       __init__(self):
          pass
 
-Used to model property class, see :ref:`Property`.
+Used to model :ref:`Property`.
 
 
 Class Atom
@@ -21,6 +21,8 @@ Class Atom
    Class Atom( object ):
       __init__(self, *args, **kwargs)
 
+Used to model :ref:`Atom`.
+
 Class Molecule
 --------------------
 
@@ -28,6 +30,8 @@ Class Molecule
 
    Class Molecule( list ):
       __init__(self, *args, **kwargs)
+
+Used to model :ref:`Molecule`.
 
 Class Water
 --------------------
@@ -37,6 +41,19 @@ Class Water
    Class Water( Molecule ):
       __init__(self)
 
+Used to model :ref:`Water`.
+
+
+Class Rotator
+--------------------
+
+.. code-block:: python 
+
+   Class Rotator( object ):
+      __init__(self)
+Used to model :ref:`Rotator`.
+
+
 Class Cluster
 --------------------
 
@@ -44,4 +61,5 @@ Class Cluster
 
    Class Cluster( list ):
       __init__(self)
+Used to model :ref:`Cluster`.
 
