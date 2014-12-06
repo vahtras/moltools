@@ -13,6 +13,11 @@ Contents:
 
    molecules.rst
       molecules_property.rst
+      molecules_atom.rst
+      molecules_molecule.rst
+      molecules_water.rst
+      molecules_rotator.rst
+      molecules_cluster.rst
    use_calculator.rst
    use_generator.rst
 

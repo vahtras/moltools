@@ -22,7 +22,6 @@ class WaterTest( unittest.TestCase ):
     def test_dists(self):
         print len( self.c )
         print self.c.min_dist_coo()[:len(self.c)]
-        assert 2==3
 
     def test_two_waters(self):
         c = Cluster.get_water_cluster(
