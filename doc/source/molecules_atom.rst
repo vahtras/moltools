@@ -1,7 +1,8 @@
-.. _Property:
-
-class Property
+molecules.py/Property
 =====================
+
+Purpose:
+
 
 
 .. code-block:: python
@@ -18,12 +19,6 @@ and upper-triangular beta
 
 
 Most typical usage:
-
-.. code-block:: python
-
-   >>> from molecules import Property, Atom, Water
-   >>> print ASDF
-
 
 Property.add_prop_from_template( class Atom a, class Template t):
 

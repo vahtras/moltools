@@ -9,17 +9,10 @@ Welcome to dalton tools's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    molecules.rst
+      molecules_property.rst
    use_calculator.rst
    use_generator.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
