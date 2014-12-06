@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import pyplot as plt
-
+#from mpl_toolkits.mplot3d import Axes3D
+#from matplotlib import pyplot as plt
+#
 import itertools
 
 import numpy as np
@@ -1542,5 +1542,7 @@ if __name__ == '__main__':
                 #print np.linalg.norm( static_dist.total_dipole_moment() )
                 #raise SystemExit
 
+def asdf(x):
+    return x
 
 
