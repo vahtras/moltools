@@ -1,7 +1,14 @@
 language: python
 python:
-  - "2.7"
+  - 2.7
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 # install: PLEASE CHANGE ME
 # command to run tests, e.g. python setup.py test
-script:  nosetests
+install:
+  pip install coveralls
+
+script: 
+  coverage run --source=dalton_tools nosetests --with_coverage
+
+after_success:
+  coveralls

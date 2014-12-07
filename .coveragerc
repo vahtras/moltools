@@ -1,0 +1,4 @@
+[report]
+omit =
+   */doc/*
+   */site-packages/nose/*
