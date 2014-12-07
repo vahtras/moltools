@@ -1,0 +1,11 @@
+[user]
+	name = Ignat Harczuk
+	email = ignathe@gmail.com
+[color]
+	branch = auto
+	diff = auto
+	status = auto
+[push]
+	default = current
+[core]
+	pager = less -X
