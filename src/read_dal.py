@@ -12,7 +12,6 @@ from gaussian import *
 
 from molecules import Atom, Water, Property, Cluster, Rotator
 from template import Template
-from analysis import Analysis
 
 from matplotlib import pyplot as plt
 
