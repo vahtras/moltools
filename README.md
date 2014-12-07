@@ -1,5 +1,4 @@
-.. image:: https://coveralls.io/repos/fishstamp82/dalton_tools/badge.png :target:
-https://coveralls.io/r/fishstamp82/dalton_tools 
+[![Coverage Status](https://img.shields.io/coveralls/fishstamp82/dalton_tools.svg)](https://coveralls.io/r/fishstamp82/dalton_tools?branch=master)
 
 pyclasses
 =========
