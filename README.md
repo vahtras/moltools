@@ -1,3 +1,5 @@
+.. image:: https://coveralls.io/repos/fishstamp82/dalton_tools/badge.png :target: https://coveralls.io/r/fishstamp82/dalton_tools 
+
 pyclasses
 =========
 
