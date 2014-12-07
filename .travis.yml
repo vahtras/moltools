@@ -5,10 +5,7 @@ python:
 # install: PLEASE CHANGE ME
 # command to run tests, e.g. python setup.py test
 install:
-  pip install numpy
-  pip install matplotlib
-  pip install scipy
-  pip install coveralls
+  pip install numpy, matplotlib, scipy, coveralls
 
 script: 
   coverage run --source=dalton_tools setup.py test
