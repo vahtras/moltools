@@ -4,7 +4,6 @@
 class Template(dict):
 
     def __init__(self):
-
         self[ ("OLAV", "HF", "PVDZ", False, 0.0 ) ] = \
         {
 #Charge
@@ -613,14 +612,7 @@ class Template(dict):
 ("H3", "beta"):[0., 0., 0., 0., 0. ,0., 0., 0., 0., 0.],
 
 }
-
-
-
-    def get(self, model = "OLAV", method = "HF", basis ="PVDZ",
+    def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
             dist = False, freq = "0.0" ):
         return self[ ( model, method, basis, dist, freq) ]
 
-if __name__ == '__main__':
-    #Perform tests om Tempaltes
-    pass
-   
