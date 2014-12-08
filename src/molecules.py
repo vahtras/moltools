@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-#from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib import pyplot as plt
-#
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pyplot as plt
+
 import itertools
 
 import numpy as np
@@ -482,14 +482,14 @@ class Molecule( list ):
         a_new[2, :, :] = self.transform_2( a2, t1, t2, t3 )
         return a_new
 
-    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = True):
+    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) ):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1  }
         else:
             el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
         st = ""
         s_ = ""
-        if AA: s_ += "Angstrom"
+        if self.AA: s_ += "Angstrom"
         uni = Molecule.unique([ at.element for at in self])
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm %s\n" %(len(uni), s_)
         for el in uni:
@@ -499,6 +499,7 @@ class Molecule( list ):
             for i in [all_el for all_el in self if (all_el.element == el) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st
+
     def get_xyz_string(self):
         st = "%d\n\n" % len(self)
         for i in self:
@@ -1542,7 +1543,5 @@ if __name__ == '__main__':
                 #print np.linalg.norm( static_dist.total_dipole_moment() )
                 #raise SystemExit
 
-def asdf(x):
-    return x
 
 
