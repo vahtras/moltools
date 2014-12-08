@@ -6,6 +6,7 @@ python:
 # command to run tests, e.g. python setup.py test
 install:
   pip install coveralls
+  pip install mpl_toolkits
 
 script: 
   nosetests --with-coverage --cover-package=molecules,dic,read_dal,template,use_calculator,use_generator,ut,xms,graph
