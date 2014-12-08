@@ -375,6 +375,7 @@ class Molecule( list ):
         self.res_id = 0
         self._r = None
         self._com = None
+        self.cluster = None
 
 #By default, AU 
         self.AA = False
@@ -415,10 +416,6 @@ class Molecule( list ):
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
-
-
-
-
     @property
     def com(self):
         return np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
@@ -429,8 +426,6 @@ class Molecule( list ):
         xyz2 = other.com
         return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
             (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
-
-
 
     def plot(self ):
 #Plot water molecule in green and  nice xyz axis
@@ -1480,10 +1475,14 @@ class Cluster(list):
                         return True
         return False
 
+    def add_mol(self, at):
+        self.append( mol )
+        mol.cluster = self
 
     def add_atom(self, at):
         self.append( at )
         at.cluster = self
+
     def set_qm_mm(self, N_qm = 1, N_mm = 0):
         """First set all waters to False for security """
         for i in self:

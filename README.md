@@ -23,8 +23,8 @@ _______
 Run:
 
 * \>>>`ipython`
-* \>>>`from use_generator import Generator`
-* \>>>`from molecules import Cluster`
+* `in [1]: from use_generator import Generator`
+* `in [2]: from molecules import Cluster`
 
 #### Create a water molecule with oxygen in origo, in atomic units
 \>>> `w1 = Generator().get_mol( center = [0, 0, 0], mol = "water", AA = False )`
