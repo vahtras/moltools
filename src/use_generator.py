@@ -14,9 +14,11 @@ a0 = 0.52917721092
 class Generator( dict ):
     """
     class to create molecules, write dalton .mol files 
-    using -params for study with use_calculator.py
+    using -param for study with use_calculator.py
 
-    water currently implemented
+    water currently implemented only
+
+    plans to implement methanol
 
     """
     def __init__(self, *args, **kwargs):
@@ -37,8 +39,19 @@ class Generator( dict ):
         self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
         self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
 
-        if kwargs is not {}:
-            self.options = kwargs.get( 'r', {"max": 10 , "min" : 3, "points":1} )
+        
+#Default options for water
+        for val in ["r", "tau", "theta", "rho1", "rho2", "rho3", ]:
+            self[ ( val, 'min') ]    = 0.0
+            self[ ( val, 'max') ]    = 0.0
+            self[ ( val, 'points') ] = 1
+        self[ ( 'r', 'min') ]    = 5.0
+        self[ ( 'r', 'max') ]    = 10.0
+        self[ ( 'r', 'points') ] = 1
+
+# Set by default all parameters to False
+        for val in ["r", "tau", "theta", "rho1", "rho2", "rho3", ]:
+            self[ ( val, "active" ) ]  = False
 
     @staticmethod
     def get_hfqua_dal():
@@ -56,19 +69,18 @@ class Generator( dict ):
     def gen_mols_param(self, mol = "water", 
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
             AA = True):
-
-        r = np.linspace(self.optionsR[ "min" ] , self.optionsR[ "max" ] , \
-                self.optionsR[ "points" ])
-        tau = np.linspace(self.optionsTau[ "min" ] , self.optionsTau[ "max" ] , \
-                self.optionsTau[ "points" ])
-        theta = np.linspace(self.optionsTheta[ "min" ] , self.optionsTheta[ "max" ] , \
-                self.optionsTheta[ "points" ])
-        rho1 = np.linspace(self.optionsRho1[ "min" ] , self.optionsRho1[ "max" ] , \
-                self.optionsRho1[ "points" ])
-        rho2 = np.linspace(self.optionsRho2[ "min" ] , self.optionsRho2[ "max" ] , \
-                self.optionsRho2[ "points" ])
-        rho3 = np.linspace(self.optionsRho3[ "min" ] , self.optionsRho3[ "max" ] , \
-                self.optionsRho3[ "points" ])
+        r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
+            self[ ('r', 'points' ) ]  )
+        tau = np.linspace( self[ ('tau', 'min')] , self[ ('tau', 'max')] ,
+            self[ ('tau', 'points' ) ] )
+        theta = np.linspace( self[ ('theta', 'min')] , self[ ('theta', 'max')] ,
+            self[ ('theta', 'points' )  ] )
+        rho1 = np.linspace( self[ ('rho1', 'min')], self[ ('rho1', 'max')],
+            self[ ('rho1', 'points' )  ] )
+        rho2 = np.linspace( self[ ('rho2', 'min')], self[ ('rho2', 'max')],
+            self[ ('rho2', 'points' )  ] )
+        rho3 = np.linspace( self[ ('rho3', 'min')], self[ ('rho3', 'max')],
+            self[ ('rho3', 'points' )  ] )
 
         r_oh = self[ ("water","r_oh", "AA") ]
         a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
@@ -98,29 +110,26 @@ class Generator( dict ):
                                 f_.write( m)
         return 0
 
-    def vary_parameters( self, *args ):
-        """Given two parameters, for e.g. r and theta, keeps all other static"""
-        if args:
-            for j in args:
-                for i in j:
-                    if i == "r":
-                        self.varyR = True
-                        self.optionsR = j[i]
-                    if i == "tau":
-                        self.varyTau = True
-                        self.optionsTau = j[i]
-                    if i == "theta":
-                        self.varyTheta = True
-                        self.optionsTheta = j[i]
-                    if i == "rho1":
-                        self.varyRho1 = True
-                        self.optionsRho1 = j[i]
-                    if i == "rho2":
-                        self.varyRho2 = True
-                        self.optionsRho2 = j[i]
-                    if i == "rho3":
-                        self.varyRho3 = True
-                        self.optionsRho3 = j[i]
+    def vary_parameters( self, opts ):
+        """Given two parameters, e.g. r and theta, keeps all other static
+        param_list should be list of strings of parameters
+        ["r":{"min": 2, "max":5, "points": 10}, "rho1" , ... ]
+
+        Has sane defaults, but can be overrided by passing arguments to 
+        main program as:
+
+        -r_min 5
+        -r_max 10
+        -r_points 10
+
+        Which overrides defaults 
+
+        """
+        for val in opts:
+            self[ (val, 'active') ] = True
+            self[ (val, 'min') ] = opts[val][ "min" ]
+            self[ (val, 'max') ] = opts[val][ "max" ]
+            self[ (val, 'points') ] = opts[val][ "points" ]
 
     def get_mol( self, center = [0,0,0], mol = "water", AA = True ):
         """return molecule in center, all molecules have different definition
@@ -485,12 +494,12 @@ if __name__ == '__main__':
 
 
 
-    A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
-    A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
-    A.add_argument( "-tau"   ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho1"  ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho2"  ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho3"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-r_min"     ,   type = float , default = 3.00  ) 
+    A.add_argument( "-theta_min" ,   type = float , default = 0.00  ) 
+    A.add_argument( "-tau_min"   ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho1_min"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho2_min"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho3_min"  ,   type = float , default = 0.00  ) 
 
     A.add_argument( "-r_max"     ,   type = float , default = 10.0 ) 
     A.add_argument( "-theta_max" ,   type = float , default = np.pi/2    ) 
@@ -519,7 +528,6 @@ if __name__ == '__main__':
 #########################
 
     A.add_argument( '-seed', type = int, default = 111 )
-
     A.add_argument( '-pna', action = 'store_true', default = False )
     A.add_argument( '-pna_waters', type = int, default = 10 )
     A.add_argument( '-pna_min_r', type = float, default = 0 )
@@ -529,24 +537,24 @@ if __name__ == '__main__':
 
     args = A.parse_args()
 
+#Obtain variable parameters from program call and set them
+    g = Generator( )
     opts =  {
-       "r"    :{"min":args.r,    "max": args.r_max,    "points":args.r_points,    },
-       "tau"  :{"min":args.tau,  "max": args.tau_max,  "points":args.tau_points,  },
-       "theta":{"min":args.theta,"max": args.theta_max,"points":args.theta_points,},
-       "rho1" :{"min":args.rho1, "max": args.rho1_max, "points":args.rho1_points, },
-       "rho2" :{"min":args.rho2, "max": args.rho2_max, "points":args.rho2_points, },
-       "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
-             }
+       "r"    :{"min":args.r_min,    "max": args.r_max,    "points":args.r_points,    },
+       "tau"  :{"min":args.tau_min,  "max": args.tau_max,  "points":args.tau_points,  },
+       "theta":{"min":args.theta_min,"max": args.theta_max,"points":args.theta_points,},
+       "rho1" :{"min":args.rho1_min, "max": args.rho1_max, "points":args.rho1_points, },
+       "rho2" :{"min":args.rho2_min, "max": args.rho2_max, "points":args.rho2_points, },
+       "rho3" :{"min":args.rho3_min, "max": args.rho3_max, "points":args.rho3_points, },
+    }
+    g.vary_parameters( opts )
 
-    g = Generator( **opts )
 
     if args.param:
-        g.vary_parameters( opts )
         g.gen_mols_param( 
                 mol = args.param_mol ,
                 basis = args.basis,
                 AA = False )
-        raise SystemExit
 
     if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
