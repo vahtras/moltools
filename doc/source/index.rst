@@ -9,15 +9,15 @@ Welcome to dalton tools's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-   molecules.rst
-      molecules_property.rst
-      molecules_atom.rst
-      molecules_molecule.rst
-      molecules_water.rst
-      molecules_rotator.rst
-      molecules_cluster.rst
-   use_calculator.rst
+   mol/molecules.rst
+   mol/molecules_property.rst
+   mol/molecules_atom.rst
+   mol/molecules_molecule.rst
+   mol/molecules_water.rst
+   mol/molecules_rotator.rst
+   mol/molecules_cluster.rst
    use_generator.rst
+   use_calculator.rst
 
