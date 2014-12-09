@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import itertools
 
 import numpy as np
-import re, os, ut
+import re, os
 
 a0 = 0.52917721092
 
@@ -15,6 +15,17 @@ charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 }
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066}
+
+def upper_triangular(n, start=0):
+    """Recursive generator for triangular looping of Carteesian tensor"""
+    if n > 2:
+        for i in range(start, 3):
+            for j in upper_triangular(n-1, start=i):
+                yield (i,) + j
+    else:
+        for i in range(start, 3):
+            for j in range(i, 3):
+                yield i, j
 
 class Property( dict ):
     def __init__(self):
@@ -198,7 +209,7 @@ class Rotator(object):
     def square_2_ut(alpha):
         assert alpha.ndim == 2
         tmp_a = np.zeros( 6 )
-        for index, (i, j ) in enumerate( ut.upper_triangular(2) ):
+        for index, (i, j ) in enumerate( upper_triangular(2) ):
             tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
         return tmp_a
 
@@ -247,7 +258,7 @@ class Rotator(object):
     def square_3_ut(beta):
         assert beta.ndim == 3
         tmp_b = np.zeros( 10 )
-        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ):
+        for index, (i, j, k ) in enumerate( upper_triangular(3) ):
             tmp_b[ index ] = ( \
                     beta[i, j, k] + beta[i, k, j] + \
                     beta[j, i, k] + beta[j, k, i] + \
@@ -258,7 +269,7 @@ class Rotator(object):
     def ut_2_square( alpha):
         assert len(alpha) == 6
         tmp_a = np.zeros( (3,3, ))
-        for index, val in enumerate( ut.upper_triangular(2) ) :
+        for index, val in enumerate( upper_triangular(2) ) :
             tmp_a[ val[0], val[1] ] = alpha[ index ]
             tmp_a[ val[1], val[0] ] = alpha[ index ]
         return tmp_a
@@ -267,7 +278,7 @@ class Rotator(object):
     def ut_3_square( beta ):
         assert len(beta) == 10
         tmp_b = np.zeros( (3,3,3, ))
-        for index, (i, j, k ) in enumerate( ut.upper_triangular(3) ) :
+        for index, (i, j, k ) in enumerate( upper_triangular(3) ) :
             tmp_b[ i, j ,k] = beta[ index ]
             tmp_b[ i, k ,j] = beta[ index] 
             tmp_b[ j, i, k] = beta [ index ]
@@ -456,7 +467,7 @@ class Molecule( list ):
         a1 = np.zeros((3, 3))
         a2 = np.zeros((3, 3))
 
-        for ij, (i, j) in enumerate(ut.upper_triangular(2)):
+        for ij, (i, j) in enumerate(upper_triangular(2)):
 
             aij0 = upper0[ij]
             aij1 = upper1[ij]
