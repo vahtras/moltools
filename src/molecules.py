@@ -42,21 +42,6 @@ class Property( dict ):
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
-    def __ladd__(self, other):
-        assert isinstance( other, Property)
-        tmp = {}
-        for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
-        return tmp
-
-    def __radd__(self, other):
-
-        assert isinstance( other, Property)
-        tmp = {}
-        for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
-        return tmp
-
     def __sub__(self, other):
         assert isinstance( other, Property)
         tmp = {}
@@ -64,34 +49,31 @@ class Property( dict ):
             tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
         return tmp
 
-    def __str__(self):
-        return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
-
-    def potline(self, max_l , pol, hyper):
+    def potline(self, max_l , pol, hyper, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
-            string += "%.5f " % tuple(self["charge"] )
+            string += fmt % tuple(self["charge"] )
         if max_l >= 1 :
-            string += "%.5f %.5f %.5f " %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
+            string += fmt*3 %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
         if max_l >= 2 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt*6  %( 
                     self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2] ,
                     self["quadrupole"][3], self["quadrupole"][4], self["quadrupole"][5] )
         if pol == 1:
-            string += "%.5f " %( 
-                    (self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
+            string += fmt %( 
+                    float(self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
                     )
         if pol == 2 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt * 6 %( 
                     self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
                     self["alpha"][3], self["alpha"][4], self["alpha"][5] )
             return string
         if pol == 22 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt * 6%( 
                     self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
                     self["alpha"][3], self["alpha"][4], self["alpha"][5] )
         if hyper == 1:
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f" %( 
+            string += fmt*10 %( 
                     self["beta"][0], self["beta"][1], self["beta"][2] ,
                     self["beta"][3], self["beta"][4], self["beta"][5] ,
                     self["beta"][6], self["beta"][7], self["beta"][8] ,
