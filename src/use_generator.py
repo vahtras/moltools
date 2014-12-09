@@ -41,10 +41,6 @@ class Generator( dict ):
             self.options = kwargs.get( 'r', {"max": 10 , "min" : 3, "points":1} )
 
     @staticmethod
-    def build_molecule( molecule ):
-        """ molecule is a string to build, return class """
-
-    @staticmethod
     def get_hfqua_dal():
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -100,6 +96,7 @@ class Generator( dict ):
                                         )
                                 f_ = open(name, 'w')
                                 f_.write( m)
+        return 0
 
     def vary_parameters( self, *args ):
         """Given two parameters, for e.g. r and theta, keeps all other static"""
