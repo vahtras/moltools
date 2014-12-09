@@ -48,12 +48,22 @@ class Property( dict ):
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
+
     def __radd__(self, other):
+
         assert isinstance( other, Property)
         tmp = {}
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
+
+    def __sub__(self, other):
+        assert isinstance( other, Property)
+        tmp = {}
+        for i, prop in enumerate(self):
+            tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
+        return tmp
+
     def __str__(self):
         return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
 
