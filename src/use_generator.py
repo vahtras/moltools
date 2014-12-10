@@ -7,7 +7,7 @@ import numpy as np
 import math as m
 
 from template import Template
-from molecules import Molecule, Water, Atom, Property, Cluster
+from molecules import Molecule, Water, Methanol, Atom, Property, Cluster
 
 a0 = 0.52917721092
 
@@ -107,7 +107,7 @@ class Generator( dict ):
                                         basis = tuple(basis),
                                         )
                                 f_ = open(name, 'w')
-                                f_.write( m)
+                                f_.write( m )
         return 0
 
     def vary_parameters( self, opts ):
@@ -239,185 +239,6 @@ class Generator( dict ):
 
             return m
 
-    def readWaters(self, fname):
-        """From file with name fname, return a list of all waters encountered"""
-#If the file is plain xyz file
-
-        atoms = []
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom()
-                    tmpAtom.AA = True
-                    tmpAtom.x = float(f[1])
-                    tmpAtom.y = float(f[2])
-                    tmpAtom.z = float(f[3])
-                    tmpAtom.element = f[0][0]
-                    atoms.append( tmpAtom )
-
-        elif fname.endswith( ".pdb" ):
-            pat1 = re.compile(r'^(ATOM|HETATM)')
-            for i in open( fname ).readlines():
-                if pat1.search(i):
-                    #Ignore charge centers for polarizable water models
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
-                        continue
-                    tmpAtom = Atom(i[11:16].strip()[0], \
-                            float(i[30:38].strip()), \
-                            float(i[38:46].strip()), \
-                            float(i[46:54].strip()), \
-                            int(i[22:26].strip()) )
-
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-        elif fname.endswith( ".out" ):
-            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
-        waters = []
-        cnt = 1
-
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if j.AA:
-                        if i.distToAtom(j) < 1.1:
-                            tmp.append ( j )
-                            j.inWater = True
-                    else:
-                        if i.distToAtom(j) < 1.1/a0:
-                            tmp.append ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        elif fname.endswith( ".pdb" ):
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            wlist = []
-            for i in atoms:
-                if i.element != "O":
-                    continue
-                tmp = Water()
-                i.inWater= True
-#__Water__.append() method will update the waters residue number and center coordinate
-#When all atoms are there
-#Right now NOT center-of-mass
-                tmp.append(i)
-                for j in atoms:
-                    if j.element != "H":
-                        continue
-                    if j.inWater:
-                        continue
-#1.05 because sometimes spc water lengths can be over 1.01
-                        
-                    if args.opAAorAU == "AA":
-                        if i.dist(j) <= 1.05:
-                            j.inWater = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                    elif args.opAAorAU == "AU":
-                        if i.dist(j) <= 1.05/a0:
-                            j.inWater = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.distToPoint( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
-            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
-        elif fname.endswith( ".out" ):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if i.AA:
-                        if i.dist(j) < 1.0:
-                            tmp.append ( j )
-                            j.inWater = True
-                    else:
-                        if i.dist(j) < 1.0/a0:
-                            tmp.append ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        return waters
-
-    def write_mol(self, wlist, name = "tmp.mol" ):
-        f_ = open (name, 'w')
-        f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Nosymm\n")
-        f_.write("Charge=1.0 Atoms=4 Basis=cc-pVTZ\n")
-        for i in wlist:
-            for j in i:
-                if j.element != "H":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.write("Charge=8.0 Atoms=2 Basis=cc-pVTZ\n")
-        for i in wlist:
-            for j in i:
-                if j.element != "O":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.close()
-
     def polar_to_cartesian(self, r, tau, theta):
         x, y, z = r* m.sin( theta )*m.cos( tau ) \
                , r* m.sin(  theta )*m.sin( tau )  \
@@ -425,13 +246,14 @@ class Generator( dict ):
 
         return x , y , z
 
-    def build_pna( self,  xyz = "tmp.xyz", waters = 0, 
+    def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
-            mult_r = 10):
+            mult_r = 10,
+            seed = 111 ):
         pna = Molecule.from_xyz( xyz )
         freqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ] 
 
-        np.random.seed(args.seed)
+        np.random.seed( seed )
 
         c = Cluster()
         c.append(pna, in_qm = True)
@@ -563,6 +385,7 @@ if __name__ == '__main__':
         g.build_pna( xyz = "pna_opt.xyz", 
                 waters = args.pna_waters,
                 min_r = args.pna_min_r,
-                mult_r = args.pna_mult_r )
+                mult_r = args.pna_mult_r,
+                seed = args.seed )
                 
-
+ 
