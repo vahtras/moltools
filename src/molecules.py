@@ -530,6 +530,7 @@ class Molecule( list ):
 
     @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
+
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
             raise SystemExit

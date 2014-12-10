@@ -4,6 +4,10 @@ import numpy as np
 from use_generator import Generator
 from molecules import Water, Molecule, Methanol
 
+
+FILE_XYZ =os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), "tmp.xyz" )
+
+
 class GeneratorTestCase( unittest.TestCase ):
 
     def setUp(self):
@@ -42,20 +46,23 @@ class GeneratorTestCase( unittest.TestCase ):
         v_ref[2] = -3
         self.almost_eq( v, v_ref, decimal = 14 )
 
-    def test_build_pna(self):
-#todo fix some elaborate test if needed
-        res = self.g.build_pna()
-        self.assertIsNone( res )
+#Add mock here todo for testing
+    #def test_build_pna(self):
+    #    d = FILE_XYZ
+    #    res = self.g.build_pna( xyz = d )
+    #    self.assertIsNone( res )
 
     def almost_eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
 
     def eq(self, a, b, ):
         np.testing.assert_equal( a, b )
+
     def tearDown(self):
-        files = [f for f in os.listdir( os.path.dirname( __file__ )) if f.endswith(".pot") or f == "pna.mol" or f.startswith("5.00-") ]
+        files = [f for f in os.listdir( os.path.dirname( os.path.realpath(__file__) ) ) if f.endswith(".pot") or f == "pna.mol" or f.startswith("5.00-") ]
         for fi in files:
             os.remove( os.path.join(os.path.dirname( __file__ ) , fi) )
+
 
 if __name__ == '__main__':
     unittest.main()
