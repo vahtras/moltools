@@ -113,7 +113,6 @@ class Property( dict ):
 class Rotator(object):
     def __init__(self):
         """Container class for all rotation related operations"""
-        pass
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
@@ -423,62 +422,24 @@ class Molecule( list ):
     def com(self):
         return np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
 
-    @staticmethod
     def dist_to_mol(self, other):
-        xyz1 = self.com
-        xyz2 = other.com
-        return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
-            (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
+        return np.sqrt( (self.com - other.com)**2 )
 
-    def plot(self ):
-#Plot water molecule in green and  nice xyz axis
-        O1, H1, H2 = self.o, self.h1, self.h2
-        fig = plt.figure()
-        dip = self.get_dipole()
-        ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-        ax.set_zlim3d( -5,5)
-        plt.xlim(-5,5)
-        plt.ylim(-5,5)
-        plt.show()
-         
- 
-    @staticmethod
-    def transform_dist_quadrupole( qm_quadrupole, t1, t2, t3 ):
-        upper0 = np.array( qm_quadrupole[0] )
-        upper1 = np.array( qm_quadrupole[1] )
-        upper2 = np.array( qm_quadrupole[2] )
-        assert upper0.shape == (6,)
-        assert upper1.shape == (6,)
-        assert upper2.shape == (6,)
-        a0 = np.zeros((3, 3))
-        a1 = np.zeros((3, 3))
-        a2 = np.zeros((3, 3))
-
-        for ij, (i, j) in enumerate(upper_triangular(2)):
-
-            aij0 = upper0[ij]
-            aij1 = upper1[ij]
-            aij2 = upper2[ij]
-
-            a0[i, j] = aij0
-            a0[j, i] = aij0
-
-            a1[i, j] = aij1
-            a1[j, i] = aij1
-
-            a2[i, j] = aij2
-            a2[j, i] = aij2
-
-        a_new = np.zeros([3,3,3]) #will be returned
-        a_new[0, :, :] = self.transform_2( a0, t1, t2, t3 )
-        a_new[1, :, :] = self.transform_2( a1, t1, t2, t3 )
-        a_new[2, :, :] = self.transform_2( a2, t1, t2, t3 )
-        return a_new
+#    def plot(self ):
+##Plot water molecule in green and  nice xyz axis
+#        O1, H1, H2 = self.o, self.h1, self.h2
+#        fig = plt.figure()
+#        dip = self.get_dipole()
+#        ax = fig.add_subplot(111, projection='3d' )
+#        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+#        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+#        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+#        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+#        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+#        ax.set_zlim3d( -5,5)
+#        plt.xlim(-5,5)
+#        plt.ylim(-5,5)
+#        plt.show()
 
     def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) ):
         if len( basis ) > 1:
@@ -487,9 +448,9 @@ class Molecule( list ):
             el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
         st = ""
         s_ = ""
-        if self.AA: s_ += "Angstrom"
+        if self.AA: s_ += " Angstrom"
         uni = Molecule.unique([ at.element for at in self])
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm %s\n" %(len(uni), s_)
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in self if (all_el.element == el)] ),
@@ -557,15 +518,20 @@ class Molecule( list ):
         return m
 
     def to_AU(self):
-        for at in self:
-            at.x = at.x / a0
-            at.y = at.y / a0
-            at.z = at.z / a0
+        if self.AA:
+            for at in self:
+                at.x = at.x / a0
+                at.y = at.y / a0
+                at.z = at.z / a0
+            self.AA = False
+
     def to_AA(self):
-        for at in self:
-            at.x *= a0
-            at.y *= a0
-            at.z *= a0
+        if not self.AA:
+            for at in self:
+                at.x *= a0
+                at.y *= a0
+                at.z *= a0
+            self.AA = True
 
 class Water( Molecule ):
     """ Derives all general methods from Molecule.
