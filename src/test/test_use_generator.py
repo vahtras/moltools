@@ -46,11 +46,16 @@ class GeneratorTestCase( unittest.TestCase ):
         v_ref[2] = -3
         self.almost_eq( v, v_ref, decimal = 14 )
 
-#Add mock here todo for testing
-    #def test_build_pna(self):
-    #    d = FILE_XYZ
-    #    res = self.g.build_pna( xyz = d )
-    #    self.assertIsNone( res )
+
+#Mocking added to ensure that the file tmp.xyz isn't opened writable during tests
+    @mock.patch( "use_generator.write" ,create = True)
+    @mock.patch( "use_generator.open" ,create = True)
+    def test_build_pna(self, mock_open, mock_write):
+        mock_open.return_value = mock.MagicMock( spec = file )
+        mock_write.return_value = mock.MagicMock( spec = file )
+        d = FILE_XYZ
+        res = self.g.build_pna( xyz = d )
+        self.assertIsNone( res )
 
     def almost_eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
