@@ -35,6 +35,14 @@ class Property( dict ):
         self["quadrupole"] = np.zeros( 6 )
         self["alpha"] =  np.zeros( 6 ) 
         self["beta"] =  np.zeros( 10 ) 
+    def copy_property(self):
+        p = Property()
+        p["charge"] =      self["charge"].copy()
+        p["dipole"] =      self["dipole"].copy()
+        p["quadrupole"] =  self["quadrupole"].copy()
+        p["alpha"] =       self["alpha"].copy()
+        p["beta"] =        self["beta"].copy()
+        return p
 
     def __add__(self, other):
         assert isinstance( other, Property)
@@ -301,7 +309,7 @@ class Atom(object):
 
         self.in_water = False
         self.Water = None
-        self.Property = None
+        self.Property = Property()
         self.AA = False
 
         if kwargs != {}:
@@ -316,7 +324,13 @@ class Atom(object):
         self._mass = None
 
     def copy_atom(self):
-        a = Atom()
+        a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
+            'element':self.element,'name':self.name,'number':self.number,
+            'pdbname':self.pdbname} )
+        a.res_id = self.res_id
+        a.atom_id = self.atom_id
+        a.Property = self.Property.copy_property()
+        return a
 
     @property
     def r(self):
@@ -553,8 +567,6 @@ class Water( Molecule ):
         self.h2 = False
         self.o  = False
 
-        self.atomlist  = []
-
         self.AA = False
         self.Property = None
 
@@ -567,6 +579,7 @@ class Water( Molecule ):
     def copy_water(self):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
+        return w
 
     def center(self):
         tmp = np.array( [0,0,0] )
@@ -623,7 +636,7 @@ class Water( Molecule ):
             raise SystemExit
 
         if not isinstance( atom, Atom ):
-            print "wront class passed to water append"
+            print "wrong class passed to water append"
             raise SystemExit
 
         if atom.element == "H":
@@ -1445,7 +1458,7 @@ class Cluster(list):
                         return True
         return False
 
-    def add_mol(self, at):
+    def add_mol(self, mol):
         self.append( mol )
         mol.cluster = self
 
@@ -1466,51 +1479,11 @@ class Cluster(list):
             i.in_mm = True
     def copy_cluster(self):
         tmp_c = Cluster()
-        [tmp_c.append(wat.copy_water()) for wat in self]
+        [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
 
 if __name__ == '__main__':
 
 # Water bonding parameters:
 #
-    fo = "hfqua_tip3p11_9qm.out"
-    fm = "tip3p11_9qm.mol"
-    import read_dal
-    from gaussian import GaussianQuadrupole, GaussianQuadrupoleList
-
-    at, p, a, b = read_dal.read_beta_hf( fo )
-    c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
-    c.update_water_props( dist = False )
-    static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
-    c.update_water_props( dist = True )
-    static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
-
-    print static_ox.total_dipole_moment()
-    print static_dist.total_dipole_moment()
-    print p
-
-
-
-    raise SystemExit
-    for i in range(101):
-        for j in range(2,10):
-            fo = "hfqua_tip3p%d_%dqm.out" %(i,j)
-            fm = "tip3p%d_%dqm.mol" %(i,j)
-            if not os.path.isfile( os.path.join(os.getcwd(),fo) ):
-                continue
-
-            at, p, a, b = read_dal.read_beta_hf( fo )
-            c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
-            c.update_water_props( dist = False )
-            static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
-            c.update_water_props( dist = True )
-            static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
-            try:
-                np.testing.assert_almost_equal( np.linalg.norm(static_ox.total_dipole_moment()) , np.linalg.norm( static_dist.total_dipole_moment()),decimal = 1)
-            except:
-                print i
-                #print np.linalg.norm( static_dist.total_dipole_moment() )
-                #raise SystemExit
-
-
-
+    pass
