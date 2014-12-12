@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
+"""
+Summary of content
+--------------
+
+To get a quick tutorial on most useful parts, see the class-specific documentation.
+
+The molecules modules serves as an interface to:
+
+1. Write water molecule input files using predefined geometries, to be used with the DALTON qm package.
+2. Read in water molecules from different formats and perform analysis on them.
+
+"""
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
@@ -17,7 +29,15 @@ el_charge_dict = {"H": .417, "O": -0.834 }
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066}
 
 def upper_triangular(n, start=0):
-    """Recursive generator for triangular looping of Carteesian tensor"""
+    """Recursive generator for triangular looping of Carteesian tensor
+
+Usage, form 2D-matrix from upper-triangular matrix represented by an array::
+
+    ref = np.arange( 6 ) # Non-zero elements in 2-dimensional UT-tensor
+    arr = np.zeros( (3, 3) ) # Target 
+    for ind, (i, ii) in enumerate( upper_triangular(2) ):
+        arr[ i, ii ] = ref[ ind ]
+"""
     if n > 2:
         for i in range(start, 3):
             for j in upper_triangular(n-1, start=i):
@@ -28,6 +48,9 @@ def upper_triangular(n, start=0):
                 yield i, j
 
 class Property( dict ):
+    """
+    Docstring for Property
+    """
     def __init__(self):
 
         self["charge"] = np.zeros( 1 )
@@ -1483,7 +1506,4 @@ class Cluster(list):
         return tmp_c
 
 if __name__ == '__main__':
-
-# Water bonding parameters:
-#
     pass
