@@ -35,6 +35,14 @@ class Property( dict ):
         self["quadrupole"] = np.zeros( 6 )
         self["alpha"] =  np.zeros( 6 ) 
         self["beta"] =  np.zeros( 10 ) 
+    def copy_property(self):
+        p = Property()
+        p["charge"] =      self["charge"].copy()
+        p["dipole"] =      self["dipole"].copy()
+        p["quadrupole"] =  self["quadrupole"].copy()
+        p["alpha"] =       self["alpha"].copy()
+        p["beta"] =        self["beta"].copy()
+        return p
 
     def __add__(self, other):
         assert isinstance( other, Property)
@@ -42,46 +50,38 @@ class Property( dict ):
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
-    def __ladd__(self, other):
+    def __sub__(self, other):
         assert isinstance( other, Property)
         tmp = {}
         for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
+            tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
         return tmp
-    def __radd__(self, other):
-        assert isinstance( other, Property)
-        tmp = {}
-        for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
-        return tmp
-    def __str__(self):
-        return "%.5f %.5f %.5f %.5f" % tuple( self["charge"] + self["dipole"]  )
 
-    def potline(self, max_l , pol, hyper):
+    def potline(self, max_l , pol, hyper, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
-            string += "%.5f " % tuple(self["charge"] )
+            string += fmt % tuple(self["charge"] )
         if max_l >= 1 :
-            string += "%.5f %.5f %.5f " %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
+            string += fmt*3 %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
         if max_l >= 2 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt*6  %( 
                     self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2] ,
                     self["quadrupole"][3], self["quadrupole"][4], self["quadrupole"][5] )
         if pol == 1:
-            string += "%.5f " %( 
-                    (self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
+            string += fmt %( 
+                    float(self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
                     )
         if pol == 2 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt * 6 %( 
                     self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
                     self["alpha"][3], self["alpha"][4], self["alpha"][5] )
             return string
         if pol == 22 :
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f " %( 
+            string += fmt * 6%( 
                     self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
                     self["alpha"][3], self["alpha"][4], self["alpha"][5] )
         if hyper == 1:
-            string += "%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f" %( 
+            string += fmt*10 %( 
                     self["beta"][0], self["beta"][1], self["beta"][2] ,
                     self["beta"][3], self["beta"][4], self["beta"][5] ,
                     self["beta"][6], self["beta"][7], self["beta"][8] ,
@@ -121,7 +121,6 @@ class Property( dict ):
 class Rotator(object):
     def __init__(self):
         """Container class for all rotation related operations"""
-        pass
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
@@ -310,7 +309,7 @@ class Atom(object):
 
         self.in_water = False
         self.Water = None
-        self.Property = None
+        self.Property = Property()
         self.AA = False
 
         if kwargs != {}:
@@ -325,7 +324,13 @@ class Atom(object):
         self._mass = None
 
     def copy_atom(self):
-        a = Atom()
+        a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
+            'element':self.element,'name':self.name,'number':self.number,
+            'pdbname':self.pdbname} )
+        a.res_id = self.res_id
+        a.atom_id = self.atom_id
+        a.Property = self.Property.copy_property()
+        return a
 
     @property
     def r(self):
@@ -431,62 +436,24 @@ class Molecule( list ):
     def com(self):
         return np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
 
-    @staticmethod
     def dist_to_mol(self, other):
-        xyz1 = self.com
-        xyz2 = other.com
-        return m.sqrt( (xyz1[0] - xyz2[0])**2 + \
-            (xyz1[1] - xyz2[1])**2 + (xyz1[2] - xyz2[2])**2 )
+        return np.sqrt( (self.com - other.com)**2 )
 
-    def plot(self ):
-#Plot water molecule in green and  nice xyz axis
-        O1, H1, H2 = self.o, self.h1, self.h2
-        fig = plt.figure()
-        dip = self.get_dipole()
-        ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-        ax.set_zlim3d( -5,5)
-        plt.xlim(-5,5)
-        plt.ylim(-5,5)
-        plt.show()
-         
- 
-    @staticmethod
-    def transform_dist_quadrupole( qm_quadrupole, t1, t2, t3 ):
-        upper0 = np.array( qm_quadrupole[0] )
-        upper1 = np.array( qm_quadrupole[1] )
-        upper2 = np.array( qm_quadrupole[2] )
-        assert upper0.shape == (6,)
-        assert upper1.shape == (6,)
-        assert upper2.shape == (6,)
-        a0 = np.zeros((3, 3))
-        a1 = np.zeros((3, 3))
-        a2 = np.zeros((3, 3))
-
-        for ij, (i, j) in enumerate(upper_triangular(2)):
-
-            aij0 = upper0[ij]
-            aij1 = upper1[ij]
-            aij2 = upper2[ij]
-
-            a0[i, j] = aij0
-            a0[j, i] = aij0
-
-            a1[i, j] = aij1
-            a1[j, i] = aij1
-
-            a2[i, j] = aij2
-            a2[j, i] = aij2
-
-        a_new = np.zeros([3,3,3]) #will be returned
-        a_new[0, :, :] = self.transform_2( a0, t1, t2, t3 )
-        a_new[1, :, :] = self.transform_2( a1, t1, t2, t3 )
-        a_new[2, :, :] = self.transform_2( a2, t1, t2, t3 )
-        return a_new
+#    def plot(self ):
+##Plot water molecule in green and  nice xyz axis
+#        O1, H1, H2 = self.o, self.h1, self.h2
+#        fig = plt.figure()
+#        dip = self.get_dipole()
+#        ax = fig.add_subplot(111, projection='3d' )
+#        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+#        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
+#        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
+#        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
+#        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
+#        ax.set_zlim3d( -5,5)
+#        plt.xlim(-5,5)
+#        plt.ylim(-5,5)
+#        plt.show()
 
     def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) ):
         if len( basis ) > 1:
@@ -495,9 +462,9 @@ class Molecule( list ):
             el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
         st = ""
         s_ = ""
-        if self.AA: s_ += "Angstrom"
+        if self.AA: s_ += " Angstrom"
         uni = Molecule.unique([ at.element for at in self])
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm %s\n" %(len(uni), s_)
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in self if (all_el.element == el)] ),
@@ -538,6 +505,7 @@ class Molecule( list ):
 
     @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
+
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
             raise SystemExit
@@ -564,15 +532,20 @@ class Molecule( list ):
         return m
 
     def to_AU(self):
-        for at in self:
-            at.x = at.x / a0
-            at.y = at.y / a0
-            at.z = at.z / a0
+        if self.AA:
+            for at in self:
+                at.x = at.x / a0
+                at.y = at.y / a0
+                at.z = at.z / a0
+            self.AA = False
+
     def to_AA(self):
-        for at in self:
-            at.x *= a0
-            at.y *= a0
-            at.z *= a0
+        if not self.AA:
+            for at in self:
+                at.x *= a0
+                at.y *= a0
+                at.z *= a0
+            self.AA = True
 
 class Water( Molecule ):
     """ Derives all general methods from Molecule.
@@ -594,8 +567,6 @@ class Water( Molecule ):
         self.h2 = False
         self.o  = False
 
-        self.atomlist  = []
-
         self.AA = False
         self.Property = None
 
@@ -608,6 +579,7 @@ class Water( Molecule ):
     def copy_water(self):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
+        return w
 
     def center(self):
         tmp = np.array( [0,0,0] )
@@ -664,7 +636,7 @@ class Water( Molecule ):
             raise SystemExit
 
         if not isinstance( atom, Atom ):
-            print "wront class passed to water append"
+            print "wrong class passed to water append"
             raise SystemExit
 
         if atom.element == "H":
@@ -1486,7 +1458,7 @@ class Cluster(list):
                         return True
         return False
 
-    def add_mol(self, at):
+    def add_mol(self, mol):
         self.append( mol )
         mol.cluster = self
 
@@ -1507,51 +1479,11 @@ class Cluster(list):
             i.in_mm = True
     def copy_cluster(self):
         tmp_c = Cluster()
-        [tmp_c.append(wat.copy_water()) for wat in self]
+        [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
 
 if __name__ == '__main__':
 
 # Water bonding parameters:
 #
-    fo = "hfqua_tip3p11_9qm.out"
-    fm = "tip3p11_9qm.mol"
-    import read_dal
-    from gaussian import GaussianQuadrupole, GaussianQuadrupoleList
-
-    at, p, a, b = read_dal.read_beta_hf( fo )
-    c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
-    c.update_water_props( dist = False )
-    static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
-    c.update_water_props( dist = True )
-    static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
-
-    print static_ox.total_dipole_moment()
-    print static_dist.total_dipole_moment()
-    print p
-
-
-
-    raise SystemExit
-    for i in range(101):
-        for j in range(2,10):
-            fo = "hfqua_tip3p%d_%dqm.out" %(i,j)
-            fm = "tip3p%d_%dqm.mol" %(i,j)
-            if not os.path.isfile( os.path.join(os.getcwd(),fo) ):
-                continue
-
-            at, p, a, b = read_dal.read_beta_hf( fo )
-            c = Cluster.get_water_cluster( fm, in_AA = False, out_AA = False, N_waters = 100)
-            c.update_water_props( dist = False )
-            static_ox = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1 ) )
-            c.update_water_props( dist = True )
-            static_dist = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( c, pol= 22, hyper = 1, dist = True ) )
-            try:
-                np.testing.assert_almost_equal( np.linalg.norm(static_ox.total_dipole_moment()) , np.linalg.norm( static_dist.total_dipole_moment()),decimal = 1)
-            except:
-                print i
-                #print np.linalg.norm( static_dist.total_dipole_moment() )
-                #raise SystemExit
-
-
-
+    pass

@@ -27,8 +27,8 @@ class WaterTest( unittest.TestCase ):
 
         assert 2==2
 
-    def eq(self, a, b):
-        np.testing.assert_almost_equal( a, b, decimal = 3)
+    def eq(self, a, b, decimal = 7):
+        np.testing.assert_almost_equal( a, b, decimal = decimal )
 
 
 

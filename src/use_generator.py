@@ -7,16 +7,18 @@ import numpy as np
 import math as m
 
 from template import Template
-from molecules import Molecule, Water, Atom, Property, Cluster
+from molecules import Molecule, Water, Methanol, Atom, Property, Cluster
 
 a0 = 0.52917721092
 
 class Generator( dict ):
     """
     class to create molecules, write dalton .mol files 
-    using -params for study with use_calculator.py
+    using -param for study with use_calculator.py
 
-    water currently implemented
+    water currently implemented only
+
+    plans to implement methanol
 
     """
     def __init__(self, *args, **kwargs):
@@ -37,12 +39,19 @@ class Generator( dict ):
         self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
         self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
 
-        if kwargs is not {}:
-            self.options = kwargs.get( 'r', {"max": 10 , "min" : 3, "points":1} )
+        
+#Default options for water
+        for val in ["r", "tau", "theta", "rho1", "rho2", "rho3", ]:
+            self[ ( val, 'min') ]    = 0.0
+            self[ ( val, 'max') ]    = 0.0
+            self[ ( val, 'points') ] = 1
+        self[ ( 'r', 'min') ]    = 5.0
+        self[ ( 'r', 'max') ]    = 10.0
+        self[ ( 'r', 'points') ] = 1
 
-    @staticmethod
-    def build_molecule( molecule ):
-        """ molecule is a string to build, return class """
+# Set by default all parameters to False
+        for val in ["r", "tau", "theta", "rho1", "rho2", "rho3", ]:
+            self[ ( val, "active" ) ]  = False
 
     @staticmethod
     def get_hfqua_dal():
@@ -60,19 +69,18 @@ class Generator( dict ):
     def gen_mols_param(self, mol = "water", 
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
             AA = True):
-
-        r = np.linspace(self.optionsR[ "min" ] , self.optionsR[ "max" ] , \
-                self.optionsR[ "points" ])
-        tau = np.linspace(self.optionsTau[ "min" ] , self.optionsTau[ "max" ] , \
-                self.optionsTau[ "points" ])
-        theta = np.linspace(self.optionsTheta[ "min" ] , self.optionsTheta[ "max" ] , \
-                self.optionsTheta[ "points" ])
-        rho1 = np.linspace(self.optionsRho1[ "min" ] , self.optionsRho1[ "max" ] , \
-                self.optionsRho1[ "points" ])
-        rho2 = np.linspace(self.optionsRho2[ "min" ] , self.optionsRho2[ "max" ] , \
-                self.optionsRho2[ "points" ])
-        rho3 = np.linspace(self.optionsRho3[ "min" ] , self.optionsRho3[ "max" ] , \
-                self.optionsRho3[ "points" ])
+        r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
+            self[ ('r', 'points' ) ]  )
+        tau = np.linspace( self[ ('tau', 'min')] , self[ ('tau', 'max')] ,
+            self[ ('tau', 'points' ) ] )
+        theta = np.linspace( self[ ('theta', 'min')] , self[ ('theta', 'max')] ,
+            self[ ('theta', 'points' )  ] )
+        rho1 = np.linspace( self[ ('rho1', 'min')], self[ ('rho1', 'max')],
+            self[ ('rho1', 'points' )  ] )
+        rho2 = np.linspace( self[ ('rho2', 'min')], self[ ('rho2', 'max')],
+            self[ ('rho2', 'points' )  ] )
+        rho3 = np.linspace( self[ ('rho3', 'min')], self[ ('rho3', 'max')],
+            self[ ('rho3', 'points' )  ] )
 
         r_oh = self[ ("water","r_oh", "AA") ]
         a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
@@ -99,31 +107,29 @@ class Generator( dict ):
                                         basis = tuple(basis),
                                         )
                                 f_ = open(name, 'w')
-                                f_.write( m)
+                                f_.write( m )
+        return 0
 
-    def vary_parameters( self, *args ):
-        """Given two parameters, for e.g. r and theta, keeps all other static"""
-        if args:
-            for j in args:
-                for i in j:
-                    if i == "r":
-                        self.varyR = True
-                        self.optionsR = j[i]
-                    if i == "tau":
-                        self.varyTau = True
-                        self.optionsTau = j[i]
-                    if i == "theta":
-                        self.varyTheta = True
-                        self.optionsTheta = j[i]
-                    if i == "rho1":
-                        self.varyRho1 = True
-                        self.optionsRho1 = j[i]
-                    if i == "rho2":
-                        self.varyRho2 = True
-                        self.optionsRho2 = j[i]
-                    if i == "rho3":
-                        self.varyRho3 = True
-                        self.optionsRho3 = j[i]
+    def vary_parameters( self, opts ):
+        """Given two parameters, e.g. r and theta, keeps all other static
+        param_list should be list of strings of parameters
+        ["r":{"min": 2, "max":5, "points": 10}, "rho1" , ... ]
+
+        Has sane defaults, but can be overrided by passing arguments to 
+        main program as:
+
+        -r_min 5
+        -r_max 10
+        -r_points 10
+
+        Which overrides defaults 
+
+        """
+        for val in opts:
+            self[ (val, 'active') ] = True
+            self[ (val, 'min') ] = opts[val][ "min" ]
+            self[ (val, 'max') ] = opts[val][ "max" ]
+            self[ (val, 'points') ] = opts[val][ "points" ]
 
     def get_mol( self, center = [0,0,0], mol = "water", AA = True ):
         """return molecule in center, all molecules have different definition
@@ -233,185 +239,6 @@ class Generator( dict ):
 
             return m
 
-    def readWaters(self, fname):
-        """From file with name fname, return a list of all waters encountered"""
-#If the file is plain xyz file
-
-        atoms = []
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom()
-                    tmpAtom.AA = True
-                    tmpAtom.x = float(f[1])
-                    tmpAtom.y = float(f[2])
-                    tmpAtom.z = float(f[3])
-                    tmpAtom.element = f[0][0]
-                    atoms.append( tmpAtom )
-
-        elif fname.endswith( ".pdb" ):
-            pat1 = re.compile(r'^(ATOM|HETATM)')
-            for i in open( fname ).readlines():
-                if pat1.search(i):
-                    #Ignore charge centers for polarizable water models
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
-                        continue
-                    tmpAtom = Atom(i[11:16].strip()[0], \
-                            float(i[30:38].strip()), \
-                            float(i[38:46].strip()), \
-                            float(i[46:54].strip()), \
-                            int(i[22:26].strip()) )
-
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-        elif fname.endswith( ".out" ):
-            pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
-                if pat_xyz.match(i):
-                    f = pat_xyz.match(i).groups()
-                    tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
-                    if fnameAAorAU == "AU":
-                        if args.opAAorAU == "AA":
-                            tmpAtom.toAA()
-                    elif fnameAAorAU == "AA":
-                        if args.opAAorAU == "AU":
-                            tmpAtom.toAU()
-                    atoms.append( tmpAtom )
-#loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
-        waters = []
-        cnt = 1
-
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if j.AA:
-                        if i.distToAtom(j) < 1.1:
-                            tmp.append ( j )
-                            j.inWater = True
-                    else:
-                        if i.distToAtom(j) < 1.1/a0:
-                            tmp.append ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        elif fname.endswith( ".pdb" ):
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            wlist = []
-            for i in atoms:
-                if i.element != "O":
-                    continue
-                tmp = Water()
-                i.inWater= True
-#__Water__.append() method will update the waters residue number and center coordinate
-#When all atoms are there
-#Right now NOT center-of-mass
-                tmp.append(i)
-                for j in atoms:
-                    if j.element != "H":
-                        continue
-                    if j.inWater:
-                        continue
-#1.05 because sometimes spc water lengths can be over 1.01
-                        
-                    if args.opAAorAU == "AA":
-                        if i.dist(j) <= 1.05:
-                            j.inWater = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                    elif args.opAAorAU == "AU":
-                        if i.dist(j) <= 1.05/a0:
-                            j.inWater = True
-                            tmp.append( j )
-                            if len(tmp.atomlist) == 3:
-                                break
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.distToPoint( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.distToWater( center_water) )
-            waters = [center_water] + cent_wlist[ 0:args.waters - 1 ]
-        elif fname.endswith( ".out" ):
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.inWater:
-                    continue
-                tmp = Water(  )
-                i.inWater = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.inWater:
-                        continue
-#If in cartesian:
-                    if i.AA:
-                        if i.dist(j) < 1.0:
-                            tmp.append ( j )
-                            j.inWater = True
-                    else:
-                        if i.dist(j) < 1.0/a0:
-                            tmp.append ( j )
-                            j.inWater = True
-                tmp.number = cnt
-                cnt += 1
-                waters.append( tmp )
-        return waters
-
-    def write_mol(self, wlist, name = "tmp.mol" ):
-        f_ = open (name, 'w')
-        f_.write("ATOMBASIS\n\n\nAtomtypes=2 Charge=0 Nosymm\n")
-        f_.write("Charge=1.0 Atoms=4 Basis=cc-pVTZ\n")
-        for i in wlist:
-            for j in i:
-                if j.element != "H":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.write("Charge=8.0 Atoms=2 Basis=cc-pVTZ\n")
-        for i in wlist:
-            for j in i:
-                if j.element != "O":
-                    continue
-                f_.write( "%s %.5f %.5f %.5f\n" %(j.element, j.x, j.y, j.z ) )
-        f_.close()
-
     def polar_to_cartesian(self, r, tau, theta):
         x, y, z = r* m.sin( theta )*m.cos( tau ) \
                , r* m.sin(  theta )*m.sin( tau )  \
@@ -419,13 +246,14 @@ class Generator( dict ):
 
         return x , y , z
 
-    def build_pna( self,  xyz = "tmp.xyz", waters = 0, 
+    def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
-            mult_r = 10):
+            mult_r = 10,
+            seed = 111 ):
         pna = Molecule.from_xyz( xyz )
         freqs = [ "0.0", "0.0238927", "0.0428227", "0.0773571" ] 
 
-        np.random.seed(args.seed)
+        np.random.seed( seed )
 
         c = Cluster()
         c.append(pna, in_qm = True)
@@ -488,12 +316,12 @@ if __name__ == '__main__':
 
 
 
-    A.add_argument( "-r"     ,   type = float , default = 3.00  ) 
-    A.add_argument( "-theta" ,   type = float , default = 0.00  ) 
-    A.add_argument( "-tau"   ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho1"  ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho2"  ,   type = float , default = 0.00  ) 
-    A.add_argument( "-rho3"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-r_min"     ,   type = float , default = 3.00  ) 
+    A.add_argument( "-theta_min" ,   type = float , default = 0.00  ) 
+    A.add_argument( "-tau_min"   ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho1_min"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho2_min"  ,   type = float , default = 0.00  ) 
+    A.add_argument( "-rho3_min"  ,   type = float , default = 0.00  ) 
 
     A.add_argument( "-r_max"     ,   type = float , default = 10.0 ) 
     A.add_argument( "-theta_max" ,   type = float , default = np.pi/2    ) 
@@ -522,7 +350,6 @@ if __name__ == '__main__':
 #########################
 
     A.add_argument( '-seed', type = int, default = 111 )
-
     A.add_argument( '-pna', action = 'store_true', default = False )
     A.add_argument( '-pna_waters', type = int, default = 10 )
     A.add_argument( '-pna_min_r', type = float, default = 0 )
@@ -532,24 +359,24 @@ if __name__ == '__main__':
 
     args = A.parse_args()
 
+#Obtain variable parameters from program call and set them
+    g = Generator( )
     opts =  {
-       "r"    :{"min":args.r,    "max": args.r_max,    "points":args.r_points,    },
-       "tau"  :{"min":args.tau,  "max": args.tau_max,  "points":args.tau_points,  },
-       "theta":{"min":args.theta,"max": args.theta_max,"points":args.theta_points,},
-       "rho1" :{"min":args.rho1, "max": args.rho1_max, "points":args.rho1_points, },
-       "rho2" :{"min":args.rho2, "max": args.rho2_max, "points":args.rho2_points, },
-       "rho3" :{"min":args.rho3, "max": args.rho3_max, "points":args.rho3_points, },
-             }
+       "r"    :{"min":args.r_min,    "max": args.r_max,    "points":args.r_points,    },
+       "tau"  :{"min":args.tau_min,  "max": args.tau_max,  "points":args.tau_points,  },
+       "theta":{"min":args.theta_min,"max": args.theta_max,"points":args.theta_points,},
+       "rho1" :{"min":args.rho1_min, "max": args.rho1_max, "points":args.rho1_points, },
+       "rho2" :{"min":args.rho2_min, "max": args.rho2_max, "points":args.rho2_points, },
+       "rho3" :{"min":args.rho3_min, "max": args.rho3_max, "points":args.rho3_points, },
+    }
+    g.vary_parameters( opts )
 
-    g = Generator( **opts )
 
     if args.param:
-        g.vary_parameters( opts )
         g.gen_mols_param( 
                 mol = args.param_mol ,
                 basis = args.basis,
                 AA = False )
-        raise SystemExit
 
     if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
@@ -558,6 +385,7 @@ if __name__ == '__main__':
         g.build_pna( xyz = "pna_opt.xyz", 
                 waters = args.pna_waters,
                 min_r = args.pna_min_r,
-                mult_r = args.pna_mult_r )
+                mult_r = args.pna_mult_r,
+                seed = args.seed )
                 
-
+ 
