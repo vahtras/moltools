@@ -34,9 +34,11 @@ Run:
 
 #### Add them together into a Cluster
 
-\>>> `Cluster.add_mol( w1 )`
+\>>> `c = Cluster()`
 
-\>>> `Cluster.add_mol( w2 )`
+\>>> `c.add_mol( w1 )`
+
+\>>> `c.add_mol( w2 )`
 
 #### Write the resulting configuration to a DALTON .mol file
 
