@@ -26,13 +26,13 @@ Run:
 * `in [1]: from use_generator import Generator`
 * `in [2]: from molecules import Cluster`
 
-## Create a water molecule with oxygen in origo, in atomic units
+##### Create a water molecule with oxygen in origo, in atomic units
 \>>> `w1 = Generator().get_mol( center = [0, 0, 0], mol = "water", AA = False )`
 
-## Create an additional water molecule with the oxygen located at z = 2.5, in atomic units
+##### Create an additional water molecule with the oxygen located at z = 2.5, in atomic units
 \>>> `w2 = Generator().get_mol( center = [0, 0, 2.5], mol = "water", AA = False )`
 
-## Add them together into a Cluster
+##### Add them together into a Cluster
 
 \>>> `c = Cluster()`
 
@@ -40,11 +40,11 @@ Run:
 
 \>>> `c.add_mol( w2 )`
 
-## Set up which waters are in the QM region and which in the MM region
+##### Set up which waters are in the QM region and which in the MM region
 
 \>>> `c.set_qm_mm( N_qm = 2 , N_mm = 0 )`
 
-## Write the resulting qm configuration to a DALTON .mol file
+##### Write the resulting qm configuration to a DALTON .mol file
 
 \>>> `open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string( AA = False ))`
 
