@@ -2,7 +2,7 @@
 #-*- coding: utf-8 -*-
 """
 Summary of content
---------------
+------------------------
 
 To get a quick tutorial on most useful parts, see the class-specific documentation.
 
