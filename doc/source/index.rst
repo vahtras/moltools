@@ -16,3 +16,4 @@ Contents:
    use_calculator.rst
    template.rst
    dic.rst
+   read_dal.rst

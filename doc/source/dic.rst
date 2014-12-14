@@ -2,4 +2,4 @@
 dic.py
 ========================
 .. automodule:: dic
-.. autoclass:: dic.Dict
+.. autoclass:: dic.Dic
