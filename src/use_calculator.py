@@ -18,10 +18,6 @@ from template import Template
 from molecules import Atom, Molecule, Water, Property
 from dic import Dic
 
-#from calculator import Calculator
-
-from generator import Generator
-
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}

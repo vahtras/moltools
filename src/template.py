@@ -2,6 +2,24 @@
 #-*- coding: utf-8 -*-
 
 class Template(dict):
+    """
+    This class holds data obtained by the LoProp transformation.
+    Each template depends on 5 variables.
+    
+    Model: predefines geometry parameters for molecule
+    Method: QM method used to derive properties.
+    Basis: Basis set used.
+    LoProp: Wether the properties are distributed using the LoProp transformation.
+    Frequency: For properties derived at non-zero external frequency
+
+    Use like so:
+        
+    ..
+        >>> temp = Template().get()
+        >>> temp[ ("O1", "charge") ]
+        -0.678
+
+        """
 
     def __init__(self):
         self[ ("OLAV", "HF", "PVDZ", False, 0.0 ) ] = \

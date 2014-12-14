@@ -1,5 +1,5 @@
 use_generator.py
 =====================
 
-Purpose, generate Water configuration for dalton input
-
+.. automodule:: use_generator
+.. autoclass:: use_generator.Generator

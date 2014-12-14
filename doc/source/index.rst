@@ -14,6 +14,5 @@ Contents:
    molecules.rst
    use_generator.rst
    use_calculator.rst
-..   mol/molecules_water.rst
-..   mol/molecules_rotator.rst
-..   mol/molecules_cluster.rst
+   template.rst
+   dic.rst

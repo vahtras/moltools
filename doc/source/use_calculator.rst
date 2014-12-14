@@ -1,5 +1,6 @@
 use_calculator.py
 =====================
 
-Get output plots for xmgrace from DALTON output.
-
+.. automodule:: use_calculator
+.. autoclass:: use_calculator.Calculator
+.. autoclass:: use_calculator.Xms

@@ -2,5 +2,9 @@
 molecules.py
 ========================
 .. automodule:: molecules
-.. autofunction:: upper_triangular
-.. autoclass:: Property
+.. autofunction:: molecules.upper_triangular
+.. autoclass:: molecules.Property
+.. autoclass:: molecules.Atom
+.. autoclass:: molecules.Molecule
+.. autoclass:: molecules.Water
+.. autoclass:: molecules.Cluster
