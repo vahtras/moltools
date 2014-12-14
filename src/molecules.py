@@ -1,15 +1,24 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 """
-Summary of content
-------------------------
-
 To get a quick tutorial on most useful parts, see the class-specific documentation.
+
+.. toctree::
+    :maxdepth: 1
+
+    Atom.rst
+    Property.rst
+    Molecule.rst
+    Water.rst
+    Rotator.rst
+    Cluster.rst
 
 The molecules modules serves as an interface to:
 
 1. Write water molecule input files using predefined geometries, to be used with the DALTON qm package.
+
 2. Read in water molecules from different formats and perform analysis on them.
+
 
 """
 
@@ -311,7 +320,9 @@ class Rotator(object):
 
 
 class Atom(object):
-    """ By default in Atomic units for coordinates """
+    """
+    see :ref:`Atom` for typical examplces
+    """
     def __init__(self, *args, **kwargs ):
 #Element one-key char
         self.element = None

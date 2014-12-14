@@ -1,3 +1,5 @@
+.. _use_calculator:
+
 use_calculator.py
 =====================
 
