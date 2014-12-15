@@ -8,15 +8,10 @@ Dalton tools is a package of scripts and modules I use daily in my research as a
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    requirements.rst
    install.rst
-   modules/mol/molecules.rst
-   modules/use_generator.rst
-   modules/use_calculator.rst
-   modules/template.rst
-   modules/dic.rst
-   modules/read_dal.rst
+   modules.rst
    testing.rst
    bugs.rst

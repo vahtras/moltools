@@ -2,18 +2,30 @@
 #-*- coding: utf-8 -*-
 """
 Purpose
-==================
+------------------
 
 Automate creating water dimers for DALTON input in order to study the properties dependence on various parameters.
 
 
 Usage
-==================
+------------------
 
 This script creates a water dimer with one water with its oxygen in origo and the other water with its oxygen at a separation :math:`r` from the first oxygen with spheciral coordinate angles :math:`\\tau` and :math:`\\theta`.
 
+.. code:: bash
 
-Further parameters that can be varied are :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\rho_3`, which describe the relative rotations of the water monomers.
+    $ use_generator.py -param -r_min 5 -r_max 10 -r_points 10
+
+Will create 10 .mol files where the distance between the water molecules goes from 5 to 10 atomic units.
+
+To analyze the results from the output of the files generated, see :ref:`use_calculator`.
+
+-----------
+
+Further parameters that can be varied are :math:`\\tau`, :math:`\\theta`, :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\rho_3`.
+
+:math:`\\rho_1` - :math:`\\rho_3` are described in :ref:`Water`.
+
 
 By default :math:`r=5.0` in atomic units, and :math:`\\tau` = :math:`\\theta` = :math:`\\rho_{1}` = :math:`\\rho_2` = :math:`\\rho_3` = 0
 

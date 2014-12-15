@@ -3,17 +3,28 @@ Requirements
 
 For bug-free performance, and full compatability, the latest source of the core dependencies are recommended.
 
-Python v. 2.7.9
+- python 2.7.9
 
-Numpy v. 1.9.1
+- numpy 1.9.1
 
-Matplotlib .v 1.4.2
+- matplotlib 1.4.2
 
-Python-nose .v 1.3.4
+- python-nose 1.3.4
 
-.. attention::
+Optional dependencies include:
 
-For use_calculator and read_dal, at the moment some requirements are closed-source.
+- grace 5.1.23
 
-Uncomment the following line to use the other features of those scripts.::
+- DALTON 2013
+
+.. warning::
+
+   For **use_calculator** and **read_dal**, at the moment some requirements are closed-source.
+
+Uncomment the following line to use the other features of those scripts.
+
+.. code:: python
+
    from gaussian import *
+
+

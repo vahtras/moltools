@@ -1,6 +1,9 @@
 Bugs
 ===========================
 
-The code is completely 100% bug-free.
+Bugs can appear in any shape, form or code.
 
-This is of course not true so if you find some bugs, please contact me on ignathe_at_gmail.com.
+If you find some bugs and want to fix them, it would be greatly appreciated!
+
+Create a pull-request for the github `repository
+<https://github.com/fishstamp82/dalton_tools>`_. 

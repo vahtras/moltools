@@ -2,10 +2,11 @@ Testing
 ===========================
 
 The code uses continous testing with `Travis CI
-https://travis-ci.org/profile/fishstamp82`_.
+<https://travis-ci.org/fishstamp82/dalton_tools>`_.
 
 
-Unit-tests can be launched by the user by running::
-   nosetests
+Unit-tests can be launched by the user by running
 
-in the working directory of dalton_tools
+.. code:: bash
+
+   $ nosetests
