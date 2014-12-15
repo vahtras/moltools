@@ -7,33 +7,36 @@ Purpose
 
 Read in output from dalton .out files, produced by the .mol files created with :ref:`use_generator`.
 
+
 Usage
 ------------------
 
-Run the script in the same directory where all the .out and .mol files exists from the dalton **QUADRATIC response calculation.
+Run the script in the same directory where all the .out and .mol files exists from the dalton \*\*QUADRATIC response calculation.
 
 Typical dalton file will look like:
 
-    | **DALTON INPUT
-    | .RUN RESPONSE
-    | .DIRECT
-    | .PARALLELL
-    | **WAVE FUNCTION
-    | .HF
-    | **RESPONSE
-    | .PROPAV
-    | XDIPLEN
-    | .PROPAV
-    | YDIPLEN
-    | .PROPAV
-    | ZDIPLEN
-    | *QUADRATIC
-    | .DIPLEN
-    | **END OF DALTON INPUT
+::
+
+    **DALTON INPUT
+    .RUN RESPONSE
+    .DIRECT
+    .PARALLELL
+    **WAVE FUNCTION
+    .HF
+    **RESPONSE
+    .PROPAV
+    XDIPLEN
+    .PROPAV
+    YDIPLEN
+    .PROPAV
+    ZDIPLEN
+    *QUADRATIC
+    .DIPLEN
+    **END OF DALTON INPUT
     
 .. note::
 
-    Right now the dalton input must be named hfqua.dal, which will give a hfqua_ prefix for all the .out files.
+    Right now the dalton input must be named hfqua.dal, which will give a hfqua\_ prefix for all the .out files.
 
 -----------------
 
