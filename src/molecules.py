@@ -13,12 +13,9 @@ To get a quick tutorial on most useful parts, see the class-specific documentati
     Rotator.rst
     Cluster.rst
 
-The molecules modules serves as an interface to:
-
-1. Write water molecule input files using predefined geometries, to be used with the DALTON qm package.
-
-2. Read in water molecules from different formats and perform analysis on them.
-
+Summary
+==================
+The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 
 """
 
@@ -58,7 +55,9 @@ Usage, form 2D-matrix from upper-triangular matrix represented by an array::
 
 class Property( dict ):
     """
-    Docstring for Property
+An object representing properties as numpy.ndarray types mapped by python dictionaries.
+
+Attached to the Atom class.
     """
     def __init__(self):
 
@@ -151,8 +150,13 @@ class Property( dict ):
         return  tmp 
 
 class Rotator(object):
+    """
+Container class for rotational operations on points, vectors, and tensors.
+
+Can be used to make coordinational transformations of upper-triangular tensors up to rank 3"""
+
     def __init__(self):
-        """Container class for all rotation related operations"""
+        pass
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
@@ -321,7 +325,9 @@ class Rotator(object):
 
 class Atom(object):
     """
-    see :ref:`Atom` for typical examplces
+Object representation of atoms.
+
+Will be used to construct water molecules.
     """
     def __init__(self, *args, **kwargs ):
 #Element one-key char
@@ -415,8 +421,11 @@ class Atom(object):
         self.z *= a0
 
 class Molecule( list ):
-    """General molecule has general methods to obtain euler angles, 
-    All molecules inherits from this one"""
+    """
+General object that has methods to obtain euler angles, 
+
+Specific molecules will inherit methods from this class.
+"""
 
     def __init__(self , *args, **kwargs):
 
@@ -430,7 +439,6 @@ class Molecule( list ):
 #By default, AU 
         self.AA = False
         self.Property = None
-        self.no_hydrogens = True
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
@@ -582,19 +590,16 @@ class Molecule( list ):
             self.AA = True
 
 class Water( Molecule ):
-    """ Derives all general methods from Molecule.
-    Specifics here for Water """
+    """
+Derives all general methods from Molecule.
+
+Specific for water is the get_euler method, which defines which water orientation
+is the reference position.
+"""
 
     def __init__(self , *args, **kwargs):
         super(Water, self).__init__( **kwargs )
         self.atoms = 0
-        self.q = 0.0
-        self.r_oh = False
-        self.t_hoh = False
-
-        self.euler1 = False
-        self.euler2 = False
-        self.euler3 = False
 
         self.no_hydrogens = True
         self.h1 = False
@@ -770,7 +775,7 @@ class Water( Molecule ):
 
     def get_euler(self):
         """Return euler angles rho1, rho2, rho3 
-        required to  water to its default placement
+        required to water to its default placement
         for which the template properties are calculated """
 
         H1 = self.h1.r.copy()
@@ -1065,6 +1070,9 @@ class Water( Molecule ):
 
 
 class Methanol(Molecule):
+    """
+Not yet implemented, only needs get_euler and z-matrix to be specific.
+    """
 
     def __init__(self, *args, **kwargs):
         super( Methanol, self).__init__(**kwargs)
@@ -1126,6 +1134,11 @@ class Ethane(list):
         pass
 
 class Cluster(list):
+    """
+Molecule container which groups molecules into quantum mechanics, molecular mechanics, and qm/mm regions for easy in generating input files for QM/MM.
+
+Also has methods to find distances between molecules e.t.c.
+    """
     def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
         pass
