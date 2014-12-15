@@ -8,7 +8,6 @@ Dalton tools is a package of scripts and modules I use daily in my research as a
 Contents:
 
 .. toctree::
-   :maxdepth: 5
 
    requirements.rst
    install.rst

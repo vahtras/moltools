@@ -2,7 +2,6 @@ Modules
 ========
 
 .. toctree::
-   :maxdepth: 3
 
    modules/mol/molecules.rst
    modules/use_generator.rst
