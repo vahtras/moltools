@@ -19,12 +19,4 @@ Optional dependencies include:
 
 .. warning::
 
-   For **use_calculator** and **read_dal**, at the moment some requirements are closed-source.
-
-Uncomment the following line to use the other features of those scripts.
-
-.. code:: python
-
-   from gaussian import *
-
-
+   For **use_calculator** and **read_dal**, at the moment (17 Dec 2014) some requirements are closed-source.

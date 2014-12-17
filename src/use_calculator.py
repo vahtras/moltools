@@ -64,7 +64,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 #from particles import *
-from gaussian import *
+#from gaussian import *
 
 from template import Template
 from molecules import Atom, Molecule, Water, Property

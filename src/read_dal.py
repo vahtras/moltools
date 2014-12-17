@@ -5,8 +5,6 @@ import numpy as np
 import fractions as fr
 import math as m
 
-import ut
-
 from particles import *
 from gaussian import *
 
