@@ -5,8 +5,8 @@ import numpy as np
 import fractions as fr
 import math as m
 
-from particles import *
-from gaussian import *
+#from particles import *
+#from gaussian import *
 
 from molecules import Atom, Water, Property, Cluster, Rotator
 from template import Template
