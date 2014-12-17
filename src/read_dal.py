@@ -5,17 +5,15 @@ import numpy as np
 import fractions as fr
 import math as m
 
-import ut
-
-from particles import *
-from gaussian import *
+#from particles import *
+#from gaussian import *
 
 from molecules import Atom, Water, Property, Cluster, Rotator
 from template import Template
 
 from matplotlib import pyplot as plt
 
-import h5py
+#import h5py
 #from calculator import *
 
 
@@ -113,6 +111,23 @@ def qmmm_generation( ending = "pdb",
         potfreqs = ["0.0"],
         potstyle = "QMMM",
         basis = "ANOPVDZ" ):
+    """
+Generate a set of qm_waters for dalton QM input, with mm_waters in the MM region for QM/MM calculations.
+
+Each .pdb files in the working directory will be converted into .mol files for the QM regions, and .pot files for the MM-regions.
+
+.. code:: bash
+
+    $ ls *pdb 
+    tip3p.pdb
+
+    $ read_dal.py -qmmm_generation -qm_waters 2 -mm_waters 1
+    wrote tip3p_1qm_1mm.mol
+    wrote tip3p_1qm_1mm.pot
+    wrote tip3p_2qm_1mm.mol
+    wrote tip3p_2qm_1mm.pot
+
+"""
 
 
     pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( ".pdb" ) ]

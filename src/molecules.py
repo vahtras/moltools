@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
+"""
+The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
+"""
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
@@ -13,11 +16,20 @@ a0 = 0.52917721092
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 # from TIP3P charge defs.
-el_charge_dict = {"H": .417, "O": -0.834 }
-mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066}
+el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417}
+mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
+    "X" : 1.008 }
 
 def upper_triangular(n, start=0):
-    """Recursive generator for triangular looping of Carteesian tensor"""
+    """Recursive generator for triangular looping of Carteesian tensor
+
+Usage, form 2D-matrix from upper-triangular matrix represented by an array::
+
+    ref = np.arange( 6 ) # Non-zero elements in 2-dimensional UT-tensor
+    arr = np.zeros( (3, 3) ) # Target 
+    for ind, (i, ii) in enumerate( upper_triangular(2) ):
+        arr[ i, ii ] = ref[ ind ]
+"""
     if n > 2:
         for i in range(start, 3):
             for j in upper_triangular(n-1, start=i):
@@ -28,6 +40,21 @@ def upper_triangular(n, start=0):
                 yield i, j
 
 class Property( dict ):
+    """
+**An object representing properties as numpy.ndarray types mapped to by python dictionaries.**
+
+**Supports up to quadrupoles, upper triangular polarizability and upper trianguler hyperpolarizability**
+
+.. code:: python
+    
+    >>> p = Property()
+    >>> print p["charge"]
+    [0.0]
+
+    >>> print p["dipole"]
+    [0.0, 0.0, 0.0]
+
+"""
     def __init__(self):
 
         self["charge"] = np.zeros( 1 )
@@ -90,6 +117,17 @@ class Property( dict ):
 
     @staticmethod
     def add_prop_from_template( at, wat_templ ):
+        """
+Puts properties read from the :ref:`template` module into the :ref:`atom` at.
+
+    
+    >>> temp = template.Template().get() #Default template
+    >>> w = Water.get_standard() #Default water
+    >>> Property.add_prop_from_template( w.o, temp )
+    >>> print w.o["dipole"]
+    [0.0, 0.0, 0.78719]
+
+"""
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
@@ -119,11 +157,24 @@ class Property( dict ):
         return  tmp 
 
 class Rotator(object):
+    """
+**Container class for rotational operations on points, vectors, and tensors.**
+"""
+
     def __init__(self):
-        """Container class for all rotation related operations"""
+        pass
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
+        """
+Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis counter-clockwise by :math:`\\rho_2`, and finally clockwise around the z-axis by :math:`\\rho_3`.
+
+.. code:: python
+
+    >>> d = numpy.array( [ 1, 0, 0] )
+    >>> print Rotator.transform_1( d, numpy.pi/2, 0, 0 )
+    [ 0., -1., 0. ]
+"""
         d_new1 = np.zeros([3]) #will be returned
         d_new2 = np.zeros([3]) #will be returned
         d_new3 = np.zeros([3]) #will be returned
@@ -288,17 +339,50 @@ class Rotator(object):
 
 
 class Atom(object):
-    """ By default in Atomic units for coordinates """
+
+    """
+    **Object representation of atoms.**
+    """
     def __init__(self, *args, **kwargs ):
+        """
+Initialize either directly:
+
+.. code:: python
+
+    >>> a = Atom( x = 0, y = 0, z = 0, 'element' = 'H', AA = True )
+
+... or with pre-defined key-word arguments:
+
+.. code:: python
+
+    >>> kwargs = { 'x' : 0, 'y' : 0, 'z' : 0, 'element' : 'H', "AA" : True }
+    >>> a = Atom( **kwargs )
+
+List of key-word arguments:
+
+======== ======== ========
+Keyword  Default  Type
+======== ======== ========
+x        0.0      float
+y        0.0      float
+z        0.0      float
+element  X        string
+name     1-XXX-X1 string
+pdbname  X1       string
+number   0        int
+AA       True     bool
+======== ======== ========
+
+        """
 #Element one-key char
-        self.element = None
+        self.element = "X"
 
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
 
-        self.x = None
-        self.y = None
-        self.z = None
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
 
         self._q = None
 
@@ -310,7 +394,7 @@ class Atom(object):
         self.in_water = False
         self.Water = None
         self.Property = Property()
-        self.AA = False
+        self.AA = True
 
         if kwargs != {}:
             self.AA = bool( kwargs.get( "AA", True ) )
@@ -366,23 +450,50 @@ class Atom(object):
         return np.array( self.r ).copy()
 
     def dist_to_atom(self, other):
+
+        """
+Return the distance between two atoms
+
+.. code:: python
+
+   >>> H1 = Atom( z = 0 )
+   >>> H2 = Atom( z = 1 )
+   >>> print H1.dist_to_atom( H2 )
+   1.0
+
+"""
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
     def dist_to_point(self, other):
+        """
+Return the distance to a point
+
+.. code:: python
+
+   >>> a = Atom( z = 0 )
+   >>> print H1.dist_to_point( [0, 3, 4] )
+   5.0
+
+"""
         return np.sqrt( (self.x - other[0])**2 + (self.y -other[1])**2 + (self.z -other[2])**2 )
 
     def to_au(self):
-        self.x /= a0
-        self.y /= a0
-        self.z /= a0
+        if self.AA:
+            self.x /= a0
+            self.y /= a0
+            self.z /= a0
+            self.AA = False
 
     def to_AA(self):
-        self.x *= a0
-        self.y *= a0
-        self.z *= a0
+        if not self.AA:
+            self.x *= a0
+            self.y *= a0
+            self.z *= a0
+            self.AA = True
 
 class Molecule( list ):
-    """General molecule has general methods to obtain euler angles, 
-    All molecules inherits from this one"""
+    """
+**Inherits list methods, specific molecules will inherit from this class.**
+"""
 
     def __init__(self , *args, **kwargs):
 
@@ -392,11 +503,11 @@ class Molecule( list ):
         self._r = None
         self._com = None
         self.cluster = None
+        self.no_hydrogens = True
 
 #By default, AU 
         self.AA = False
         self.Property = None
-        self.no_hydrogens = True
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
@@ -405,14 +516,53 @@ class Molecule( list ):
 #Dipole moment
     @property
     def p(self):
+        """
+Return the dipole moment
+
+.. code:: python
+
+   >>> m = Molecule()
+   >>> m.append( Atom(element = 'H', z = 1) )
+   >>> m.append( Atom(element = 'O', z = 0) )
+   >>> print m.p
+   -0.834
+
+"""
         return np.array([at.r*at.q for at in self]).sum(axis=0)
 
 #Vector pointing to center of atom position
     @property
     def r(self):
+        """
+Center of coordinate
+
+.. code:: python
+
+   >>> m = Molecule()
+   >>> m.append( Atom(element = 'H', z = 1) )
+   >>> m.append( Atom(element = 'O', z = 0) )
+   >>> print m.r
+   0.5
+
+"""
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
     def translate(self, r):
+        """
+Translate molecules center-of-mass to position r
+
+.. code:: python
+
+    >>> m = Molecule()
+    >>> m.append( Atom(element = 'H', z = 1) )
+    >>> m.append( Atom(element = 'H', z = 0) )
+    >>> print m.com
+    [0, 0, 0.5 ]
+    >>> m.translate( [0, 3, 5] )
+    >>> print m.com
+    [0, 3, 5 ]
+    
+"""
         vec = r - self.com
         for at in self:
             at.x = vec[0] + at.x 
@@ -432,28 +582,74 @@ class Molecule( list ):
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+
+#Center of charge
+    @property
+    def coc(self):
+        """
+Return center of charge
+
+.. code:: python
+
+    >>> m = Molecule()
+    >>> m.add_atom( Atom( z : 0.11, element : 'H' ) )
+    >>> m.coc
+    [0., 0., 0.11]
+
+        """
+
+        return sum( [at.r * charge_dict[at.element] for at in self])\
+                /sum( map(float,[charge_dict[at.element] for at in self]) )
+
     @property
     def com(self):
         return np.array([at.mass*at.r for at in self]).sum(axis=0) / np.array([at.mass for at in self]).sum()
 
     def dist_to_mol(self, other):
-        return np.sqrt( (self.com - other.com)**2 )
+        """
+Distance to other molecule, measured by center-of-mass
 
-#    def plot(self ):
-##Plot water molecule in green and  nice xyz axis
-#        O1, H1, H2 = self.o, self.h1, self.h2
-#        fig = plt.figure()
-#        dip = self.get_dipole()
-#        ax = fig.add_subplot(111, projection='3d' )
-#        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
-#        ax.plot( [O1.x,O1.x + dip[0] ] ,[ O1.y,O1.y+dip[1]],[O1.z,O1.z+dip[2]] ,'-',color="black")
-#        ax.scatter( [H1.x], [ H1.y] ,[ H1.z], s=25, color='red')
-#        ax.scatter( [H2.x], [ H2.y] ,[ H2.z], s=25, color='red')
-#        ax.scatter( [O1.x], [ O1.y] ,[ O1.z], s=50, color='blue')
-#        ax.set_zlim3d( -5,5)
-#        plt.xlim(-5,5)
-#        plt.ylim(-5,5)
-#        plt.show()
+.. code:: python
+
+    >>> m1 = Molecule( )
+    >>> m2 = Molecule( )
+    >>> m1.append( Atom()) ; m1.append( Atom( z = 1) )
+    >>> m2.append( Atom(x = 1)) ; m2.append( Atom( x = 1, z = 1) )
+    >>> print m1.dist_to_mol( m2 )
+    1.0
+    
+"""
+        return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
+
+    def plot(self ):
+        """
+Plot the molecule in a 3D frame
+
+.. code:: python
+
+    >>> m = Molecule()
+    >>> m.append( Atom(element = 'H', x = 1, z = 1) )
+    >>> m.append( Atom(element = 'H', x =-1, z = 1) )
+    >>> m.append( Atom(element = 'O', z = 0) )
+    >>> m.plot()
+    
+"""
+
+#Plot water molecule in green and  nice xyz axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        x = self.coc[0]
+        y = self.coc[1]
+        z = self.coc[2]
+        p = self.p
+        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], self.p, '-' )
+        for i in self:
+            ax.plot( i.x, i.y , i.z, 'ro', s=25, )
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
 
     def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) ):
         if len( basis ) > 1:
@@ -488,8 +684,44 @@ class Molecule( list ):
                 tmp.append(i)
         return tmp
 
+    def center(self):
+
+        """
+Center molecule with center-of-mass in origo
+
+.. code:: python
+
+    >>> m.com
+    [0., 0., 1.,]
+
+    >>> m.center()
+    >>> m.com
+    [0., 0., 0.,]
+
+"""
+        tmp = np.array( [0,0,0] )
+        self.translate( tmp )
+
+
+
+
+
+
     @staticmethod
     def from_mol_file( molfile, AA = False):
+        """
+Read in molecule given .mol file and unit specification.
+
+.. code:: python
+
+    >>> m = ( "water.mol", AA = True )
+    >>> for at in m:
+            print at.element
+    H
+    H
+    O
+    
+"""
         pat_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+) *$')
         tmp_molecule = Molecule()
         for i in open( molfile ).readlines():
@@ -503,8 +735,25 @@ class Molecule( list ):
                 tmp_molecule.append( tmpAtom )
         return tmp_molecule
 
+
+
     @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
+        """
+Read in molecule from .xyz file given unit specifications.
+Resulting molecule will be in either atomic units [ out_AA = False ], or in 
+Angstrom [ out_AA = True ]
+
+.. code:: python
+
+    >>> m = ( "water.mol", in_AA = True, out_AA = False )
+    >>> for at in m:
+            print at.z
+    H
+    H
+    O
+    
+"""
 
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
@@ -548,19 +797,15 @@ class Molecule( list ):
             self.AA = True
 
 class Water( Molecule ):
-    """ Derives all general methods from Molecule.
-    Specifics here for Water """
+    """
+**Derives all general methods from Molecule.**
+
+**Specific for water is the get_euler method, which defines which water orientation is the reference position.**
+"""
 
     def __init__(self , *args, **kwargs):
         super(Water, self).__init__( **kwargs )
         self.atoms = 0
-        self.q = 0.0
-        self.r_oh = False
-        self.t_hoh = False
-
-        self.euler1 = False
-        self.euler2 = False
-        self.euler3 = False
 
         self.no_hydrogens = True
         self.h1 = False
@@ -580,15 +825,18 @@ class Water( Molecule ):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
         return w
-
-    def center(self):
-        tmp = np.array( [0,0,0] )
-        self.translate( tmp )
-
     @staticmethod
-    def get_standard():
+    def get_standard( AA = False):
+        """
+Return water molecule from specified template with :math:`r=0.972` Angstrom and 
+:math:`\\theta=104.5` degrees.
+
+.. code:: python
+
+    >>> m = Water.get_standard()
+
+"""
 #Geometrical parameters
-        AA = False
         center = [0, 0, 0]
         r_oh =  104.5
         a_hoh = 0.9720
@@ -623,14 +871,18 @@ class Water( Molecule ):
     @property
     def coo(self):
         return self.o.r
-
-#Center of charge
-    @property
-    def coc(self):
-        return sum( [at.r * charge_dict[at.element] for at in self])\
-                /sum( map(float,[charge_dict[at.element] for at in self]) )
-
     def append(self, atom):
+        """
+Override list append method, will add up to 3 atoms,
+1 must be oxygen, 2 must be hydrogens.
+
+.. code:: python
+
+    >>> m = Water()
+    >>> m.add_atom( Atom( z : 0.11, element : 'H' ) )
+    >>> m.coc
+
+"""
         if len(self) > 3:
             print "tried to add additional atoms to water, exiting"
             raise SystemExit
@@ -655,10 +907,8 @@ class Water( Molecule ):
         super( Water , self).append(atom)
 
 #Define water center, by default set it to center of nuclei
-
         if (self.h1 and self.h2 and self.o):
             pass
-            #self.r = np.array([at.r for at in self]).sum(axis=0) / 3.0
 
         if self.res_id:
             if self.res_id != atom.res_id:
@@ -668,12 +918,6 @@ class Water( Molecule ):
 #Initialize water res_id from atomic res_id
             self.res_id = atom.res_id
 
-
-#Fix for when arbitrary rotation, let hydrogen closests to upper octant be h1, the other h2
-#The hydrogen closest to (1,1,1) gets to be h1, if they are equally close, then the one closest
-#to the x axis is h1
-
-#Also calculate center now
         if len(self) == 3:
             hyd1, hyd2 = [i for i in self if i.element == "H" ]
             d1 = hyd1.dist_to_point( [1,1,1] )
@@ -689,13 +933,8 @@ class Water( Molecule ):
                 hyd1.name = "H2"
                 hyd2.name = "H3"
 
-    def potline(self, max_l, pol, hyper, dist):
-        return  "%d %.5f %.5f %.5f " %( 
-                self.res_id, self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, dist ) + "\n"
-
     def __str__(self):
         return "WAT" + str(self.res_id) 
-
     
     def exclists(self):
         tmp = []
@@ -706,44 +945,35 @@ class Water( Molecule ):
                 uniq.append( i[0] )
         return tmp
 
-    def get_dipole(self):
-# Not accurate magnitude, only direction of dipole vector
-        hq = 0.25
-        oq = -0.5
-        return self.h1.get_array() * hq + self.h2.get_array() * hq + self.o.get_array() * oq
-
-    def get_norm(self):
-        r1 = self.h1 - self.o
-        r2 = self.h2 - self.o
-        return np.cross( r1, r2 )
-
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.coo - np.array(point))**2))
 
     def dist_to_water(self, other):
         return np.sqrt(np.sum((self.coo - other.coo)**2) )
 
-    def set_property_on_each_atom(self):
-        for i, prop in enumerate ( self.Property ):
-            pass
-        o_props =   { prop : self.Property[prop][0] for (key , prop)  in enumerate( self.Property )  }
-        h1_props =  { prop : self.Property[prop][1] for (key , prop)  in enumerate( self.Property ) }
-        h2_props =  { prop : self.Property[prop][2] for (key , prop)  in enumerate( self.Property ) }
-
-        self.o.Property  = Property.from_template(  **o_props )
-        self.h1.Property = Property.from_template( **h1_props )
-        self.h2.Property = Property.from_template( **h2_props )
-
     def get_euler(self):
-        """Return euler angles rho1, rho2, rho3 
-        required to  water to its default placement
-        for which the template properties are calculated """
+        """
+Returns the 3 euler angles required to rotate the water to given coordinate system.
+The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\rho_3`.
+
+.. code:: python
+
+    >>> w = Water()
+    >>> w.append( Atom( x = 1, z = 1, element = 'H' ) )
+    >>> w.append( Atom( x =-1, z = 1, element = 'H' ) )
+    >>> w.append( Atom( x = 0, z = 1, element = 'O' ) )
+    >>> r1, r2, r3 = w.get_euler()
+    >>> print r1
+    0.0
+
+
+        """
 
         H1 = self.h1.r.copy()
         H2 = self.h2.r.copy()
         O1 = self.o.r.copy()
 
-        dip = self.get_dipole()
+        dip = self.p
 
         origin = O1.copy()
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
@@ -1031,6 +1261,9 @@ class Water( Molecule ):
 
 
 class Methanol(Molecule):
+    """
+Not yet implemented, only needs get_euler and z-matrix to be specific.
+    """
 
     def __init__(self, *args, **kwargs):
         super( Methanol, self).__init__(**kwargs)
@@ -1092,6 +1325,9 @@ class Ethane(list):
         pass
 
 class Cluster(list):
+    """
+**Molecule container which groups molecules into quantum mechanics, molecular mechanics, and qm/mm regions for easy in generating input files for QM/MM.**
+"""
     def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
         pass
@@ -1258,7 +1494,16 @@ class Cluster(list):
 
     @staticmethod
     def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
-        """From file with name fname, return a Cluster with all waters encountered"""
+        """
+Return a cluster of water molecules given file.
+
+.. code:: python
+
+    >>> c = Cluster.get_water_cluster( 'somefile.mol' , in_AA = False, out_AA = False, N_waaters = 10 )
+    >>> print len( c )
+    10
+
+"""
         atoms = []
         c = Cluster()
         if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
@@ -1483,7 +1728,4 @@ class Cluster(list):
         return tmp_c
 
 if __name__ == '__main__':
-
-# Water bonding parameters:
-#
     pass

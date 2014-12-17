@@ -2,6 +2,33 @@
 #-*- coding: utf-8 -*-
 
 class Template(dict):
+    """
+This class holds data obtained by the LoProp transformation.
+Each template depends on 5 variables.
+
+=========== ======================= ==========
+Variable    Choices                 Type
+=========== ======================= ==========
+Model:      TIP3P / OLAV            string
+Method:     HF                      string
+Basis:      PVDZ/ANOPVDZ/ANOPVTZ    string
+LoProp:     True/False              bool
+Frequency:  Field :math:`\\omega`    string
+=========== ======================= ==========
+
+
+.. code:: python
+
+    >>> temp = Template().get()
+    >>> print temp[ ("O1", "charge") ]
+    0.0
+
+    >>> temp = Template().get( model = "TIP3P", method = "HF",
+            basis = "ANOPVDZ", dist = True, freq = "0.0"  )
+    >>> print temp[ ("O1", "charge") ]
+    -0.678
+
+"""
 
     def __init__(self):
         self[ ("OLAV", "HF", "PVDZ", False, 0.0 ) ] = \

@@ -1,6 +1,58 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+"""
+Purpose
+------------------
+
+Read in output from dalton .out files, produced by the .mol files created with :ref:`use_generator`.
+
+
+Usage
+------------------
+
+Run the script in the same directory where all the .out and .mol files exists from the dalton \*\*QUADRATIC response calculation.
+
+Typical dalton file will look like:
+
+::
+
+    **DALTON INPUT
+    .RUN RESPONSE
+    .DIRECT
+    .PARALLELL
+    **WAVE FUNCTION
+    .HF
+    **RESPONSE
+    .PROPAV
+    XDIPLEN
+    .PROPAV
+    YDIPLEN
+    .PROPAV
+    ZDIPLEN
+    *QUADRATIC
+    .DIPLEN
+    **END OF DALTON INPUT
+    
+.. note::
+
+    Right now the dalton input must be named hfqua.dal, which will give a hfqua\_ prefix for all the .out files.
+
+-----------------
+
+
+.. code:: bash
+
+    $ use_calculator.py -vary_r 
+
+Will generate tmp.xvg, which can be plotted as
+
+.. code:: bash
+
+    $ xmgrace tmp.xvg
+
+"""
+
 import os, re, subprocess
 
 import numpy as np
@@ -12,15 +64,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 #from particles import *
-from gaussian import *
+#from gaussian import *
 
 from template import Template
 from molecules import Atom, Molecule, Water, Property
 from dic import Dic
-
-#from calculator import Calculator
-
-from generator import Generator
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
