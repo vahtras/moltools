@@ -3,7 +3,7 @@ Modules
 
 .. toctree::
 
-   modules/mol/molecules.rst
+   modules/molecules.rst
    modules/use_generator.rst
    modules/use_calculator.rst
    modules/template.rst
