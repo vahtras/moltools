@@ -1386,7 +1386,7 @@ class Cluster(list):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
-        st = "%d\n\n" % len( [m for m in self if m.in_qm ] )
+        st = "%d\n\n" % sum( [ len(m) for m in self if m.in_qm ] )
         for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
             st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
@@ -1491,7 +1491,7 @@ class Cluster(list):
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 
-    def get_xyz_string(self):
+    def get_xyz_string(self, ):
         st = "%d\n\n" % sum([len(i) for i in self ])
         for mol in self:
             for i in mol:
@@ -1717,10 +1717,15 @@ Return a cluster of water molecules given file.
         for wat in c:
             for atom in wat:
                 atom.res_id = wat.res_id
+
         if in_AA:
             if not out_AA:
                 for wat in c:
                     wat.to_AU()
+        if not in_AA:
+            if out_AA:
+                for wat in c:
+                    wat.to_AA()
         return c
 
 
@@ -1772,5 +1777,20 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
 
+    def launch_gaussian(self, max_l = 1,
+            pol = 22,
+            hyp = 1,
+            ignore_qmmm = True ):
+        from gaussian import GaussianQuadrupole, GaussianQuadrupoleList
+        print self.get_qmmm_pot_string( max_l = max_l,
+                pol = pol,
+                hyp = hyp,
+                ignore_qmmm = ignore_qmmm )
+
+#todo
+# Insert methods to solve using olavs quadratic and even launch dalton process for QM result
+
 if __name__ == '__main__':
     pass
+
+
