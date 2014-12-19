@@ -130,7 +130,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
-                p[keys[1]] = wat_templ[ keys ]
+                p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
 
     def transform_ut_properties( self, t1, t2, t3):
@@ -387,11 +387,11 @@ AA       True     bool
 
         self.cluster = None
 
-        self.res_id = 0
+        self._res_id = 0
         self.atom_id = None
 
         self.in_water = False
-        self.Water = None
+        self.Molecule = None
         self.Property = Property()
         self.AA = True
 
@@ -410,7 +410,6 @@ AA       True     bool
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdbname':self.pdbname} )
-        a.res_id = self.res_id
         a.atom_id = self.atom_id
         a.Property = self.Property.copy_property()
         return a
@@ -432,6 +431,12 @@ AA       True     bool
             return self._mass
         self._mass = mass_dict[ self.element ]
         return self._mass
+
+    @property
+    def res_id(self):
+        if self.Molecule:
+            return self.Molecule.res_id
+        return None
 
     def potline(self, max_l, pol, hyper):
         return  "{0:4}{1:10f}{2:10f}{3:10f} ".format( \
@@ -907,14 +912,14 @@ Override list append method, will add up to 3 atoms,
         if atom.element == "H":
             if self.no_hydrogens:
                 self.h1 = atom
-                atom.Water = self
+                atom.Molecule = self
                 self.no_hydrogens = False
             else:
                 self.h2 = atom
-                atom.Water = self
+                atom.Molecule = self
         if atom.element == "O":
             self.o = atom
-            atom.Water = self
+            atom.Molecule = self
             atom.name = "O1"
 #Add the atom
         super( Water , self).append(atom)
@@ -1243,9 +1248,6 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
                 tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-        for wat in waters:
-            for atom in wat:
-                atom.res_id = wat.res_id
         if in_AA:
             if not out_AA:
                 for wat in waters:
@@ -1475,8 +1477,13 @@ class Cluster(list):
 
         return st
 # This is the old *QMMM input style in dalton
-    def get_qmmm_pot_string( self, max_l = 1, pol = 2, hyp = 0, AA = False, ignore_qmmm = False ):
-        if AA:
+    def get_qmmm_pot_string( self, max_l = 1,
+            pol = 22,
+            hyp = 1,
+            in_AA = False,
+#Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
+            ignore_qmmm = True ):
+        if in_AA:
             st = "AA\n"
         else:
             st = "AU\n"
@@ -1522,7 +1529,7 @@ class Cluster(list):
 
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
         """
 Return a cluster of water molecules given file.
 
@@ -1714,9 +1721,6 @@ Return a cluster of water molecules given file.
                 tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-        for wat in c:
-            for atom in wat:
-                atom.res_id = wat.res_id
         if in_AA:
             if not out_AA:
                 for wat in c:
@@ -1771,6 +1775,20 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         tmp_c = Cluster()
         [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
+
+    @property
+    def Property(self):
+        """
+Return the sum properties of all molecules in cluster
+
+.. code:: python
+    >>> wat
+        """
+        p = Property()
+        for mol in self:
+            for at in mol:
+                p += at.Property
+        return p
 
 if __name__ == '__main__':
     pass

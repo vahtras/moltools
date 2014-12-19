@@ -164,7 +164,7 @@ class Generator( dict ):
             self[ (val, 'max') ] = opts[val][ "max" ]
             self[ (val, 'points') ] = opts[val][ "points" ]
 
-    def get_mol( self, center = [0,0,0], mol = "water", AA = True ):
+    def get_mol( self, center = [0,0,0], mol = "water", AA = False ):
         """return molecule in center, all molecules have different definition
         of euler angles
 
@@ -211,7 +211,7 @@ class Generator( dict ):
                 "z" : zo,
                 "element" : "O"} )
 
-            w = Water()
+            w = Water( AA = AA)
             w.append( o )
             w.append( h1 )
             w.append( h2 )
@@ -309,8 +309,6 @@ class Generator( dict ):
 
             wat.rotate( t1, t2, t3 )
             wat.res_id = cnt
-            for at in wat:
-                at.res_id = wat.res_id
 
             if c.mol_too_close( wat ):
                 continue
@@ -334,7 +332,7 @@ class Generator( dict ):
                 open("pna.mol" ,'w').write(c.get_qm_mol_string(
                     basis= ("ano-1 2 1", "ano-1 3 2 1"),
                     AA = True))
-                open("%dmm_%s_%s.pot" %(waters, f_mm, dist ),'w').write(c.get_qmmm_pot_string( AA = True))
+                open("%dmm_%s_%s.pot" %(waters, f_mm, dist ),'w').write(c.get_qmmm_pot_string( in_AA = True ))
                 open("tmp.xyz", 'w').write( c.get_xyz_string() )
 
 if __name__ == '__main__':
