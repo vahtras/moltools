@@ -44,9 +44,9 @@ class MoleculesTestCase( unittest.TestCase ):
     def test_get_xyz_string(self):
         st = """3
 
-O           0.000000  0.000000  0.000000
-H           0.756848  0.000000  0.586014
-H          -0.756848  0.000000  0.586014
+O            0.000000   0.000000   0.000000
+H            0.756848   0.000000   0.586014
+H           -0.756848   0.000000   0.586014
 """
         print self.wat.get_xyz_string()
 
