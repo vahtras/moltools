@@ -98,7 +98,7 @@ class WaterTest( unittest.TestCase ):
         pass
 
     def test_rotate_dip(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = self.g.get_mol( AA= True, center = [0,0,0], mol = "water" )
 
         print w.p
         self.eq( w.p ,[0, 0, 0.48873599])

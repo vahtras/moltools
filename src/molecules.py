@@ -7,10 +7,10 @@ The molecules modules serves as an interface to write water molecule input files
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
-import itertools
-
 import numpy as np
-import re, os
+import re, os, itertools
+
+from template import Template
 
 a0 = 0.52917721092
 
@@ -72,14 +72,13 @@ class Property( dict ):
         return p
 
     def __add__(self, other):
-        assert isinstance( other, Property)
-        tmp = {}
+        tmp = Property()
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
     def __sub__(self, other):
         assert isinstance( other, Property)
-        tmp = {}
+        tmp = Property()
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
         return tmp
@@ -117,6 +116,7 @@ class Property( dict ):
 
     @staticmethod
     def add_prop_from_template( at, wat_templ ):
+
         """
 Puts properties read from the :ref:`template` module into the :ref:`atom` at.
 
@@ -128,13 +128,36 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
     [0.0, 0.0, 0.78719]
 
 """
+
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
-                p[keys[1]] = wat_templ[ keys ]
+                p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
 
     def transform_ut_properties( self, t1, t2, t3):
+        """
+Rotate all the properties of each atom by 3 euler angles.
+
+    >>> w = Water.get_standard()
+    >>> w.rotate( 0, np.pi/2, 0 )  #Rotate counter-clockwise by 90 degrees around y-axis
+    >>> temp = template.Template().get() #Default template
+    >>> Property.add_prop_from_template( w.o, temp )
+    >>> print w.o.Property[ "dipole" ]
+    array([ 0.   , -0.   ,  0.298])
+
+#Dipole moment of oxygen atom pointing in positive z-direction
+
+    >>> r1, r2, r3 = w.get_euler()
+    >>> w.o.Property.transform_ut_properties( r1, r2, r3 )
+    >>> print w.o.Property[ "dipole" ]
+    [ -2.98000000e-01   3.64944746e-17   1.82472373e-17]
+
+#Dipole moment of oxygen atom now pointing in negative x-direction
+
+"""
+
+
         if self.has_key( "dipole" ):
             self["dipole"] = Rotator.transform_1( self["dipole"] , t1, t2, t3 )
         if self.has_key( "quadrupole" ):
@@ -388,11 +411,11 @@ AA       True     bool
 
         self.cluster = None
 
-        self.res_id = 0
+        self._res_id = 0
         self.atom_id = None
 
         self.in_water = False
-        self.Water = None
+        self.Molecule = None
         self.Property = Property()
         self.AA = True
 
@@ -411,7 +434,6 @@ AA       True     bool
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdbname':self.pdbname} )
-        a.res_id = self.res_id
         a.atom_id = self.atom_id
         a.Property = self.Property.copy_property()
         return a
@@ -434,8 +456,14 @@ AA       True     bool
         self._mass = mass_dict[ self.element ]
         return self._mass
 
+    @property
+    def res_id(self):
+        if self.Molecule:
+            return self.Molecule.res_id
+        return None
+
     def potline(self, max_l, pol, hyper):
-        return  "{0:4}{1:10f}{2:10f}{3:10f} ".format( \
+        return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
     def __str__(self):
@@ -507,7 +535,6 @@ class Molecule( list ):
 
 #By default, AU 
         self.AA = False
-        self.Property = None
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
@@ -529,6 +556,19 @@ Return the dipole moment
 
 """
         return np.array([at.r*at.q for at in self]).sum(axis=0)
+
+    @property
+    def Property(self):
+        """
+Return the sum properties of all properties in molecules
+
+.. code:: python
+    >>> wat
+        """
+        p = Property()
+        for at in self:
+            p += at.Property
+        return p
 
 #Vector pointing to center of atom position
     @property
@@ -645,7 +685,7 @@ Plot the molecule in a 3D frame
         p = self.p
         ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], self.p, '-' )
         for i in self:
-            ax.plot( i.x, i.y , i.z, 'ro', s=25, )
+            ax.plot( [i.x], [i.y], [i.z], 'ro',linewidth= 25 )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -672,7 +712,7 @@ Plot the molecule in a 3D frame
     def get_xyz_string(self):
         st = "%d\n\n" % len(self)
         for i in self:
-            st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                     i.element, i.x,  i.y , i.z )
         return st
 
@@ -781,20 +821,20 @@ Angstrom [ out_AA = True ]
         return m
 
     def to_AU(self):
-        if self.AA:
-            for at in self:
-                at.x = at.x / a0
-                at.y = at.y / a0
-                at.z = at.z / a0
-            self.AA = False
+        assert self.AA == True
+        for at in self:
+            at.x = at.x / a0
+            at.y = at.y / a0
+            at.z = at.z / a0
+        self.AA = False
 
     def to_AA(self):
-        if not self.AA:
-            for at in self:
-                at.x *= a0
-                at.y *= a0
-                at.z *= a0
-            self.AA = True
+        assert self.AA == False
+        for at in self:
+            at.x *= a0
+            at.y *= a0
+            at.z *= a0
+        self.AA = True
 
 class Water( Molecule ):
     """
@@ -813,13 +853,15 @@ class Water( Molecule ):
         self.o  = False
 
         self.AA = False
-        self.Property = None
 
         self._coc = None
 
         self.in_qm = False
         self.in_mm = False
         self.in_qmmm = False
+
+        if kwargs is not {}:
+            self.AA = kwargs.get( "AA", False )
 
     def copy_water(self):
         w = Water()
@@ -894,14 +936,14 @@ Override list append method, will add up to 3 atoms,
         if atom.element == "H":
             if self.no_hydrogens:
                 self.h1 = atom
-                atom.Water = self
+                atom.Molecule = self
                 self.no_hydrogens = False
             else:
                 self.h2 = atom
-                atom.Water = self
+                atom.Molecule = self
         if atom.element == "O":
             self.o = atom
-            atom.Water = self
+            atom.Molecule = self
             atom.name = "O1"
 #Add the atom
         super( Water , self).append(atom)
@@ -1230,9 +1272,6 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
                 tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-        for wat in waters:
-            for atom in wat:
-                atom.res_id = wat.res_id
         if in_AA:
             if not out_AA:
                 for wat in waters:
@@ -1369,6 +1408,17 @@ class Cluster(list):
         dist.sort()
         return dist
 
+    def get_qm_xyz_string(self, AA = False):
+# If basis len is more than one, treat it like molecular ano type
+# Where first element is for first row of elements
+
+        st = "%d\n\n" % len( [m for m in self if m.in_qm ] )
+        for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
+            st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
+        return st
+# Specifi
+
+
     def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
@@ -1451,22 +1501,32 @@ class Cluster(list):
 
         return st
 # This is the old *QMMM input style in dalton
-    def get_qmmm_pot_string( self, max_l = 1, pol = 2, hyp = 0, AA = False ):
-        if AA:
+    def get_qmmm_pot_string( self, max_l = 1,
+            pol = 22,
+            hyp = 1,
+            in_AA = False,
+#Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
+            ignore_qmmm = True ):
+        if in_AA:
             st = "AA\n"
         else:
             st = "AU\n"
 # Old qmmm format requires integer at end to properly read charges
-        st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
-                max_l, pol, 1 )
-        st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
+        if ignore_qmmm:
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self ]), 
+                    max_l, pol, 1 )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol ] )
+        else:
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
+                    max_l, pol, 1 )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 
     def get_xyz_string(self):
         st = "%d\n\n" % sum([len(i) for i in self ])
         for mol in self:
             for i in mol:
-                st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+                st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                         i.element, i.x,  i.y , i.z )
         return st
 
@@ -1493,7 +1553,7 @@ class Cluster(list):
 
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
         """
 Return a cluster of water molecules given file.
 
@@ -1621,7 +1681,7 @@ Return a cluster of water molecules given file.
                     continue
                 if i.in_water:
                     continue
-                tmp = Water()
+                tmp = Water( AA = in_AA )
 #__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
@@ -1685,9 +1745,6 @@ Return a cluster of water molecules given file.
                 tmp.res_id = cnt
                 cnt += 1
                 waters.append( tmp )
-        for wat in c:
-            for atom in wat:
-                atom.res_id = wat.res_id
         if in_AA:
             if not out_AA:
                 for wat in c:
@@ -1695,13 +1752,29 @@ Return a cluster of water molecules given file.
         return c
 
 
-    def mol_too_close(self, mol):
+    def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
             for ats in mols:
                 for at in mol:
-                    if at.dist_to_atom( ats ) < 2.0:
+                    if at.dist_to_atom( ats ) < dist:
                         return True
         return False
+
+    def attach_properties(self, 
+            model = "TIP3P",
+            method = "HF",
+            basis = "ANOPVDZ",
+            loprop = True,
+            freq = "0.0"):
+        """
+Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
+        """
+        templ = Template().get( *(model, method, basis, loprop, freq) )
+        for mol in self:
+            t1, t2, t3 = mol.get_euler()
+            for at in mol:
+                Property.add_prop_from_template( at, templ )
+                at.Property.transform_ut_properties( t1, t2, t3 )
 
     def add_mol(self, mol):
         self.append( mol )
@@ -1726,6 +1799,20 @@ Return a cluster of water molecules given file.
         tmp_c = Cluster()
         [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
+
+    @property
+    def Property(self):
+        """
+Return the sum properties of all molecules in cluster
+
+.. code:: python
+    >>> wat
+        """
+        p = Property()
+        for mol in self:
+            for at in mol:
+                p += at.Property
+        return p
 
 if __name__ == '__main__':
     pass
