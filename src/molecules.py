@@ -116,6 +116,7 @@ class Property( dict ):
 
     @staticmethod
     def add_prop_from_template( at, wat_templ ):
+
         """
 Puts properties read from the :ref:`template` module into the :ref:`atom` at.
 
@@ -127,6 +128,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
     [0.0, 0.0, 0.78719]
 
 """
+
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
@@ -134,6 +136,28 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         at.Property = p
 
     def transform_ut_properties( self, t1, t2, t3):
+        """
+Rotate all the properties of each atom by 3 euler angles.
+
+    >>> w = Water.get_standard()
+    >>> w.rotate( 0, np.pi/2, 0 )  #Rotate counter-clockwise by 90 degrees around y-axis
+    >>> temp = template.Template().get() #Default template
+    >>> Property.add_prop_from_template( w.o, temp )
+    >>> print w.o.Property[ "dipole" ]
+    array([ 0.   , -0.   ,  0.298])
+
+#Dipole moment of oxygen atom pointing in positive z-direction
+
+    >>> r1, r2, r3 = w.get_euler()
+    >>> w.o.Property.transform_ut_properties( r1, r2, r3 )
+    >>> print w.o.Property[ "dipole" ]
+    [ -2.98000000e-01   3.64944746e-17   1.82472373e-17]
+
+#Dipole moment of oxygen atom now pointing in negative x-direction
+
+"""
+
+
         if self.has_key( "dipole" ):
             self["dipole"] = Rotator.transform_1( self["dipole"] , t1, t2, t3 )
         if self.has_key( "quadrupole" ):
@@ -439,7 +463,7 @@ AA       True     bool
         return None
 
     def potline(self, max_l, pol, hyper):
-        return  "{0:4}{1:10f}{2:10f}{3:10f} ".format( \
+        return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
     def __str__(self):
@@ -661,7 +685,7 @@ Plot the molecule in a 3D frame
         p = self.p
         ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], self.p, '-' )
         for i in self:
-            ax.plot( i.x, i.y , i.z, 'ro', s=25, )
+            ax.plot( [i.x], [i.y], [i.z], 'ro',linewidth= 25 )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -688,7 +712,7 @@ Plot the molecule in a 3D frame
     def get_xyz_string(self):
         st = "%d\n\n" % len(self)
         for i in self:
-            st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                     i.element, i.x,  i.y , i.z )
         return st
 
@@ -1502,7 +1526,7 @@ class Cluster(list):
         st = "%d\n\n" % sum([len(i) for i in self ])
         for mol in self:
             for i in mol:
-                st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+                st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                         i.element, i.x,  i.y , i.z )
         return st
 
@@ -1728,11 +1752,11 @@ Return a cluster of water molecules given file.
         return c
 
 
-    def mol_too_close(self, mol):
+    def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
             for ats in mols:
                 for at in mol:
-                    if at.dist_to_atom( ats ) < 2.0:
+                    if at.dist_to_atom( ats ) < dist:
                         return True
         return False
 
