@@ -652,6 +652,7 @@ class Molecule( list ):
                     m[j].bonds.append( m[i] )
 
         dih = m.find_dihedrals()
+
         full_charm = ""
         skip = []
 
@@ -660,11 +661,7 @@ class Molecule( list ):
         for at in m:
             at.number = atype_to_anumber[ at.name ]
 
-        for at in m:
-            if at.number == 13:
-                #print at.dihedral['C13']
-                for d in at.dihedral:
-                    pass#print d, at.dihedral[d], map( lambda x: atype_to_anumber[x], at.dihedral[d])
+
         for at in m:
             for targ in at.dihedral:
                 l1 =  tuple( at.dihedral[targ] ) 
@@ -704,15 +701,8 @@ class Molecule( list ):
                     if at3.bonds == []:
                         continue
                     for at4 in [a for a in at3.bonds if a != at2]:
-                        if at1.name == "C16":
-                            print at1.name
-                            print at2.name
-                            print at3.name
-                            print at4.name
-                            print '----------'
                         dihed.append( [at1.name, at2.name, at3.name, at4.name] )
-                        at1.dihedral[ at4.name ] = [at1.name,at2.name, at3.name, at4.name] 
-        raise SystemExit
+                        at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
         return dihed
 
 #Dipole moment
@@ -2018,8 +2008,5 @@ Return the sum properties of all molecules in cluster
 
 if __name__ == '__main__':
     m = Molecule.from_string('test.xyz')
-    m.populate_bonds()
-    m.custom_names()
-
 
     m.from_charmm_file( 'PIP_MD.str' )
