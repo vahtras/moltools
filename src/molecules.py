@@ -38,7 +38,6 @@ Usage, form 2D-matrix from upper-triangular matrix represented by an array::
         for i in range(start, 3):
             for j in range(i, 3):
                 yield i, j
-
 class Property( dict ):
     """
 **An object representing properties as numpy.ndarray types mapped to by python dictionaries.**
@@ -402,10 +401,16 @@ AA       True     bool
 
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
+#Label is custom name, for water use O1, H2 (positive x ax), H3
+        self.label = ""
 
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
+
+# Use populate_bonds in class Molecule to attach all atoms to their neighbours
+        self.bonds = []
+        self.dihedral = {}
 
         self._q = None
 
@@ -429,6 +434,10 @@ AA       True     bool
             self.number = kwargs.get( "number", 0 )
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
+
+    def __eq__(self, other):
+        if self.dist_to_atom( other ) <= 0.01:
+            return True
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
@@ -491,6 +500,9 @@ Return the distance between two atoms
 
 """
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
+
+
+
     def dist_to_point(self, other):
         """
 Return the distance to a point
@@ -524,6 +536,36 @@ class Molecule( list ):
 """
 
     def __init__(self , *args, **kwargs):
+#Bond dict defined in angstromg, if molecule is in AU will be different later
+        self.bonding_cutoff = { ('H','H') : 1.1,
+                ('H','C') : 1.1,
+                ('H','N') : 1.1,
+                ('H','O') : 1.1,
+                ('H','P') : 1.1,
+                ('C','H') : 1.1,
+                ('C','C') : 1.5,
+                ('C','N') : 1.5,
+                ('C','O') : 1.5,
+                ('C','P') : 2.0,
+                ('N','H') : 1.1,
+                ('N','C') : 1.5,
+                ('N','N') : 1.5,
+                ('N','O') : 1.5,
+                ('N','P') : 1.5,
+                ('O','H') : 1.1,
+                ('O','N') : 1.5,
+                ('O','C') : 1.5,
+                ('O','O') : 1.5,
+                ('O','P') : 2.0,
+                ('P','H') : 1.1,
+                ('P','N') : 1.5,
+                ('P','O') : 1.5,
+                ('P','O') : 2.0,
+                ('P','P') : 1.5,
+            }
+
+# Dictionary with bonds
+        self.bond_dict = {}
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
@@ -535,11 +577,144 @@ class Molecule( list ):
 
 #By default, AU 
         self.AA = False
+
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
+
+    @classmethod
+    def from_string(cls, fil):
+        """Given .xyz file return a Molecule with these atoms"""
+        rel = open(fil).readlines()[2:]
+        m = Molecule()
+        for i in range(len(rel)):
+            m.append( Atom(**{'element':rel[i].split()[0],
+                'x':rel[i].split()[1],
+                'y':rel[i].split()[2],
+                'z':rel[i].split()[3].strip(),
+                'number' : i+1,
+                }) )
+        return m
+
+    def custom_names(self):
+        for i in self:
+            i.name = i.element + str(i.number)
+
+    def populate_bonds(self):
+#Implement later also atomic units
+        #if self.AA:
+        #    conv = 1.0
+        #else:
+        #    conv = 1/a0
+        conv = 1.0
+
+        for i in range( len(self) ):
+            for j in range( i + 1, len(self)):
+                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
+                    self[i].bonds.append( self[j] )
+                    self[j].bonds.append( self[i] )
+
+
+    @staticmethod
+    def from_charmm_file( f):
+        """Return molecule just by bonds from a charmm force field file
+        
+        Good for generation of dihedrals
+        """
+        m = Molecule()
+        reg_at = re.compile(r'ATOM\s\w+\s+\w+\s+-*\d{1}.\d+\s')
+        reg_bond = re.compile(r'BOND\s+')
+        reg_el = re.compile(r'(^\w).*')
+
+        ats = []
+        for i in open(f).readlines():
+            if reg_at.match( i ):
+                m.append( Atom( **{ 'name':i.split()[1], 'element': reg_el.match(i.split()[1]).group(1) } ))
+
+        for i in open(f).readlines():
+            if reg_bond.match( i ):
+                el1 = reg_el.match( i.split()[1]).group(1)
+                el2 = reg_el.match( i.split()[2]).group(1)
+
+                m.bond_dict[ (i.split()[1], i.split()[2] ) ] = m.bonding_cutoff[ \
+                        (el1, el2) ]
+                m.bond_dict[ (i.split()[2], i.split()[1] ) ] = m.bonding_cutoff[ \
+                        (el2, el1) ]
+
+
+        for i in range(len(m)):
+            for j in range(len(m)):
+                if m.bond_dict.has_key( (m[i].name, m[j].name) ) or \
+                    m.bond_dict.has_key( (m[j].name, m[i].name) ) :
+                    m[i].bonds.append( m[j] )
+                    m[j].bonds.append( m[i] )
+
+        dih = m.find_dihedrals()
+        full_charm = ""
+        skip = []
+
+        aname_to_atype, atype_to_aname, atype_to_anumber, atype_dihed, anumber_to_atype = m.atom_map_from_string(f)
+
+        for at in m:
+            at.number = atype_to_anumber[ at.name ]
+
+        for at in m:
+            if at.number == 13:
+                #print at.dihedral['C13']
+                for d in at.dihedral:
+                    pass#print d, at.dihedral[d], map( lambda x: atype_to_anumber[x], at.dihedral[d])
+        for at in m:
+            for targ in at.dihedral:
+                l1 =  tuple( at.dihedral[targ] ) 
+                l2 =  tuple( reversed(at.dihedral[targ] ) )
+                t1 =  tuple( map( lambda x: aname_to_atype[x], at.dihedral[targ] ) )
+                t2 =  tuple( reversed(map( lambda x: aname_to_atype[x], at.dihedral[targ] ) ))
+                if t1 in atype_dihed:
+                    if (l1 in skip) or (l2 in skip):
+                        continue
+                    skip.append( l1 )
+                    pre_str = "\t".join( map( lambda x: str(atype_to_anumber[x]),
+                        at.dihedral[targ] ))
+                    full_charm += pre_str + "\t" + atype_dihed[ t1 ] + '\n'
+                    continue
+                if t2 in atype_dihed:
+                    if (l2 in skip) or (l2 in skip):
+                        continue
+                    skip.append( l2 )
+                    pre_str = "\t".join( map( lambda x: str(atype_to_anumber[x]),
+                        at.dihedral[targ] ))
+                    full_charm += pre_str + "\t" + atype_dihed[ t2 ] + '\n'
+        print full_charm
+
+        raise SystemExit
+        return m
+
+    def find_dihedrals(self):
+
+        dihed = []
+        for at1 in self:
+            if at1.bonds == []:
+                continue
+            for at2 in at1.bonds:
+                if at2.bonds == []:
+                    continue
+                for at3 in [a for a in at2.bonds if a != at1]:
+                    if at3.bonds == []:
+                        continue
+                    for at4 in [a for a in at3.bonds if a != at2]:
+                        if at1.name == "C16":
+                            print at1.name
+                            print at2.name
+                            print at3.name
+                            print at4.name
+                            print '----------'
+                        dihed.append( [at1.name, at2.name, at3.name, at4.name] )
+                        at1.dihedral[ at4.name ] = [at1.name,at2.name, at3.name, at4.name] 
+        raise SystemExit
+        return dihed
+
 #Dipole moment
     @property
     def p(self):
@@ -623,6 +798,32 @@ Translate molecules center-of-mass to position r
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
 
+    @staticmethod
+    def atom_map_from_string( fil ):
+        aname_to_atype = {}
+        atype_to_aname = {}
+        aname_to_anumber = {}
+        atype_dihedral_dict = {}
+        anumber_to_atype = {}
+
+        reg = re.compile(r'ATOM\s\w+\s+\w+\s+-*\d{1}.\d+\s')
+
+        reg_dihed = re.compile (r'\w+\s+\w+\s+\w+\s+\w+\s+-*\d.\d+\s+\d{1}')
+
+        cnt = 1
+        for i in open(fil).readlines():
+            if reg.match(i):
+                aname_to_atype[ i.split()[1] ] = i.split()[2]
+                atype_to_aname[ i.split()[2] ] = i.split()[1]
+                aname_to_anumber[ i.split()[1] ] = cnt
+                anumber_to_atype[ cnt ] = i.split()[1]
+                cnt += 1
+            if reg_dihed.match( i ):
+                atype_dihedral_dict[(i.split()[0], i.split()[1],
+                    i.split()[2], i.split()[3])] = " ".join( i.split()[4:] )
+        return aname_to_atype, atype_to_aname, aname_to_anumber, atype_dihedral_dict, anumber_to_atype
+
+
 #Center of charge
     @property
     def coc(self):
@@ -660,6 +861,7 @@ Distance to other molecule, measured by center-of-mass
     
 """
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
+
 
     def plot(self ):
         """
@@ -1815,4 +2017,9 @@ Return the sum properties of all molecules in cluster
         return p
 
 if __name__ == '__main__':
-    pass
+    m = Molecule.from_string('test.xyz')
+    m.populate_bonds()
+    m.custom_names()
+
+
+    m.from_charmm_file( 'PIP_MD.str' )
