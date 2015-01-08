@@ -1785,7 +1785,8 @@ Return a cluster of water molecules given file.
 #Temporary atom numbering so that it is compatible with PEQM reader in dalton
             for i in open( fname ).readlines():
                 if pat1.search(i):
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW"):
+                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW") \
+                            or (i[11:16].strip() == "MW"):
                         continue
                     kwargs = {
                             "AA" : in_AA,
@@ -2028,7 +2029,9 @@ Return the sum properties of all molecules in cluster
 if __name__ == '__main__':
     m = Molecule.from_string('test.xyz')
 
-    c1 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
-    c2 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
-    c3 = c1.copy_cluster()
-    print m.from_charmm_file( 'PIP_MD.str' )
+    c1 = Cluster.get_water_cluster( 'tip4p0.pdb', in_AA = True, N_waters = 4 )
+    for i in c1[0]:
+        print i
+
+
+

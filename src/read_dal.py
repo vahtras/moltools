@@ -80,7 +80,7 @@ def qm_generation( ending = "pdb",
 
     for files in pdb_files:
         c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
-                N_waters = 340 )
+                N_waters = 50 )
         for n_qm in qm_waters:
             c.set_qm_mm( N_qm = n_qm, N_mm = 0 )
             out_mol = "%s_%dqm.mol" % ( files.rstrip( '.' + ending ),

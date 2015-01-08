@@ -56,9 +56,13 @@ class Generator( dict ):
     """
     def __init__(self, *args, **kwargs):
 
-#This waater is TIP3P model, generalzie later
-        self[ ("water","a_hoh", "degree") ] = 104.5
-        self[ ("water","r_oh", "AA") ] = 0.9572
+#This waater is TIP3P model,
+        self[ ("water", "tip3p", "a_hoh", "degree") ] = 104.52
+        self[ ("water", "tip3p", "r_oh", "AA") ] = 0.9572
+
+#This waater is SPC model,
+        self[ ("water", "spc", "a_hoh", "degree") ] = 109.47
+        self[ ("water", "spc", "r_oh", "AA") ] = 1.0
 
         self[ ("methanol", "r_oh", "AA" ) ] = 0.967
         self[ ("methanol", "r_co", "AA" ) ] = 1.428
@@ -164,7 +168,11 @@ class Generator( dict ):
             self[ (val, 'max') ] = opts[val][ "max" ]
             self[ (val, 'points') ] = opts[val][ "points" ]
 
-    def get_mol( self, center = [0,0,0], mol = "water", AA = False ):
+    def get_mol( self, 
+            center = [0,0,0], 
+            mol = "water", 
+            model = "tip3p",
+            AA = False ):
         """return molecule in center, all molecules have different definition
         of euler angles
 
@@ -174,9 +182,15 @@ class Generator( dict ):
         """
 
         if mol == "water":
-#Geometrical parameters
-            r_oh = self[ ("water","r_oh", "AA") ]
-            a_hoh = self[ ("water","a_hoh","degree") ]
+#Geometrical parameters, dependent om model
+            if model == "tip3p":
+                r_oh = self[ ("water", "tip3p", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "tip3p", "a_hoh","degree") ]
+
+            if model == "spc":
+                r_oh = self[ ("water", "spc", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "spc", "a_hoh","degree") ]
+
             if not AA:
                 r_oh = r_oh / a0
 
