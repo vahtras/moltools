@@ -13,6 +13,7 @@ class BondTestCase( unittest.TestCase ):
         self.m = Molecule()
 
     def test_populate_bonds(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

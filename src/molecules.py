@@ -435,9 +435,9 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
-    def __eq__(self, other):
-        if self.dist_to_atom( other ) <= 0.01:
-            return True
+    #def __eq__(self, other):
+    #    if self.dist_to_atom( other ) <= 0.01:
+    #        return True
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
@@ -683,10 +683,7 @@ class Molecule( list ):
                     pre_str = "\t".join( map( lambda x: str(atype_to_anumber[x]),
                         at.dihedral[targ] ))
                     full_charm += pre_str + "\t" + atype_dihed[ t2 ] + '\n'
-        print full_charm
-
-        raise SystemExit
-        return m
+        return full_charm
 
     def find_dihedrals(self):
 
@@ -1600,6 +1597,15 @@ class Cluster(list):
         dist.sort()
         return dist
 
+    def __eq__(self, other):
+        """docstring for __eq__ """
+        if not len(self) == len(other):
+            return False
+        for i, (m1, m2) in enumerate( zip(self, other) ):
+            if m1 != m2:
+                return False
+        return True
+        
     def get_qm_xyz_string(self, AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
@@ -1817,7 +1823,7 @@ Return a cluster of water molecules given file.
                     continue
                 if i.in_water:
                     continue
-                tmp = Water()
+                tmp = Water( AA = in_AA)
                 i.in_water = True
                 tmp.append( i )
                 for j in atoms:
@@ -2009,4 +2015,7 @@ Return the sum properties of all molecules in cluster
 if __name__ == '__main__':
     m = Molecule.from_string('test.xyz')
 
-    m.from_charmm_file( 'PIP_MD.str' )
+    c1 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
+    c2 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
+    c3 = c1.copy_cluster()
+    print m.from_charmm_file( 'PIP_MD.str' )
