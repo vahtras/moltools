@@ -7,7 +7,7 @@ from template import Template
 
 class MoleculesTestCase( unittest.TestCase ):
     def setUp(self):
-        wat = Generator().get_mol()
+        wat = Generator().get_mol( AA = False )
         t1, t2, t3 = wat.get_euler()
         kw_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
             True, "0.0"))
@@ -44,29 +44,17 @@ class MoleculesTestCase( unittest.TestCase ):
     def test_get_xyz_string(self):
         st = """3
 
-O           0.000000  0.000000  0.000000
-H           0.756848  0.000000  0.586014
-H          -0.756848  0.000000  0.586014
+O            0.000000   0.000000   0.000000
+H            0.756848   0.000000   0.586014
+H           -0.756848   0.000000   0.586014
 """
         print self.wat.get_xyz_string()
+
+        self.wat.to_AA()
         self.assertEqual( st, self.wat.get_xyz_string() )
+        self.wat.to_AU()
 
     def test_get_mol_string(self):
-        st = """ATOMBASIS
-
-
-Atomtypes=2 Charge=0 Nosymm
-Charge=8.0 Atoms=1 Basis=ano-1 3 2 1
-O 0.00000 0.00000 0.00000
-Charge=1.0 Atoms=2 Basis=ano-1 2 1
-H 0.75685 0.00000 0.58601
-H -0.75685 0.00000 0.58601
-"""
-        print self.wat.get_mol_string()
-        assert self.wat.get_mol_string() == st 
-
-    def test_get_mol_string_AA(self):
-        self.wat.to_AA()
         st = """ATOMBASIS
 
 
@@ -74,11 +62,13 @@ Atomtypes=2 Charge=0 Nosymm Angstrom
 Charge=8.0 Atoms=1 Basis=ano-1 3 2 1
 O 0.00000 0.00000 0.00000
 Charge=1.0 Atoms=2 Basis=ano-1 2 1
-H 0.40051 0.00000 0.31011
-H -0.40051 0.00000 0.31011
+H 0.75685 0.00000 0.58601
+H -0.75685 0.00000 0.58601
 """
-        self.assertEqual( self.wat.get_mol_string(), st )
+        self.wat.to_AA()
+        assert self.wat.get_mol_string() == st 
         self.wat.to_AU()
+
 
     def test_translate_coc(self):
         self.wat.translate_coc( [0, 0, 0] )

@@ -116,6 +116,7 @@ class Property( dict ):
 
     @staticmethod
     def add_prop_from_template( at, wat_templ ):
+
         """
 Puts properties read from the :ref:`template` module into the :ref:`atom` at.
 
@@ -127,13 +128,36 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
     [0.0, 0.0, 0.78719]
 
 """
+
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
-                p[keys[1]] = wat_templ[ keys ]
+                p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
 
     def transform_ut_properties( self, t1, t2, t3):
+        """
+Rotate all the properties of each atom by 3 euler angles.
+
+    >>> w = Water.get_standard()
+    >>> w.rotate( 0, np.pi/2, 0 )  #Rotate counter-clockwise by 90 degrees around y-axis
+    >>> temp = template.Template().get() #Default template
+    >>> Property.add_prop_from_template( w.o, temp )
+    >>> print w.o.Property[ "dipole" ]
+    array([ 0.   , -0.   ,  0.298])
+
+#Dipole moment of oxygen atom pointing in positive z-direction
+
+    >>> r1, r2, r3 = w.get_euler()
+    >>> w.o.Property.transform_ut_properties( r1, r2, r3 )
+    >>> print w.o.Property[ "dipole" ]
+    [ -2.98000000e-01   3.64944746e-17   1.82472373e-17]
+
+#Dipole moment of oxygen atom now pointing in negative x-direction
+
+"""
+
+
         if self.has_key( "dipole" ):
             self["dipole"] = Rotator.transform_1( self["dipole"] , t1, t2, t3 )
         if self.has_key( "quadrupole" ):
@@ -378,20 +402,26 @@ AA       True     bool
 
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
+#Label is custom name, for water use O1, H2 (positive x ax), H3
+        self.label = ""
 
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
 
+# Use populate_bonds in class Molecule to attach all atoms to their neighbours
+        self.bonds = []
+        self.dihedral = {}
+
         self._q = None
 
         self.cluster = None
 
-        self.res_id = 0
+        self._res_id = 0
         self.atom_id = None
 
         self.in_water = False
-        self.Water = None
+        self.Molecule = None
         self.Property = Property()
         self.AA = True
 
@@ -406,11 +436,15 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
+    #def __eq__(self, other):
+    #    if self.dist_to_atom( other ) <= 0.01:
+    #        return True
+
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdbname':self.pdbname} )
-        a.res_id = self.res_id
+        a._res_id = self.res_id
         a.atom_id = self.atom_id
         a.Property = self.Property.copy_property()
         return a
@@ -433,8 +467,14 @@ AA       True     bool
         self._mass = mass_dict[ self.element ]
         return self._mass
 
+    @property
+    def res_id(self):
+        if self.Molecule:
+            return self.Molecule.res_id
+        return None
+
     def potline(self, max_l, pol, hyper):
-        return  "{0:4}{1:10f}{2:10f}{3:10f} ".format( \
+        return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
     def __str__(self):
@@ -462,6 +502,9 @@ Return the distance between two atoms
 
 """
         return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
+
+
+
     def dist_to_point(self, other):
         """
 Return the distance to a point
@@ -495,6 +538,36 @@ class Molecule( list ):
 """
 
     def __init__(self , *args, **kwargs):
+#Bond dict defined in angstromg, if molecule is in AU will be different later
+        self.bonding_cutoff = { ('H','H') : 1.1,
+                ('H','C') : 1.1,
+                ('H','N') : 1.1,
+                ('H','O') : 1.1,
+                ('H','P') : 1.1,
+                ('C','H') : 1.1,
+                ('C','C') : 1.5,
+                ('C','N') : 1.5,
+                ('C','O') : 1.5,
+                ('C','P') : 2.0,
+                ('N','H') : 1.1,
+                ('N','C') : 1.5,
+                ('N','N') : 1.5,
+                ('N','O') : 1.5,
+                ('N','P') : 1.5,
+                ('O','H') : 1.1,
+                ('O','N') : 1.5,
+                ('O','C') : 1.5,
+                ('O','O') : 1.5,
+                ('O','P') : 2.0,
+                ('P','H') : 1.1,
+                ('P','N') : 1.5,
+                ('P','O') : 1.5,
+                ('P','O') : 2.0,
+                ('P','P') : 1.5,
+            }
+
+# Dictionary with bonds
+        self.bond_dict = {}
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
@@ -506,11 +579,131 @@ class Molecule( list ):
 
 #By default, AU 
         self.AA = False
+
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
+
+    @classmethod
+    def from_string(cls, fil):
+        """Given .xyz file return a Molecule with these atoms"""
+        rel = open(fil).readlines()[2:]
+        m = Molecule()
+        for i in range(len(rel)):
+            m.append( Atom(**{'element':rel[i].split()[0],
+                'x':rel[i].split()[1],
+                'y':rel[i].split()[2],
+                'z':rel[i].split()[3].strip(),
+                'number' : i+1,
+                }) )
+        return m
+
+    def custom_names(self):
+        for i in self:
+            i.name = i.element + str(i.number)
+
+    def populate_bonds(self):
+#Implement later also atomic units
+        #if self.AA:
+        #    conv = 1.0
+        #else:
+        #    conv = 1/a0
+        conv = 1.0
+
+        for i in range( len(self) ):
+            for j in range( i + 1, len(self)):
+                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
+                    self[i].bonds.append( self[j] )
+                    self[j].bonds.append( self[i] )
+
+
+    @staticmethod
+    def from_charmm_file( f):
+        """Return molecule just by bonds from a charmm force field file
+        
+        Good for generation of dihedrals
+        """
+        m = Molecule()
+        reg_at = re.compile(r'ATOM\s\w+\s+\w+\s+-*\d{1}.\d+\s')
+        reg_bond = re.compile(r'BOND\s+')
+        reg_el = re.compile(r'(^\w).*')
+
+        ats = []
+        for i in open(f).readlines():
+            if reg_at.match( i ):
+                m.append( Atom( **{ 'name':i.split()[1], 'element': reg_el.match(i.split()[1]).group(1) } ))
+
+        for i in open(f).readlines():
+            if reg_bond.match( i ):
+                el1 = reg_el.match( i.split()[1]).group(1)
+                el2 = reg_el.match( i.split()[2]).group(1)
+
+                m.bond_dict[ (i.split()[1], i.split()[2] ) ] = m.bonding_cutoff[ \
+                        (el1, el2) ]
+                m.bond_dict[ (i.split()[2], i.split()[1] ) ] = m.bonding_cutoff[ \
+                        (el2, el1) ]
+
+
+        for i in range(len(m)):
+            for j in range(len(m)):
+                if m.bond_dict.has_key( (m[i].name, m[j].name) ) or \
+                    m.bond_dict.has_key( (m[j].name, m[i].name) ) :
+                    m[i].bonds.append( m[j] )
+                    m[j].bonds.append( m[i] )
+
+        dih = m.find_dihedrals()
+
+        full_charm = ""
+        skip = []
+
+        aname_to_atype, atype_to_aname, atype_to_anumber, atype_dihed, anumber_to_atype = m.atom_map_from_string(f)
+
+        for at in m:
+            at.number = atype_to_anumber[ at.name ]
+
+
+        for at in m:
+            for targ in at.dihedral:
+                l1 =  tuple( at.dihedral[targ] ) 
+                l2 =  tuple( reversed(at.dihedral[targ] ) )
+                t1 =  tuple( map( lambda x: aname_to_atype[x], at.dihedral[targ] ) )
+                t2 =  tuple( reversed(map( lambda x: aname_to_atype[x], at.dihedral[targ] ) ))
+                if t1 in atype_dihed:
+                    if (l1 in skip) or (l2 in skip):
+                        continue
+                    skip.append( l1 )
+                    pre_str = "\t".join( map( lambda x: str(atype_to_anumber[x]),
+                        at.dihedral[targ] ))
+                    full_charm += pre_str + "\t" + atype_dihed[ t1 ] + '\n'
+                    continue
+                if t2 in atype_dihed:
+                    if (l2 in skip) or (l2 in skip):
+                        continue
+                    skip.append( l2 )
+                    pre_str = "\t".join( map( lambda x: str(atype_to_anumber[x]),
+                        at.dihedral[targ] ))
+                    full_charm += pre_str + "\t" + atype_dihed[ t2 ] + '\n'
+        return full_charm
+
+    def find_dihedrals(self):
+
+        dihed = []
+        for at1 in self:
+            if at1.bonds == []:
+                continue
+            for at2 in at1.bonds:
+                if at2.bonds == []:
+                    continue
+                for at3 in [a for a in at2.bonds if a != at1]:
+                    if at3.bonds == []:
+                        continue
+                    for at4 in [a for a in at3.bonds if a != at2]:
+                        dihed.append( [at1.name, at2.name, at3.name, at4.name] )
+                        at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
+        return dihed
+
 #Dipole moment
     @property
     def p(self):
@@ -594,6 +787,32 @@ Translate molecules center-of-mass to position r
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
 
+    @staticmethod
+    def atom_map_from_string( fil ):
+        aname_to_atype = {}
+        atype_to_aname = {}
+        aname_to_anumber = {}
+        atype_dihedral_dict = {}
+        anumber_to_atype = {}
+
+        reg = re.compile(r'ATOM\s\w+\s+\w+\s+-*\d{1}.\d+\s')
+
+        reg_dihed = re.compile (r'\w+\s+\w+\s+\w+\s+\w+\s+-*\d.\d+\s+\d{1}')
+
+        cnt = 1
+        for i in open(fil).readlines():
+            if reg.match(i):
+                aname_to_atype[ i.split()[1] ] = i.split()[2]
+                atype_to_aname[ i.split()[2] ] = i.split()[1]
+                aname_to_anumber[ i.split()[1] ] = cnt
+                anumber_to_atype[ cnt ] = i.split()[1]
+                cnt += 1
+            if reg_dihed.match( i ):
+                atype_dihedral_dict[(i.split()[0], i.split()[1],
+                    i.split()[2], i.split()[3])] = " ".join( i.split()[4:] )
+        return aname_to_atype, atype_to_aname, aname_to_anumber, atype_dihedral_dict, anumber_to_atype
+
+
 #Center of charge
     @property
     def coc(self):
@@ -632,6 +851,7 @@ Distance to other molecule, measured by center-of-mass
 """
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
+
     def plot(self ):
         """
 Plot the molecule in a 3D frame
@@ -656,7 +876,7 @@ Plot the molecule in a 3D frame
         p = self.p
         ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], self.p, '-' )
         for i in self:
-            ax.plot( i.x, i.y , i.z, 'ro', s=25, )
+            ax.plot( [i.x], [i.y], [i.z], 'ro',linewidth= 25 )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -683,7 +903,7 @@ Plot the molecule in a 3D frame
     def get_xyz_string(self):
         st = "%d\n\n" % len(self)
         for i in self:
-            st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                     i.element, i.x,  i.y , i.z )
         return st
 
@@ -907,14 +1127,14 @@ Override list append method, will add up to 3 atoms,
         if atom.element == "H":
             if self.no_hydrogens:
                 self.h1 = atom
-                atom.Water = self
+                atom.Molecule = self
                 self.no_hydrogens = False
             else:
                 self.h2 = atom
-                atom.Water = self
+                atom.Molecule = self
         if atom.element == "O":
             self.o = atom
-            atom.Water = self
+            atom.Molecule = self
             atom.name = "O1"
 #Add the atom
         super( Water , self).append(atom)
@@ -1382,6 +1602,15 @@ class Cluster(list):
         dist.sort()
         return dist
 
+    def __eq__(self, other):
+        """docstring for __eq__ """
+        if not len(self) == len(other):
+            return False
+        for i, (m1, m2) in enumerate( zip(self, other) ):
+            if m1 != m2:
+                return False
+        return True
+        
     def get_qm_xyz_string(self, AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
@@ -1475,8 +1704,13 @@ class Cluster(list):
 
         return st
 # This is the old *QMMM input style in dalton
-    def get_qmmm_pot_string( self, max_l = 1, pol = 2, hyp = 0, AA = False, ignore_qmmm = False ):
-        if AA:
+    def get_qmmm_pot_string( self, max_l = 1,
+            pol = 22,
+            hyp = 1,
+            in_AA = False,
+#Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
+            ignore_qmmm = True ):
+        if in_AA:
             st = "AA\n"
         else:
             st = "AU\n"
@@ -1495,7 +1729,7 @@ class Cluster(list):
         st = "%d\n\n" % sum([len(i) for i in self ])
         for mol in self:
             for i in mol:
-                st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
+                st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                         i.element, i.x,  i.y , i.z )
         return st
 
@@ -1522,7 +1756,7 @@ class Cluster(list):
 
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = True, out_AA = True , N_waters = 1):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
         """
 Return a cluster of water molecules given file.
 
@@ -1594,7 +1828,7 @@ Return a cluster of water molecules given file.
                     continue
                 if i.in_water:
                     continue
-                tmp = Water()
+                tmp = Water( AA = in_AA)
                 i.in_water = True
                 tmp.append( i )
                 for j in atoms:
@@ -1716,7 +1950,7 @@ Return a cluster of water molecules given file.
                 waters.append( tmp )
         for wat in c:
             for atom in wat:
-                atom.res_id = wat.res_id
+                atom._res_id = wat.res_id
 
         if in_AA:
             if not out_AA:
@@ -1729,11 +1963,11 @@ Return a cluster of water molecules given file.
         return c
 
 
-    def mol_too_close(self, mol):
+    def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
             for ats in mols:
                 for at in mol:
-                    if at.dist_to_atom( ats ) < 2.0:
+                    if at.dist_to_atom( ats ) < dist:
                         return True
         return False
 
@@ -1777,20 +2011,24 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
 
-    def launch_gaussian(self, max_l = 1,
-            pol = 22,
-            hyp = 1,
-            ignore_qmmm = True ):
-        from gaussian import GaussianQuadrupole, GaussianQuadrupoleList
-        print self.get_qmmm_pot_string( max_l = max_l,
-                pol = pol,
-                hyp = hyp,
-                ignore_qmmm = ignore_qmmm )
+    @property
+    def Property(self):
+        """
+Return the sum properties of all molecules in cluster
 
-#todo
-# Insert methods to solve using olavs quadratic and even launch dalton process for QM result
+.. code:: python
+    >>> wat
+        """
+        p = Property()
+        for mol in self:
+            for at in mol:
+                p += at.Property
+        return p
 
 if __name__ == '__main__':
-    pass
+    m = Molecule.from_string('test.xyz')
 
-
+    c1 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
+    c2 = Cluster.get_water_cluster( 'wat55.xyz', in_AA = True )
+    c3 = c1.copy_cluster()
+    print m.from_charmm_file( 'PIP_MD.str' )
