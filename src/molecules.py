@@ -590,7 +590,7 @@ class Molecule( list ):
     def from_string(cls, fil):
         """Given .xyz file return a Molecule with these atoms"""
         rel = open(fil).readlines()[2:]
-        m = Molecule()
+        m = cls()
         for i in range(len(rel)):
             m.append( Atom(**{'element':rel[i].split()[0],
                 'x':rel[i].split()[1],
@@ -1465,7 +1465,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
                 waters.append( tmp )
         for wat in waters:
             for atom in wat:
-                atom.res_id = wat.res_id
+                atom._res_id = wat.res_id
         if in_AA:
             if not out_AA:
                 for wat in waters:
@@ -1742,7 +1742,7 @@ class Cluster(list):
                 cnt += 1
 
     def update_water_props(self, model = "TIP3P",
-            method = "HF", basis = "ANOPVDZ", dist = False,
+            method = "HF", basis = "ANOPVDZ", dist = True,
             freq = "0.0"):
         from template import Template
 
@@ -2027,11 +2027,23 @@ Return the sum properties of all molecules in cluster
         return p
 
 if __name__ == '__main__':
-    m = Molecule.from_string('test.xyz')
-
-    c1 = Cluster.get_water_cluster( 'tip4p0.pdb', in_AA = True, N_waters = 4 )
-    for i in c1[0]:
-        print i
+    from use_generator import *
+    from gaussian import *
+    m1 = Generator().get_mol(model = 'spc' )
+    m2 = Generator().get_mol( center = [0,0, 10 ], model = 'spc' )
+    m2.res_id = 2
+    c = Cluster()
+    c.add_mol(m1)
+    c.add_mol(m2)
+    
+    t = Template().get( model = 'SPC' )
+#    for m in [m1, m2]:
+#        for at in m:
+#            Property.add_prop_from_template( at, t )
+    c.update_water_props( model = 'SPC', dist = True )
+    g = GaussianQuadrupoleList.from_string( c.get_qmmm_pot_string( ignore_qmmm = True ) )
+    g.solve_scf()
+    print g.beta()
 
 
 

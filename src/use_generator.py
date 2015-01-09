@@ -104,6 +104,7 @@ class Generator( dict ):
 **END OF DALTON INPUT"""
 
     def gen_mols_param(self, mol = "water", 
+            model = 'tip3p',
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
             AA = True):
         r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
@@ -119,8 +120,13 @@ class Generator( dict ):
         rho3 = np.linspace( self[ ('rho3', 'min')], self[ ('rho3', 'max')],
             self[ ('rho3', 'points' )  ] )
 
-        r_oh = self[ ("water","r_oh", "AA") ]
-        a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
+        
+        if model == 'tip3p':
+            r_oh = self[ ("water", 'tip3p', "r_oh", "AA") ]
+            a_hoh = np.pi * self[ ("water", 'tip3p', "a_hoh", "degree" )] / 180.0
+        else:
+            r_oh = self[ ("water", 'tip3p', "r_oh", "AA") ]
+            a_hoh = np.pi * self[ ("water", 'tip3p', "a_hoh", "degree" )] / 180.0
 
         for i in r:
             for j in tau:
@@ -129,7 +135,9 @@ class Generator( dict ):
                         for m in rho2:
                             for n in rho3:
                                 c= Cluster()
-                                w1 = self.get_mol( [0, 0, 0], mol , AA = AA)
+                                w1 = self.get_mol( [0, 0, 0], 
+                                        mol = mol,
+                                        model = model, AA = AA)
                                 c.append( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_mol( [x,y,z], mol, AA = AA)
@@ -386,6 +394,7 @@ if __name__ == '__main__':
     A.add_argument( "-get_mol", 
             type = str, choices = ["water",
                 "methanol" , "ethane"] )
+    A.add_argument( "-model", type = str, default = 'tip3p' )
     A.add_argument( "-basis", type = str, nargs = "*",
             default =["ano-1 2 1", "ano-1 3 2 1" ] )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
@@ -420,6 +429,7 @@ if __name__ == '__main__':
     if args.param:
         g.gen_mols_param( 
                 mol = args.param_mol ,
+                model = args.model ,
                 basis = args.basis,
                 AA = False )
 

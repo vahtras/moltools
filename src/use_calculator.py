@@ -174,7 +174,9 @@ class Calculator:
                 y.append( self.Dict.getVal( r, tau, theta, rho1, rho2, rho3 ) )
         return  x , y 
 
-    def get_data( self, args , basis = "ANOPVDZ", dist = False,
+    def get_data( self, args ,
+            mol_model = 'tip3p',
+            basis = "ANOPVDZ", dist = False,
             in_AA = False):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
@@ -187,7 +189,7 @@ class Calculator:
                     for j in Water.read_waters( i + ".mol", in_AA = in_AA ):
                         t1, t2, t3 =  j.get_euler()
 
-                        templ = Template().get(*("TIP3P","HF",basis,args.dist,"0.0"))
+                        templ = Template().get(*( mol_model.upper(), "HF",basis,args.dist,"0.0"))
                         for at in j:
                             Property.add_prop_from_template( at, templ )
                             Property.transform_ut_properties( at.Property, t1, t2, t3 )
@@ -942,7 +944,10 @@ if __name__ == '__main__':
     A = argparse.ArgumentParser( add_help= True)
 
     A.add_argument( "-model"  , type = str, default = "gaussian", choices = [ "pointdipole", "quadrupole", "gaussian"] )
+
     A.add_argument( "-molecule"  , type = str, default = "water", choices = [ "water", "methanol"] )
+    A.add_argument( "-mol_model"  , type = str, default = "tip3p", choices = [ "tip3p", "spc"] )
+
     A.add_argument( "-basis"  , type = str, default = "ANOPVDZ" )
     A.add_argument( "-Rp"  , type = str, default = "0.00001" )
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
@@ -1022,7 +1027,10 @@ if __name__ == '__main__':
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
 
-    c.get_data( args, basis = args.basis, dist = args.dist,
+    c.get_data( args, 
+            basis = args.basis,
+            dist = args.dist,
+            mol_model = args.mol_model,
             in_AA = args.in_AA )
     string = c.get_xvg_string( args )
 
