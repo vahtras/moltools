@@ -622,5 +622,5 @@ Frequency:  Field :math:`\\omega`    string
 }
     def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
             dist = True, freq = "0.0" ):
-        return self[ ( model, method, basis, dist, freq) ]
+        return self[ ( model.upper(), method.upper(), basis.upper(), dist, freq) ]
 

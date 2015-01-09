@@ -134,6 +134,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
             if keys[0] == at.name:
                 p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
+        at.Molecule.Property = True
 
     def transform_ut_properties( self, t1, t2, t3):
         """
@@ -409,6 +410,7 @@ AA       True     bool
         self.y = 0.0
         self.z = 0.0
 
+
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
         self.bonds = []
         self.dihedral = {}
@@ -422,7 +424,9 @@ AA       True     bool
 
         self.in_water = False
         self.Molecule = None
-        self.Property = Property()
+
+#Property set to true if atoms have properties
+        self.Property = False
         self.AA = True
 
         if kwargs != {}:
@@ -455,6 +459,8 @@ AA       True     bool
 
     @property
     def q(self):
+        if self.Property:
+            return self.Property["charge"]
         if self._q is not None:
             return self._q
         self._q = el_charge_dict[ self.element ]
@@ -576,6 +582,14 @@ class Molecule( list ):
         self._com = None
         self.cluster = None
         self.no_hydrogens = True
+
+# For plotting different elements:
+        self.style = {"H":'wo', "O":'ro'}
+        self.linewidth = {"H":25, "O":40}
+
+# Make emptpy, beware that this causes molecules to give zero dipole momnet
+# before template is loaded
+        self.Property = Property()
 
 #By default, AU 
         self.AA = False
@@ -719,10 +733,17 @@ Return the dipole moment
    -0.834
 
 """
+        if self.Property:
+            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
+            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
+            dip_lop = np.array([at.Property['dipole'] for at in self])
+            dip = el_dip + nuc_dip
+            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+
         return np.array([at.r*at.q for at in self]).sum(axis=0)
 
     @property
-    def Property(self):
+    def sum_property(self):
         """
 Return the sum properties of all properties in molecules
 
@@ -813,7 +834,7 @@ Translate molecules center-of-mass to position r
         return aname_to_atype, atype_to_aname, aname_to_anumber, atype_dihedral_dict, anumber_to_atype
 
 
-#Center of charge
+#Center of nuclei charge
     @property
     def coc(self):
         """
@@ -827,6 +848,9 @@ Return center of charge
     [0., 0., 0.11]
 
         """
+
+        if self.Property:
+            pass
 
         return sum( [at.r * charge_dict[at.element] for at in self])\
                 /sum( map(float,[charge_dict[at.element] for at in self]) )
@@ -874,9 +898,10 @@ Plot the molecule in a 3D frame
         y = self.coc[1]
         z = self.coc[2]
         p = self.p
-        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], self.p, '-' )
+
+        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
         for i in self:
-            ax.plot( [i.x], [i.y], [i.z], 'ro',linewidth= 25 )
+            ax.plot( [i.x], [i.y], [i.z], self.style[i.element], linewidth= self.linewidth[i.element] )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -2013,7 +2038,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         return tmp_c
 
     @property
-    def Property(self):
+    def sum_property(self):
         """
 Return the sum properties of all molecules in cluster
 
