@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools
+import re, os, itertools, h5py
 
 from template import Template
 
@@ -187,6 +187,32 @@ class Rotator(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
+        """
+        Requires euler.h5 binary file containing rotational angle products
+        """
+        b_new = np.zeros( (3,3,3,) )
+        """given beta in molecular frame, convert to exp. reference"""
+        vec = h5py.File('euler.h5','r')['data'].value
+        for X in range(3):
+            if X != car1:
+                continue
+            for Y in range(3):
+                if Y != car2:
+                    continue
+                for Z in range(3):
+                    if Z != car3:
+                        continue
+                    for x1 in range(3):
+                        for y1 in range(3):
+                            for z1 in range(3):
+                                for x2 in range(3):
+                                    for y2 in range(3):
+                                        for z2 in range(3):
+                                            b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
+        return b_new[ car1, car2, car3 ]
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
@@ -589,7 +615,7 @@ class Molecule( list ):
 
 # Make emptpy, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
-        self.Property = Property()
+        self.Property = None
 
 #By default, AU 
         self.AA = False
@@ -893,7 +919,10 @@ Plot the molecule in a 3D frame
 #Plot water molecule in green and  nice xyz axis
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
         x = self.coc[0]
         y = self.coc[1]
         z = self.coc[2]
@@ -1647,6 +1676,43 @@ class Cluster(list):
 # Specifi
 
 
+    def plot(self ):
+        """
+Plot all the molecule in a 3D frame in the cluster
+
+.. code:: python
+
+    >>> m = Molecule()
+    >>> m.append( Atom(element = 'H', x = 1, z = 1) )
+    >>> m.append( Atom(element = 'H', x =-1, z = 1) )
+    >>> m.append( Atom(element = 'O', z = 0) )
+    >>> m.plot()
+    
+"""
+
+#Plot water molecule in green and  nice xyz axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
+        x = self.coc[0]
+        y = self.coc[1]
+        z = self.coc[2]
+        p = self.p
+
+        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
+        for i in self:
+            for j in i
+                ax.plot( [i.x], [i.y], [i.z], self.style[i.element], linewidth= self.linewidth[i.element] )
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
+
+
+
     def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
@@ -2008,9 +2074,10 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         """
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for mol in self:
-            t1, t2, t3 = mol.get_euler()
             for at in mol:
                 Property.add_prop_from_template( at, templ )
+            t1, t2, t3 = mol.get_euler()
+            for at in mol:
                 at.Property.transform_ut_properties( t1, t2, t3 )
 
     def add_mol(self, mol):
