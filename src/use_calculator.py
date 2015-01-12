@@ -187,11 +187,12 @@ class Calculator:
 # Gather the water molecules from the .mol file
                     tmp_waters = []
                     for j in Water.read_waters( i + ".mol", in_AA = in_AA ):
-                        t1, t2, t3 =  j.get_euler()
 
                         templ = Template().get(*( mol_model.upper(), "HF",basis,args.dist,"0.0"))
                         for at in j:
                             Property.add_prop_from_template( at, templ )
+                        t1, t2, t3 =  j.get_euler()
+                        for at in j:
                             Property.transform_ut_properties( at.Property, t1, t2, t3 )
                         tmp_waters.append( j )
 
