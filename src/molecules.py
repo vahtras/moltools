@@ -62,6 +62,7 @@ class Property( dict ):
         self["quadrupole"] = np.zeros( 6 )
         self["alpha"] =  np.zeros( 6 ) 
         self["beta"] =  np.zeros( 10 ) 
+
     def copy_property(self):
         p = Property()
         p["charge"] =      self["charge"].copy()
@@ -452,7 +453,7 @@ AA       True     bool
         self.Molecule = None
 
 #Property set to true if atoms have properties
-        self.Property = False
+        self.Property = Property()
         self.AA = True
 
         if kwargs != {}:
@@ -1089,7 +1090,7 @@ class Water( Molecule ):
 """
 
     def __init__(self , *args, **kwargs):
-        super(Water, self).__init__( **kwargs )
+        super(Water, self).__init__( *args, **kwargs )
         self.atoms = 0
 
         self.no_hydrogens = True
@@ -1617,7 +1618,8 @@ class Cluster(list):
 """
     def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
-        pass
+        self.Property = None
+        self.atom_list = []
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
@@ -1673,7 +1675,28 @@ class Cluster(list):
         for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
             st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
+    
+    @property
+    def p(self):
+        if self.Property:
+            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+            dip = el_dip + nuc_dip
+            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+
+        return np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
+
+
+
 # Specifi
+
+    @property
+    def coc(self):
+        if self.Property:
+            pass
+        return sum( [at.r * charge_dict[at.element] for mol in self for at in mol])\
+                /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
     def plot(self ):
@@ -1704,8 +1727,8 @@ Plot all the molecule in a 3D frame in the cluster
 
         ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
         for i in self:
-            for j in i
-                ax.plot( [i.x], [i.y], [i.z], self.style[i.element], linewidth= self.linewidth[i.element] )
+            for j in i:
+                ax.plot( [j.x], [j.y], [j.z], j.Molecule.style[j.element], linewidth= j.Molecule.linewidth[j.element] )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -2080,13 +2103,15 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             for at in mol:
                 at.Property.transform_ut_properties( t1, t2, t3 )
 
-    def add_mol(self, mol):
+    def add_mol(self, mol, *args):
+        #if type(args):
         self.append( mol )
         mol.cluster = self
 
-    def add_atom(self, at):
-        self.append( at )
-        at.cluster = self
+    def add_atom(self, *at):
+        for i, iat in enumerate(at):
+            self.append( iat )
+            iat.cluster = self
 
     def set_qm_mm(self, N_qm = 1, N_mm = 0):
         """First set all waters to False for security """
@@ -2136,6 +2161,4 @@ if __name__ == '__main__':
     g = GaussianQuadrupoleList.from_string( c.get_qmmm_pot_string( ignore_qmmm = True ) )
     g.solve_scf()
     print g.beta()
-
-
 
