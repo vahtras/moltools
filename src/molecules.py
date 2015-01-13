@@ -450,7 +450,7 @@ AA       True     bool
         self.atom_id = None
 
         self.in_water = False
-        self.Molecule = None
+        self.Molecule = Molecule()
 
 #Property set to true if atoms have properties
         self.Property = Property()
@@ -467,9 +467,8 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
-    #def __eq__(self, other):
-    #    if self.dist_to_atom( other ) <= 0.01:
-    #        return True
+    def __iter__(self):
+        yield self
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
@@ -760,12 +759,12 @@ Return the dipole moment
    -0.834
 
 """
-        if self.Property:
-            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
-            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
-            dip_lop = np.array([at.Property['dipole'] for at in self])
-            dip = el_dip + nuc_dip
-            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+        #if self.Property:
+        #    el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
+        #    nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
+        #    dip_lop = np.array([at.Property['dipole'] for at in self])
+        #    dip = el_dip + nuc_dip
+        #    return dip.sum(axis=0)+ dip_lop.sum(axis=0)
 
         return np.array([at.r*at.q for at in self]).sum(axis=0)
 
@@ -1261,7 +1260,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         H2 = self.h2.r.copy()
         O1 = self.o.r.copy()
 
-        dip = self.p
+        dip = (-0.5*O1 + 0.25*H1 + 0.25 *H2).copy()
 
         origin = O1.copy()
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
@@ -1695,6 +1694,7 @@ class Cluster(list):
     def coc(self):
         if self.Property:
             pass
+    #obj should be atom
         return sum( [at.r * charge_dict[at.element] for mol in self for at in mol])\
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
