@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools
+import re, os, itertools, h5py
 
 from template import Template
 
@@ -62,6 +62,7 @@ class Property( dict ):
         self["quadrupole"] = np.zeros( 6 )
         self["alpha"] =  np.zeros( 6 ) 
         self["beta"] =  np.zeros( 10 ) 
+
     def copy_property(self):
         p = Property()
         p["charge"] =      self["charge"].copy()
@@ -187,6 +188,32 @@ class Rotator(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
+        """
+        Requires euler.h5 binary file containing rotational angle products
+        """
+        b_new = np.zeros( (3,3,3,) )
+        """given beta in molecular frame, convert to exp. reference"""
+        vec = h5py.File('euler.h5','r')['data'].value
+        for X in range(3):
+            if X != car1:
+                continue
+            for Y in range(3):
+                if Y != car2:
+                    continue
+                for Z in range(3):
+                    if Z != car3:
+                        continue
+                    for x1 in range(3):
+                        for y1 in range(3):
+                            for z1 in range(3):
+                                for x2 in range(3):
+                                    for y2 in range(3):
+                                        for z2 in range(3):
+                                            b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
+        return b_new[ car1, car2, car3 ]
 
     @staticmethod
     def transform_1( qm_dipole, t1, t2, t3 ):
@@ -423,10 +450,10 @@ AA       True     bool
         self.atom_id = None
 
         self.in_water = False
-        self.Molecule = None
+        self.Molecule = Molecule()
 
 #Property set to true if atoms have properties
-        self.Property = False
+        self.Property = Property()
         self.AA = True
 
         if kwargs != {}:
@@ -440,9 +467,8 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
-    #def __eq__(self, other):
-    #    if self.dist_to_atom( other ) <= 0.01:
-    #        return True
+    def __iter__(self):
+        yield self
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
@@ -589,7 +615,7 @@ class Molecule( list ):
 
 # Make emptpy, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
-        self.Property = Property()
+        self.Property = None
 
 #By default, AU 
         self.AA = False
@@ -733,12 +759,12 @@ Return the dipole moment
    -0.834
 
 """
-        if self.Property:
-            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
-            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
-            dip_lop = np.array([at.Property['dipole'] for at in self])
-            dip = el_dip + nuc_dip
-            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+        #if self.Property:
+        #    el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
+        #    nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
+        #    dip_lop = np.array([at.Property['dipole'] for at in self])
+        #    dip = el_dip + nuc_dip
+        #    return dip.sum(axis=0)+ dip_lop.sum(axis=0)
 
         return np.array([at.r*at.q for at in self]).sum(axis=0)
 
@@ -893,7 +919,10 @@ Plot the molecule in a 3D frame
 #Plot water molecule in green and  nice xyz axis
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
-        ax.plot( [0, 1, 0, 0, 0, 0], [0, 0,0,1,0,0], [0,0,0,0,0,1] )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
         x = self.coc[0]
         y = self.coc[1]
         z = self.coc[2]
@@ -1060,7 +1089,7 @@ class Water( Molecule ):
 """
 
     def __init__(self , *args, **kwargs):
-        super(Water, self).__init__( **kwargs )
+        super(Water, self).__init__( *args, **kwargs )
         self.atoms = 0
 
         self.no_hydrogens = True
@@ -1231,7 +1260,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         H2 = self.h2.r.copy()
         O1 = self.o.r.copy()
 
-        dip = self.p
+        dip = (-0.5*O1 + 0.25*H1 + 0.25 *H2).copy()
 
         origin = O1.copy()
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
@@ -1588,7 +1617,8 @@ class Cluster(list):
 """
     def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
-        pass
+        self.Property = None
+        self.atom_list = []
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
@@ -1644,7 +1674,66 @@ class Cluster(list):
         for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
             st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
+    
+    @property
+    def p(self):
+        if self.Property:
+            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+            dip = el_dip + nuc_dip
+            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+
+        return np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
+
+
+
 # Specifi
+
+    @property
+    def coc(self):
+        if self.Property:
+            pass
+    #obj should be atom
+        return sum( [at.r * charge_dict[at.element] for mol in self for at in mol])\
+                /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
+
+
+    def plot(self ):
+        """
+Plot all the molecule in a 3D frame in the cluster
+
+.. code:: python
+
+    >>> m = Molecule()
+    >>> m.append( Atom(element = 'H', x = 1, z = 1) )
+    >>> m.append( Atom(element = 'H', x =-1, z = 1) )
+    >>> m.append( Atom(element = 'O', z = 0) )
+    >>> m.plot()
+    
+"""
+
+#Plot water molecule in green and  nice xyz axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
+        x = self.coc[0]
+        y = self.coc[1]
+        z = self.coc[2]
+        p = self.p
+
+        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
+        for i in self:
+            for j in i:
+                ax.plot( [j.x], [j.y], [j.z], j.Molecule.style[j.element], linewidth= j.Molecule.linewidth[j.element] )
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
+
 
 
     def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
@@ -2008,18 +2097,21 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         """
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for mol in self:
-            t1, t2, t3 = mol.get_euler()
             for at in mol:
                 Property.add_prop_from_template( at, templ )
+            t1, t2, t3 = mol.get_euler()
+            for at in mol:
                 at.Property.transform_ut_properties( t1, t2, t3 )
 
-    def add_mol(self, mol):
+    def add_mol(self, mol, *args):
+        #if type(args):
         self.append( mol )
         mol.cluster = self
 
-    def add_atom(self, at):
-        self.append( at )
-        at.cluster = self
+    def add_atom(self, *at):
+        for i, iat in enumerate(at):
+            self.append( iat )
+            iat.cluster = self
 
     def set_qm_mm(self, N_qm = 1, N_mm = 0):
         """First set all waters to False for security """
@@ -2069,6 +2161,4 @@ if __name__ == '__main__':
     g = GaussianQuadrupoleList.from_string( c.get_qmmm_pot_string( ignore_qmmm = True ) )
     g.solve_scf()
     print g.beta()
-
-
 
