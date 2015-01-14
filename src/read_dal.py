@@ -251,6 +251,8 @@ def beta_analysis_par( val,
 
         if int(qm) > 15:
             continue
+        if int(qm) > N_waters:
+            continue
 
         dipole = np.zeros( [3] )
         alpha = np.zeros( [3, 3] )
@@ -340,7 +342,9 @@ def run_beta_analysis_par( N_waters = 15,
     #beta_analysis_par( dists  )
     p = multiprocessing.Pool(4)
     vals = range(len(outs))
-    mod_func = functools.partial( beta_analysis_par, model = model )
+    mod_func = functools.partial( beta_analysis_par,
+            N_waters = N_waters,
+            model = model )
     p.map( mod_func,
             vals, )
     p.close()
