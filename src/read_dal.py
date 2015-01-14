@@ -2,7 +2,6 @@
 
 import os,sys, re, argparse, ctypes, multiprocessing
 import numpy as np
-import fractions as fr
 import math as m
 
 #from particles import *
@@ -13,8 +12,8 @@ from template import Template
 
 from matplotlib import pyplot as plt
 
-#import h5py
-#from calculator import *
+import h5py, functools
+from use_calculator import *
 
 
 a0 = 0.52917721092
@@ -230,9 +229,10 @@ def beta_analysis_par( val,
         a_qm =  shared_a_qm ,
         b_qm =  shared_b_qm ,
         dal = "hfqua_",
-        N_waters = 15, in_AA = False, out_AA = False, basis = "ANOPVDZ"
+        N_waters = 15, in_AA = False, out_AA = False, basis = "ANOPVDZ",
+        model = "spc",
         ):
-    ps = re.compile(r'tip3p(\d+)_')
+    ps = re.compile(r'%s(\d+)_' %model)
     pqm = re.compile(r'_(\d+)qm')
     for dist in [False, True]:
 #properties for POT
@@ -282,7 +282,7 @@ def beta_analysis_par( val,
 # by transfer of dipole, alpha and beta to coordinates
         for wat in waters:
             t1, t2, t3  = wat.get_euler()
-            kwargs_dict = Template().get( *("TIP3P", "HF", basis,
+            kwargs_dict = Template().get( *(model, "HF", basis,
                 dist, "0.0"))
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
@@ -335,13 +335,14 @@ def beta_analysis_par( val,
                 beta_qm
         print "finished", snapind, qmind
 
-def run_beta_analysis_par( N_waters = 15 ):
-
+def run_beta_analysis_par( N_waters = 15,
+        model = "tip3p"):
     #beta_analysis_par( dists  )
     p = multiprocessing.Pool(4)
     vals = range(len(outs))
-    p.map( beta_analysis_par,
-            vals )
+    mod_func = functools.partial( beta_analysis_par, model = model )
+    p.map( mod_func,
+            vals, )
     p.close()
     p.join()
 
@@ -486,8 +487,6 @@ def beta_analysis(args,
             #b_qm[ snapind, qmind, :, distind] = \
             #        beta_qm
             print "finished", snapind, qmind
-
-    print dists[5,13,:,:]
     h5name = "beta/%s" % basis.lower()
 
     if args.hdf:
@@ -927,6 +926,7 @@ def run_argparse( args ):
     A.add_argument( "-beta_dal", type= str, default = "hfqua_" )
     A.add_argument( "-Ncpu", type= int, default = "4" )
     A.add_argument( "-N_waters", type= int, default = 15 )
+    A.add_argument( "-model", default = "tip3p" )
 
 # ----------------------------
 # ALPHA ANALYSIS RELATED
@@ -1432,7 +1432,8 @@ def main():
                 ncpu = args.Ncpu,
                 N_waters = args.N_waters)
     if args.beta_analysis_par:
-        run_beta_analysis_par( N_waters = 15 )
+        run_beta_analysis_par( N_waters = args.N_waters,
+                model = args.model )
 
     if args.alpha_analysis:
         alpha_analysis(args)
