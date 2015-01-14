@@ -338,9 +338,10 @@ def beta_analysis_par( val,
         print "finished", snapind, qmind
 
 def run_beta_analysis_par( N_waters = 15,
+        ncpu = 4,
         model = "tip3p"):
     #beta_analysis_par( dists  )
-    p = multiprocessing.Pool(4)
+    p = multiprocessing.Pool(ncpu)
     vals = range(len(outs))
     mod_func = functools.partial( beta_analysis_par,
             N_waters = N_waters,
@@ -1435,8 +1436,10 @@ def main():
                 out_AA = args.out_AA,
                 ncpu = args.Ncpu,
                 N_waters = args.N_waters)
+
     if args.beta_analysis_par:
         run_beta_analysis_par( N_waters = args.N_waters,
+                ncpu = args.Ncpu,
                 model = args.model )
 
     if args.alpha_analysis:
