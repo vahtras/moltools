@@ -315,17 +315,22 @@ class Generator( dict ):
             p = self[ ("theta_hoh_dev", "points") ]
             theta_d =  0.01*np.linspace( -d, d, p )
 
-            a_hoh = self[ ( mol, model, "a_hoh", "degree" ) ]
-            r_oh = self[ ( mol, model, "r_oh", "AA" ) ]
+            #a_hoh = self[ ( mol, model, "a_hoh", "degree" ) ] *np.pi/180
+            #r_oh = self[ ( mol, model, "r_oh", "AA" ) ]
 
             for i in r_d:
                 for j in r_d:
                     for k in theta_d:
-                        print " ".join( map( lambda x:"%.2f"%x, [i, j, k] ) )
+                        scale_bond1 = 1 + i
+                        scale_bond2 = 1 + j
+                        scale_angle = 1 + k
+                        names = map( lambda x:"%.2f"%x, [i, j, k] )
                         w = self.get_mol( mol = mol, model = model)
-                        raise SystemExit
-                                
-
+                        w.populate_bonds() ; w.populate_angles()
+                        w.h1.scale_bond( scale_bond1 )
+                        w.h2.scale_bond( scale_bond2 )
+                        w.h1.scale_angle( scale_angle )
+                        open( "_".join([model]+names) + ".mol",'w').write(w.get_mol_string())
         
     def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
