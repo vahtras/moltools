@@ -176,7 +176,8 @@ class Calculator:
 
     def get_data( self, args ,
             mol_model = 'tip3p',
-            basis = "ANOPVDZ", dist = False,
+            basis = "ANOPVDZ",
+            dist = False,
             in_AA = False):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
@@ -239,19 +240,17 @@ class Calculator:
                             tmp_Rp = float(args.R)
                             if "static" in args.l:
                                 static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2 , pol = 0 , hyper = 0 ,  dist = args.dist ))
+                                    max_l = 1 , pol = 0 , hyper = 0 ,  dist = args.dist ))
                                 static.set_damp( tmp_Rq, tmp_Rp )
 
                             if "polar" in args.l:
                                 polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2, pol = 2 , hyper = 1 , dist = args.dist ))
+                                    max_l = 1, pol = 2 , hyper = 0 , dist = args.dist ))
                                 polar.set_damp( tmp_Rq, tmp_Rp )
 
                             if "hyper" in args.l:
-                        #        print Water.get_string_from_waters( tmp_waters,
-                        #                max_l = 2, pol = 22, hyper = 1, dist = True )
                                 hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                    max_l = 2, pol = 22,  hyper = 1 , dist = args.dist ))
+                                    max_l = 1, pol = 22,  hyper = 1 , dist = args.dist ))
                                 hyper.set_damping( tmp_Rq, tmp_Rp )
                         try:
                             static.solve_scf()
@@ -309,11 +308,11 @@ class Calculator:
                         if args.noqm:
                             if args.model == "pointdipole":
                                 static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                        max_l = 1, pol = 0, hyper = 0, dist = args.dist ) )
+                                        max_l = maxl, pol = 0, hyper = 0, dist = args.dist ) )
                                 polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                        max_l = 1, pol = 2, hyper = 1, dist = args.dist ))
+                                        max_l = maxl, pol = 2, hyper = 1, dist = args.dist ))
                                 hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                        max_l = 1, pol = 22, hyper = 1, dist = args.dist ))
+                                        max_l = maxl, pol = 22, hyper = 1, dist = args.dist ))
 
                             if args.model == "gaussian":
                                 tmp_Rq = float(args.Rq)
