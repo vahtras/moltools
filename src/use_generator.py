@@ -361,11 +361,16 @@ if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
 
-#Related to generating molecules with specified parameters
+# Related to generating molecules with specified parameters
 # Right now 2 waters implemented with 6 parameters
+# TWO MOLS GEN RELATED
 
-    A.add_argument( "-param", action = 'store_true', default = False )
-    A.add_argument( "-param_mol", type = str, default = 'water' )
+    A.add_argument( "-two_mols_gen", action = 'store_true', default = False,
+            help = "Generate two molecule at certain distance/parameters relative to each other")
+    A.add_argument( "-two_mols_mol", type = str, default = 'water',
+            help = "Which specific molecules to generate")
+    A.add_argument( "-two_mols_model", type = str, default = 'tip3p',
+            help = "Which specific model of the molecule to generate")
 
 
 
@@ -426,10 +431,10 @@ if __name__ == '__main__':
     g.vary_parameters( opts )
 
 
-    if args.param:
+    if args.two_mols_gen:
         g.gen_mols_param( 
-                mol = args.param_mol ,
-                model = args.model ,
+                mol = args.two_mols_mol ,
+                model = args.two_mols_model,
                 basis = args.basis,
                 AA = False )
 
