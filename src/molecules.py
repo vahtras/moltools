@@ -502,8 +502,21 @@ AA       True     bool
             rho3 = np.math.atan2( r3[1], r3[0] )
             for i in self.Molecule:
                 i.x, i.y, i.z = np.dot( Rzi(rho3), i.r )
-            theta = self.get_angle( self.bonds[at2], self.angles[(at2,at3)] )
+            theta = scale*self.get_angle( self.bonds[at2], self.angles[(at2,at3)] )
 
+            bond = self.get_bond( self.bonds[at2] )
+            self.x = bond * np.sin(theta)
+            np.testing.assert_almost_equal( self.y, 0 )
+            self.z = bond* np.cos( theta)
+
+            for i in self.Molecule:
+                i.x, i.y, i.z = np.dot( Rz(rho3), i.r )
+                i.x, i.y, i.z = np.dot( Ryi(rho2), i.r )
+                i.x, i.y, i.z = np.dot( Rz(rho1), i.r )
+                i.x, i.y, i.z = i.r + t
+
+    def get_bond(self, other):
+        return np.linalg.norm(other.r - self.r)
 
     def get_angle(self, at1, at2 ):
         r1 = self.r - at1.r
@@ -522,7 +535,7 @@ AA       True     bool
             warnings.warn("Did not scale %s since it had %d bonds" %(self,len(self.bonds)), Warning)
             return
         for at in self.bonds:
-            self.translate( at.r + (self.r - at.r)*scale )
+            self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
 
     def translate(self, r ):
         self.x, self.y, self.z = r
@@ -1418,11 +1431,11 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
         self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
 
-    def get_xyz(self):
+    def get_xyz_string(self, ):
         st = "%d\n\n" % len(self)
-        for at in self:
-            st += "{0:10s}{1:10f}{2:10f}{3:10f}\n".format(\
-                    at.element, at.x,  at.y , at.z )
+        for i in self:
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
+                    i.element, i.x,  i.y , i.z )
         return st
 
     @staticmethod
@@ -1901,7 +1914,6 @@ Plot all the molecule in a 3D frame in the cluster
                 st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                         i.element, i.x,  i.y , i.z )
         return st
-
 
     def order_mm_atoms(self):
         cnt = 1
