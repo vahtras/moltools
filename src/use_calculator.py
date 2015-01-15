@@ -66,8 +66,10 @@ from matplotlib import pyplot as plt
 from gaussian import *
 
 from template import Template
-from molecules import Atom, Molecule, Water, Property
+from molecules import *
 from dic import Dic
+
+import read_dal
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
@@ -131,6 +133,27 @@ class Calculator:
 
         self.Dict = Dic()
 
+    def errors(self, molecule = 'water', model = "tip3p"):
+        files = [j for j in os.listdir( os.getcwd()) if j.endswith('.out') ]
+        a = np.zeros( len(files) )
+        b1 = np.zeros( len(files) )
+        b2 = np.zeros( len(files) )
+        res = np.zeros( len(files) )
+
+
+        b = Template().get( dist = False, model = model )[('O1','beta')]
+
+        for i in range(len(files)):
+            base = map(float,files[i][:-4].split('_')[-3:])
+            b1[ i ] = base[-3]
+            b2[ i ] = base[-2]
+            a[ i ] =  base[-1]
+            b_qm = read_dal.read_beta_hf( files[i] )[3]
+
+            b_qm = Rotator.square_3_ut( b_qm )
+            res[i]= np.sqrt( np.linalg.norm( (b-b_qm)**2) )
+        print res.min()
+        raise SystemExit
     def get_x_and_y( self ):
         x = []
         y = []
@@ -953,6 +976,9 @@ if __name__ == '__main__':
     A.add_argument( "-Rq"  , type = str, default = "0.00001" )
     A.add_argument( "-R"  , type = str, default = "0.00001" )
 
+# RELATED TO WATER ERRORS
+    A.add_argument( "-water_errors"  , default = False, action ='store_true' )
+
 #Param analyzez 6 variables r, tau, theta, rho_{1,2,3}, so far only parameter
     A.add_argument( "-params"  , default = True )
 
@@ -1027,6 +1053,9 @@ if __name__ == '__main__':
         c.opts[ "rho3" ] = { "vary" : True }
         args.var = "rho3"
 
+    if args.water_errors:
+        c.errors( molecule = args.molecule,
+                model = args.mol_model )
     c.get_data( args, 
             basis = args.basis,
             dist = args.dist,
