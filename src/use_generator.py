@@ -330,6 +330,7 @@ class Generator( dict ):
                         w.h1.scale_bond( scale_bond1 )
                         w.h2.scale_bond( scale_bond2 )
                         w.h1.scale_angle( scale_angle )
+                        w.inv_rotate()
                         open( "_".join([model]+names) + ".mol",'w').write(w.get_mol_string())
         
     def build_pna( self,  xyz = "tmp.xyz", waters = 0,
