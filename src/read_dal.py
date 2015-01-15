@@ -170,6 +170,10 @@ Each .pdb files in the working directory will be converted into .mol files for t
 #TEMPORARY PARALLEL SOLUTION TO PROBLEM parsing 1500 files
 N_waters = 15
 
+#Store energy of output file
+shared_erg_base = multiprocessing.Array( ctypes.c_double,101*N_waters**2*2)
+shared_erg = np.ctypeslib.as_array(shared_erg_base.get_obj())
+shared_erg = shared_erg.reshape(101, N_waters, N_waters, 2)
 
 #Store minimum distance between two oxygens
 shared_dists_base = multiprocessing.Array( ctypes.c_double,101*N_waters**2*2)
@@ -218,6 +222,7 @@ shared_b_qm = shared_b_qm.reshape(101, N_waters, 10, 2)
 outs = [f for f in os.listdir(os.getcwd()) if f.endswith(".out") ]
 
 def beta_analysis_par( val, 
+        erg =  shared_erg,
         dists =  shared_dists,
         sd_cl = shared_sd_cl,
         pd_cl = shared_pd_cl,
@@ -273,6 +278,8 @@ def beta_analysis_par( val,
                     in_AA = in_AA, out_AA = out_AA )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
+
+
         alpha_qm = Rotator.square_2_ut( alpha_qm )
         beta_qm = Rotator.square_3_ut( beta_qm )
 
@@ -312,6 +319,8 @@ def beta_analysis_par( val,
         c = Cluster()
         for i in waters:
             c.append(i)
+
+        erg[ snapind, qmind, :qmind+1, distind  ] = read_energy( out )
         dists[ snapind, qmind, :qmind+1, distind] = \
                 c.min_dist_coo()
         sd_cl[ snapind, qmind, :, distind] = \
@@ -353,6 +362,7 @@ def run_beta_analysis_par( N_waters = 15,
 
     h5name = "beta/%s" % "anopvdz".lower()
     f_ = h5py.File("data.h5",'w')
+    f_[ h5name + "/erg"] = shared_erg
     f_[ h5name + "/dists"] = shared_dists
     f_[ h5name + "/sd_cl"] = shared_sd_cl
     f_[ h5name + "/pd_cl"] = shared_pd_cl
@@ -947,6 +957,13 @@ def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
         return freqlist
 
     return alpha 
+
+def read_energy( fname, calctype = 'HF' ):
+    """Return the energy from dalton .out file fname"""
+
+    for line in open(fname).readlines():
+        if re.compile(r'.*Final.*energy').match(line):
+            return line.split()[-1]
 
 def read_beta_ccsd( args ):
 
