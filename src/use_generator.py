@@ -324,7 +324,7 @@ class Generator( dict ):
                         scale_bond1 = 1 + i
                         scale_bond2 = 1 + j
                         scale_angle = 1 + k
-                        names = map( lambda x:"%.2f"%x, [i, j, k] )
+                        names = map( lambda x:"%.3f"%x, [i, j, k] )
                         w = self.get_mol( mol = mol, model = model)
                         w.populate_bonds() ; w.populate_angles()
                         w.h1.scale_bond( scale_bond1 )
@@ -430,8 +430,8 @@ if __name__ == '__main__':
     A.add_argument( "-one_mol_gen", action = 'store_true', default = False,)
     A.add_argument( "-one_mol_mol", type = str, default = 'water',)
     A.add_argument( "-one_mol_model", type = str, default = 'tip3p',)
-    A.add_argument( "-r_oh_dev", type = int, default = 5,)
-    A.add_argument( "-theta_hoh_dev", type = int, default = 5,)
+    A.add_argument( "-r_oh_dev", type = float, default = 5,)
+    A.add_argument( "-theta_hoh_dev", type = float, default = 5,)
 
     A.add_argument( "-r_oh_points", type = int, default = 1,)
     A.add_argument( "-theta_hoh_points", type = int, default = 1,)
