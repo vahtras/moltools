@@ -439,7 +439,7 @@ AA       True     bool
 
 
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
-        self.bonds = []
+        self.bonds = {}
         self.angles = {}
         self.dihedral = {}
 
@@ -471,10 +471,27 @@ AA       True     bool
     def __iter__(self):
         yield self
 
-    def scale_bond(self, scale = 1.0):
-        """scales all bonds by scalefactor 
+
+    def scale_angle(self, scale = 1.0):
+        """scales only angle
         
         defaults to 1.0"""
+
+        if len(self.angles) > 1:
+            warnings.warn("Did not scale %s since it had %d angles" %(self,len(self.angles)), Warning)
+            return
+        Rz, Rzi = Rotator.get_Rz, Rotator.get_Rz_inv
+        Ry, Ryi = Rotator.get_Ry, Rotator.get_Ry_inv
+
+        for at2, at3 in self.angles:
+            print at2, at3
+
+
+
+    def scale_bond(self, scale = 1.0):
+        """scales only bond by a scalefactor 
+        
+        scale defaults to 1.0"""
 
         if len(self.bonds) > 1:
             warnings.warn("Did not scale %s since it had %d bonds" %(self,len(self.bonds)), Warning)
@@ -668,14 +685,15 @@ class Molecule( list ):
         for i in range(len(self)):
             for j in range( i + 1, len(self)):
                 if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
-                    self[i].bonds.append( self[j] )
-                    self[j].bonds.append( self[i] )
+
+                    self[i].bonds[ self[j].name ] = self[j]
+                    self[j].bonds[ self[i].name ] = self[i]
 
     def populate_angles(self):
 # Must be run after populate_bonds
         for at1 in self:
-            for at2 in [at2 for at2 in at1.bonds]:
-                for at3 in [at3 for at3 in at2.bonds if at3 is not at1 ]:
+            for at2 in [at2 for at2 in at1.bonds.values()]:
+                for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
                     r1 = at1.r - at2.r
                     r2 = at3.r - at2.r
                     n1 = np.linalg.norm(r1)
