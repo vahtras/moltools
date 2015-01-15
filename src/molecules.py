@@ -484,9 +484,34 @@ AA       True     bool
         Ry, Ryi = Rotator.get_Ry, Rotator.get_Ry_inv
 
         for at2, at3 in self.angles:
-            print at2, at3
+            r3 = self.bonds[at2].bonds[at3].r - self.bonds[at2].r 
+            t = self.bonds[at2].r.copy()
+            for i in self.Molecule:
+                i.x, i.y, i.z = i.r - t
+
+            rho1 = np.math.atan2( r3[1], r3[0] )
+            for i in self.Molecule:
+                r3 = np.dot( Rzi(rho1), r3 )
+                i.x, i.y, i.z = np.dot( Rzi(rho1), i.r )
+
+            rho2 = np.math.atan2( -r3[0], r3[2] )
+            for i in self.Molecule:
+                r3 = np.dot( Ry(rho2), r3 )
+                i.x, i.y, i.z = np.dot( Ry(rho2), i.r )
+
+            rho3 = np.math.atan2( r3[1], r3[0] )
+            for i in self.Molecule:
+                i.x, i.y, i.z = np.dot( Rzi(rho3), i.r )
+            theta = self.get_angle( self.bonds[at2], self.angles[(at2,at3)] )
 
 
+    def get_angle(self, at1, at2 ):
+        r1 = self.r - at1.r
+        r2 = at2.r - at1.r
+        n1 = np.linalg.norm(r1)
+        n2 = np.linalg.norm(r2)
+        deg = np.arccos(np.dot(r1,r2)/(n1*n2)) 
+        return deg
 
     def scale_bond(self, scale = 1.0):
         """scales only bond by a scalefactor 
@@ -694,12 +719,7 @@ class Molecule( list ):
         for at1 in self:
             for at2 in [at2 for at2 in at1.bonds.values()]:
                 for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
-                    r1 = at1.r - at2.r
-                    r2 = at3.r - at2.r
-                    n1 = np.linalg.norm(r1)
-                    n2 = np.linalg.norm(r2)
-                    deg = np.arccos(np.dot(r1,r2)/(n1*n2)) *180/np.pi
-                    at1.angles[(at2.name,at3.name)] = deg
+                    at1.angles[(at2.name,at3.name)] = at3
 
     @staticmethod
     def from_charmm_file( f):
@@ -994,13 +1014,6 @@ Plot the molecule in a 3D frame
                     basis[ el_to_rowind[el] ])
             for i in [all_el for all_el in self if (all_el.element == el) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
-        return st
-
-    def get_xyz_string(self):
-        st = "%d\n\n" % len(self)
-        for i in self:
-            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
-                    i.element, i.x,  i.y , i.z )
         return st
 
     @staticmethod
