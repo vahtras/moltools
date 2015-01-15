@@ -440,6 +440,7 @@ AA       True     bool
 
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
         self.bonds = []
+        self.angles = {}
         self.dihedral = {}
 
         self._q = None
@@ -659,18 +660,28 @@ class Molecule( list ):
             i.name = i.element + str(i.number)
 
     def populate_bonds(self):
-#Implement later also atomic units
+#Implement later that it can only be called once
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
-
-        for i in range( len(self) ):
+        for i in range(len(self)):
             for j in range( i + 1, len(self)):
                 if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
                     self[i].bonds.append( self[j] )
                     self[j].bonds.append( self[i] )
 
+    def populate_angles(self):
+# Must be run after populate_bonds
+        for at1 in self:
+            for at2 in [at2 for at2 in at1.bonds]:
+                for at3 in [at3 for at3 in at2.bonds if at3 is not at1 ]:
+                    r1 = at1.r - at2.r
+                    r2 = at3.r - at2.r
+                    n1 = np.linalg.norm(r1)
+                    n2 = np.linalg.norm(r2)
+                    deg = np.arccos(np.dot(r1,r2)/(n1*n2)) *180/np.pi
+                    at1.angles[(at2.name,at3.name)] = deg
 
     @staticmethod
     def from_charmm_file( f):
