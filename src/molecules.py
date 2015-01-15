@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, h5py
+import re, os, itertools, h5py, warnings
 
 from template import Template
 
@@ -470,6 +470,20 @@ AA       True     bool
     def __iter__(self):
         yield self
 
+    def scale_bond(self, scale = 1.0):
+        """scales all bonds by scalefactor 
+        
+        defaults to 1.0"""
+
+        if len(self.bonds) > 1:
+            warnings.warn("Did not scale %s since it had %d bonds" %(self,len(self.bonds)), Warning)
+            return
+        for at in self.bonds:
+            self.translate( at.r + (self.r - at.r)*scale )
+
+    def translate(self, r ):
+        self.x, self.y, self.z = r
+
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
@@ -646,11 +660,10 @@ class Molecule( list ):
 
     def populate_bonds(self):
 #Implement later also atomic units
-        #if self.AA:
-        #    conv = 1.0
-        #else:
-        #    conv = 1/a0
-        conv = 1.0
+        if self.AA:
+            conv = 1.0
+        else:
+            conv = 1/a0
 
         for i in range( len(self) ):
             for j in range( i + 1, len(self)):
