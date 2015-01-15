@@ -64,17 +64,17 @@ class Generator( dict ):
         self[ ("water", "spc", "a_hoh", "degree") ] = 109.47
         self[ ("water", "spc", "r_oh", "AA") ] = 1.0
 
-        self[ ("methanol", "r_oh", "AA" ) ] = 0.967
-        self[ ("methanol", "r_co", "AA" ) ] = 1.428
-        self[ ("methanol", "r_ch", "AA" ) ] = 1.098
+        self[ ("methanol", "gas_opt", "r_oh", "AA" ) ] = 0.967
+        self[ ("methanol", "gas_opt", "r_co", "AA" ) ] = 1.428
+        self[ ("methanol", "gas_opt", "r_ch", "AA" ) ] = 1.098
 
-        self[ ("methanol", "a_coh", "degree" ) ] = 107.16
-        self[ ("methanol", "a_hch", "degree" ) ] = 109.6
-        self[ ("methanol", "a_hco", "degree" ) ] = 109.342
+        self[ ("methanol", "gas_opt", "a_coh", "degree" ) ] = 107.16
+        self[ ("methanol", "gas_opt", "a_hch", "degree" ) ] = 109.6
+        self[ ("methanol", "gas_opt", "a_hco", "degree" ) ] = 109.342
 
-        self[ ("methanol", "d_hcoh", "h4", "degree" ) ] =  60.0
-        self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
-        self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
+        self[ ("methanol", "gas_opt", "d_hcoh", "h4", "degree" ) ] =  60.0
+        self[ ("methanol", "gas_opt", "d_hcoh", "h5", "degree" ) ] = -60.0
+        self[ ("methanol", "gas_opt", "d_hcoh", "h6", "degree" ) ] =  180.0
 
         
 #Default options for water
@@ -301,6 +301,32 @@ class Generator( dict ):
 
         return x , y , z
 
+    def one_mol_gen(self, mol = 'water', model = 'tip3p',):
+        """
+        Only implemented for water so far"""
+
+
+        if mol == "water":
+            d = self[ ("r_oh_dev", "max") ]
+            p = self[ ("r_oh_dev", "points") ]
+            r_d =  0.01*np.linspace( -d, d, p )
+
+            d = self[ ("theta_hoh_dev", "max") ]
+            p = self[ ("theta_hoh_dev", "points") ]
+            theta_d =  0.01*np.linspace( -d, d, p )
+
+            a_hoh = self[ ( mol, model, "a_hoh", "degree" ) ]
+            r_oh = self[ ( mol, model, "r_oh", "AA" ) ]
+
+            for i in r_d:
+                for j in r_d:
+                    for k in theta_d:
+                        print " ".join( map( lambda x:"%.2f"%x, [i, j, k] ) )
+                        w = self.get_mol( mol = mol, model = model)
+                        raise SystemExit
+                                
+
+        
     def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
             mult_r = 10,
@@ -372,8 +398,6 @@ if __name__ == '__main__':
     A.add_argument( "-two_mols_model", type = str, default = 'tip3p',
             help = "Which specific model of the molecule to generate")
 
-
-
     A.add_argument( "-r_min"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta_min" ,   type = float , default = 0.00  ) 
     A.add_argument( "-tau_min"   ,   type = float , default = 0.00  ) 
@@ -394,6 +418,17 @@ if __name__ == '__main__':
     A.add_argument( "-rho1_points"  ,   type = int , default = 1) 
     A.add_argument( "-rho2_points"  ,   type = int , default = 1) 
     A.add_argument( "-rho3_points"  ,   type = int , default = 1) 
+
+
+# ONE MOL GEN RELATED
+    A.add_argument( "-one_mol_gen", action = 'store_true', default = False,)
+    A.add_argument( "-one_mol_mol", type = str, default = 'water',)
+    A.add_argument( "-one_mol_model", type = str, default = 'tip3p',)
+    A.add_argument( "-r_oh_dev", type = int, default = 5,)
+    A.add_argument( "-theta_hoh_dev", type = int, default = 5,)
+
+    A.add_argument( "-r_oh_points", type = int, default = 1,)
+    A.add_argument( "-theta_hoh_points", type = int, default = 1,)
 
 #Related to generating/getting one water
     A.add_argument( "-get_mol", 
@@ -427,6 +462,8 @@ if __name__ == '__main__':
        "rho1" :{"min":args.rho1_min, "max": args.rho1_max, "points":args.rho1_points, },
        "rho2" :{"min":args.rho2_min, "max": args.rho2_max, "points":args.rho2_points, },
        "rho3" :{"min":args.rho3_min, "max": args.rho3_max, "points":args.rho3_points, },
+       "r_oh_dev" :{"min":0, "max": args.r_oh_dev, "points": args.r_oh_points },
+       "theta_hoh_dev" :{"min":0, "max": args.theta_hoh_dev, "points": args.theta_hoh_points },
     }
     g.vary_parameters( opts )
 
@@ -437,6 +474,11 @@ if __name__ == '__main__':
                 model = args.two_mols_model,
                 basis = args.basis,
                 AA = False )
+    if args.one_mol_gen:
+        g.one_mol_gen(
+            mol = args.one_mol_mol,
+            model = args.one_mol_model,
+            )
 
     if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )
