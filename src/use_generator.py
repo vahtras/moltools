@@ -242,22 +242,22 @@ class Generator( dict ):
 
         elif mol == "methanol":
 
-            r_co = self[ ("methanol", "r_co", "AA" )]
-            r_oh = self[ ("methanol", "r_oh", "AA" )]
-            r_ch = self[ ("methanol", "r_ch", "AA" )]
+            r_co = self[ ("methanol", "gas_opt", "r_co", "AA" )]
+            r_oh = self[ ("methanol", "gas_opt", "r_oh", "AA" )]
+            r_ch = self[ ("methanol", "gas_opt", "r_ch", "AA" )]
 
-            a_coh = self[ ("methanol", "a_coh", "degree" ) ]
-            #a_hch = self[ ("methanol", "a_hch", "degree" ) ]
-            a_hco = self[ ("methanol", "a_hco", "degree" ) ]
+            a_coh = self[ ("methanol", "gas_opt", "a_coh", "degree" ) ]
+            #a_hch = self[ ("methanol","gas_opt",  "a_hch", "degree" ) ]
+            a_hco = self[ ("methanol", "gas_opt", "a_hco", "degree" ) ]
 
             a_coh *= np.pi / 180
             a_hco *= np.pi / 180
 
-            d_hcoh_4 = self[ ("methanol", "d_hcoh", "h4", "degree" ) ]
+            d_hcoh_4 = self[ ("methanol","gas_opt",  "d_hcoh", "h4", "degree" ) ]
             d_hcoh_4 *= np.pi / 180
-            d_hcoh_5 = self[ ("methanol", "d_hcoh", "h5", "degree" ) ]
+            d_hcoh_5 = self[ ("methanol","gas_opt",  "d_hcoh", "h5", "degree" ) ]
             d_hcoh_5 *= np.pi / 180
-            d_hcoh_6 = self[ ("methanol", "d_hcoh", "h6", "degree" ) ]
+            d_hcoh_6 = self[ ("methanol","gas_opt",  "d_hcoh", "h6", "degree" ) ]
             d_hcoh_6 *= np.pi / 180
 
             if not AA:
