@@ -772,42 +772,6 @@ class Calculator( dict ):
             t_component *= 3
             t_prop = r'\xb\0'
         return t_level + t_prop + r"\s%s\N" % t_component
-    def write_log(self, **kwargs):
-        x, y = self.get_x_and_y()
-
-        if kwargs is None:
-            f = open( "rel_error.log" , 'w' )
-            for i in range(len( x )):
-                f.write( "%s %.4f\n" %( x[i], y[i][0][2] ) )
-        else:
-            level = kwargs.get( "level" , "hyper" )
-            prop = kwargs.get( "prop", "dipole" )
-            component = kwargs.get( "component", "X" )
-            var = kwargs.get( "variable", "r" )
-            in1, in2 =  index_dict[ level ][ prop ][ component ]
-            f = open( "%s_%s_%s_%s.log" %(level, prop, component, var) , 'w')
-
-            if prop == "dipole":
-                f.write('@TITLE "Dipole moment error as a function of %s"\n' %var )
-            if prop == "alpha":
-                f.write('@TITLE "Alpha error as a function of %s"\n' %var )
-            if prop == "beta":
-                f.write('@TITLE "Beta error as a function of %s"\n' %var )
-
-            f.write( '@LEGEND ON\n@LEGEND BOX ON\n@LEGEND LOCTYPE VIEW\n@LEGEND 0.80, 0.80\n' )
-            f.write( '@ s0 LEGEND "%s, %s"\n' %(level, prop) )
-            f.write( '@ XAXIS LABEL "%s"\n' %var + r"r [\cE\C]" )
-            f.write( '@ YAXIS LABEL "Relative error"\n' )
-
-#Write out the actual data x and y
-            for i in range(len( x )):
-                f.write( "%s %.4f\n" %( x[i], y[i][in1][in2] ))
-
-            f.write( '@ SORT s0 X ASCENDING\n' )
-
-            print "wrote %s_%s_%s_%s.log" %(level, prop, component, var) 
-
-        f.close()
 
     def get_static_string( self, waters, to_au = True, dist = False ):
         """ Converts list of waters into Olav string for .pot"""
