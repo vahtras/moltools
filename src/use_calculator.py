@@ -179,6 +179,8 @@ class Calculator( dict ):
             var = 'r',
             in_AA = False,
             out_AA = False,
+            max_l = 1,
+            dist = 0, 
             ):
 
         x = []
@@ -207,7 +209,7 @@ class Calculator( dict ):
                 if out_AA and not in_AA:
                     r_x = "%.2f" % (float(r)*a0)
                 x.append( r_x )
-                y.append( self[ ( r, tau, theta, rho1, rho2, rho3 ) ] )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist ) ] )
         return  x , y 
 
     def get_data( self, 
@@ -220,23 +222,23 @@ class Calculator( dict ):
             noqm = False,
             model = "gaussian",
             qm_method = "hfqua",
-            dist = False,
+            dists = [0, 1],
+            max_ls = [1],
             in_AA = False,
             out_AA = False,
             Rp = 0.000001,
             Rq = 0.000001,
-            max_ls = [1],
             ):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
 
         for i in self.get_matching_out_and_mol():
             r, tau, theta, rho1, rho2, rho3 = i.split('-')
-            for maxl in max_ls:
+            for max_l in max_ls:
                 for level in levels:
                     for prop in props:
                         for comp in comps:
-                            for dist in range(1):
+                            for dist in dists:
 # Gather the water molecules from the .mol file
                                 tmp_waters = []
                                 for j in Water.read_waters( i + ".mol", in_AA = in_AA,
@@ -282,27 +284,27 @@ class Calculator( dict ):
 
                                     if model == "pointdipole":
                                         static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                                max_l = maxl , pol = 0, hyper = 0, dist = dist ) )
+                                                max_l = max_l , pol = 0, hyper = 0, dist = dist ) )
                                         polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                                max_l = maxl, pol = 2, hyper = 1, dist = dist ))
+                                                max_l = max_l, pol = 2, hyper = 1, dist = dist ))
                                         hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                                max_l = maxl, pol = 22, hyper = 1, dist = dist ))
+                                                max_l = max_l, pol = 22, hyper = 1, dist = dist ))
                                     if model == "gaussian":
                                         tmp_Rq = float(Rq)
                                         tmp_Rp = float(Rp)
                                         if level == "static":
                                             static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = maxl , pol = 0 , hyper = 0 ,  dist = dist ))
+                                                max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
                                             static.set_damping( tmp_Rq, tmp_Rp )
 
                                         if level == "polar":
                                             polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = maxl , pol = 2 , hyper = 0 , dist = dist ))
+                                                max_l = max_l , pol = 2 , hyper = 0 , dist = dist ))
                                             polar.set_damping( tmp_Rq, tmp_Rp )
 
                                         if level == "hyper":
                                             hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = maxl , pol = 22,  hyper = 1 , dist = dist ))
+                                                max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
                                             hyper.set_damping( tmp_Rq, tmp_Rp )
                                     try:
                                         static.solve_scf()
@@ -348,37 +350,37 @@ class Calculator( dict ):
                                                         hyper.alpha().diagonal(),
                                                                 qm_alpha.diagonal() )] 
 
-                                    reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
+                                        reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
 
-                                    b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
+                                        b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
                                     val = [d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-                                    self[ (r, tau, theta, rho1, rho2, rho3 )] = val
+                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
                                 else:
 # Get absolute values using the quadratic model
                                     if noqm:
                                         if model == "pointdipole":
                                             static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                                    max_l = maxl, pol = 0, hyper = 0, dist = dist ) )
+                                                    max_l = max_l, pol = 0, hyper = 0, dist = dist ) )
                                             polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                                    max_l = maxl, pol = 2, hyper = 1, dist = dist ))
+                                                    max_l = max_l, pol = 2, hyper = 1, dist = dist ))
                                             hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                                    max_l = maxl, pol = 22, hyper = 1, dist = dist ))
+                                                    max_l = max_l, pol = 22, hyper = 1, dist = dist ))
 
                                         if model == "gaussian":
                                             tmp_Rq = float(Rq)
                                             tmp_Rp = float(Rp)
                                             if level == "static":
                                                 static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = maxl , pol = 0 , hyper = 0 ,  dist = dist ))
+                                                    max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
                                                 static.set_damping( tmp_Rq, tmp_Rp )
                                             if level == "polar":
                                                 polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = maxl , pol = 2 , hyper = 1 , dist = dist ))
+                                                    max_l = max_l , pol = 2 , hyper = 1 , dist = dist ))
                                                 polar.set_damping( tmp_Rq, tmp_Rp )
                                             if level == "hyper:":
                                                 hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = maxl , pol = 22,  hyper = 1 , dist = dist ))
+                                                    max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
                                                 hyper.set_damping( tmp_Rq, tmp_Rp )
                                         try:
                                             static.solve_scf()
@@ -597,7 +599,7 @@ class Calculator( dict ):
             comps = ["Z"], 
             max_ls = [1], 
             rel = True,
-            dist = False,
+            dists = [0],
             noqm = False,
             in_AA = False,
             out_AA = False,
@@ -606,146 +608,148 @@ class Calculator( dict ):
             ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
-
-        x, y = self.get_x_and_y( var = var,
-                in_AA = in_AA,
-                out_AA = out_AA,
-                )
         localCounter = 0
         string = ""
         var = var
 
-        for level in levels:
-            for prop in props:
-                for comp in comps:
-                    for max_l in max_ls:
-                        try:
-                            ind1, ind2 =  index_dict[ (level, prop, comp) ]
-                            width = line_thick_dict[ level ][ prop ][ comp ]
-                            style = line_style_dict[ level ][ prop ][ comp ]
-                        except KeyError:
-                            print level, prop, comp
-                            print "Skipping (%s, %s, %s, )" %( level, prop, comp )
-                            continue
+        for max_l in max_ls:
+            for dist in dists:
+                x, y = self.get_x_and_y( var = var,
+                        in_AA = in_AA,
+                        out_AA = out_AA,
+                        max_l = max_l,
+                        dist = dist,
+                        )
+                for level in levels:
+                    for prop in props:
+                        for comp in comps:
+                            try:
+                                ind1, ind2 =  index_dict[ (level, prop, comp) ]
+                                width = line_thick_dict[ level ][ prop ][ comp ]
+                                style = line_style_dict[ level ][ prop ][ comp ]
+                            except KeyError:
+                                print level, prop, comp
+                                print "Skipping (%s, %s, %s, )" %( level, prop, comp )
+                                continue
 
-                        if rel:
-                            string += '@TITLE "Relative errors as a function of %s"\n' \
-                                % Xms(var).make_greek() 
-                        else:
-                            if noqm:
-                                string += '@TITLE "Absolute values model"\n'
+                            if rel:
+                                string += '@TITLE "Relative errors as a function of %s"\n' \
+                                    % Xms(var).make_greek() 
                             else:
-                                string += '@TITLE "Absolute values for qm method %s"\n' \
-                                    % qm_method
+                                if noqm:
+                                    string += '@TITLE "Absolute values model"\n'
+                                else:
+                                    string += '@TITLE "Absolute values for qm method %s"\n' \
+                                        % qm_method
 
-                        subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
-                            %( Rq, Rp, max_l )
-                        
-                        if dist:
-                            subtitle += 'Distributed;'
-                        else:
-                            subtitle += 'Oxygen-cent;'
+                            subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
+                                %( Rq, Rp, max_l )
+                            
+                            if dist:
+                                subtitle += 'Distributed;'
+                            else:
+                                subtitle += 'Oxygen-cent;'
 
-                        if var == 'r':
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(
-                                      Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                      Xms("theta").make_greek(),   self.opts["theta"]["constant"],
-                                      Xms("rho1").make_greek(),  self.opts["rho1"]["constant"],
-                                      Xms("rho2").make_greek(),  self.opts["rho2"]["constant"],
-                                      Xms("rho3").make_greek(),  self.opts["rho3"]["constant"])
-                        if var == 'tau':
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(
-                                      Xms("r").make_greek(), self.opts["r"]["constant"],
-                                      Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                      Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                      Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                        if var == 'theta':
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(
-                                      Xms("r").make_greek(), self.opts["r"]["constant"],
-                                      Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                      Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                      Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                      Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                        if var == "rho1":
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(
-                                      Xms("r").make_greek(), self.opts["r"]["constant"],
-                                      Xms("tau").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                      Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                        if var == "rho2":
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(
-                                      Xms("r").make_greek(), self.opts["r"]["constant"],
-                                      Xms("tau").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                      Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                        if var == "rho3":
-                            subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                    %(Xms("r").make_greek(), self.opts["r"]["constant"],
-                                      Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                      Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                      Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                      Xms("rho2").make_greek(), self.opts["rho2"]["constant"])
-                                    
-                        if args.no_subtitle:
-                            subtitle = '@SUBTITLE "\n' 
-                        else:
-                            string += subtitle
+                            if var == 'r':
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(
+                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                          Xms("theta").make_greek(),   self.opts["theta"]["constant"],
+                                          Xms("rho1").make_greek(),  self.opts["rho1"]["constant"],
+                                          Xms("rho2").make_greek(),  self.opts["rho2"]["constant"],
+                                          Xms("rho3").make_greek(),  self.opts["rho3"]["constant"])
+                            if var == 'tau':
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(
+                                          Xms("r").make_greek(), self.opts["r"]["constant"],
+                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                            if var == 'theta':
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(
+                                          Xms("r").make_greek(), self.opts["r"]["constant"],
+                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                            if var == "rho1":
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(
+                                          Xms("r").make_greek(), self.opts["r"]["constant"],
+                                          Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                            if var == "rho2":
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(
+                                          Xms("r").make_greek(), self.opts["r"]["constant"],
+                                          Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                            if var == "rho3":
+                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                        %(Xms("r").make_greek(), self.opts["r"]["constant"],
+                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"])
+                                        
+                            if args.no_subtitle:
+                                subtitle = '@SUBTITLE "\n' 
+                            else:
+                                string += subtitle
 
-                        string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
-                        string +=  '@LEGEND ON\n'
-                        string +=  '@LEGEND BOX ON\n'
-                        string +=  '@LEGEND BOX FILL OFF\n'
-                        string +=  '@LEGEND LOCTYPE VIEW\n'
-                        string +=  '@LEGEND 0.8, 0.5\n' 
-                        string +=  '@LEGEND CHAR SIZE 1.2\n' 
+                            string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
+                            string +=  '@LEGEND ON\n'
+                            string +=  '@LEGEND BOX ON\n'
+                            string +=  '@LEGEND BOX FILL OFF\n'
+                            string +=  '@LEGEND LOCTYPE VIEW\n'
+                            string +=  '@LEGEND 0.8, 0.5\n' 
+                            string +=  '@LEGEND CHAR SIZE 1.2\n' 
 
-                        xvg_label = self.input_style_to_xvg_output( level, prop, comp, max_l)
-                        if dist:
-                            string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, comp, str(max_l), "LoProp") 
-                        else:
-                            string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
+                            xvg_label = self.input_style_to_xvg_output( level, prop, comp, max_l)
+                            if dist:
+                                string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, comp, str(max_l), "LoProp") 
+                            else:
+                                string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
 
-                        if out_AA:
-                            au = "Angstrom"
-                        else:
-                            au = "A.U."
-                        string +=  '@ XAXIS LABEL "%s \[%s\]"\n' % ( Xms( var ).make_greek(), au )
+                            if out_AA:
+                                au = "Angstrom"
+                            else:
+                                au = "A.U."
+                            string +=  '@ XAXIS LABEL "%s \[%s\]"\n' % ( Xms( var ).make_greek(), au )
 
-                        if rel:
-                            string +=  '@ YAXIS LABEL "Relative error"\n' 
-                        else:
-                            string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
+                            if rel:
+                                string +=  '@ YAXIS LABEL "Relative error"\n' 
+                            else:
+                                string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
 
-                        string +=  '@ XAXIS LABEL CHAR SIZE 1.5\n' 
-                        string +=  '@ YAXIS LABEL CHAR SIZE 1.5\n'
-                        string +=  '@ TITLE SIZE 2\n'
-                        string +=  '@ SUBTITLE SIZE 1.0\n'
+                            string +=  '@ XAXIS LABEL CHAR SIZE 1.5\n' 
+                            string +=  '@ YAXIS LABEL CHAR SIZE 1.5\n'
+                            string +=  '@ TITLE SIZE 2\n'
+                            string +=  '@ SUBTITLE SIZE 1.0\n'
 
 #add the actual data x and y    
 
-                        for i in range(len( x )):
-                            try:
-                                string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
-                            except IndexError:
-                                print x[i], ind1, ind2
-                                print len(y[ind1][ind2])
-                                raise SystemExit
-                            except TypeError:
-                                print ind1, ind2 
-                                print y[i][ ind1][ ind2 ]
-                                raise SystemExit
-                        string += '@ SORT s%d X ASCENDING\n' % localCounter
-                        string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
-                        string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
-                        localCounter += 1
+                            for i in range(len( x )):
+                                try:
+                                    string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
+                                except IndexError:
+                                    print x[i], ind1, ind2
+                                    print len(y[ind1][ind2])
+                                    raise SystemExit
+                                except TypeError:
+                                    print ind1, ind2 
+                                    print y[i][ ind1][ ind2 ]
+                                    raise SystemExit
+                            string += '@ SORT s%d X ASCENDING\n' % localCounter
+                            string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
+                            string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
+                            localCounter += 1
 
         return string
 
@@ -984,7 +988,7 @@ if __name__ == '__main__':
 #Param analyzez 6 variables r, tau, theta, rho_{1,2,3}, so far only parameter
     A.add_argument( "-params"  , default = True )
 
-    A.add_argument( "-dist"   , action = 'store_true', default = False )
+    A.add_argument( "-dist"   , nargs = '*', type = int, default = [0] )
     A.add_argument( "-no_subtitle"  , default = False, action = 'store_true' )
 
     A.add_argument( "-qm"   , type = str,  default = "hfqua", dest = "qm_method" )
@@ -1067,7 +1071,8 @@ if __name__ == '__main__':
                 levels = args.l,
                 props = args.p,
                 comps = args.c,
-                dist = args.dist,
+                max_ls = args.max_l,
+                dists = args.dist,
                 rel = args.rel,
                 noqm = args.noqm,
                 model = args.model,
@@ -1086,7 +1091,7 @@ if __name__ == '__main__':
                 in_AA = args.in_AA,
                 out_AA = args.out_AA,
                 rel = args.rel,
-                dist = args.dist,
+                dists = args.dist,
                 noqm = args.noqm,
                 Rq = args.Rq,
                 Rp = args.Rp
