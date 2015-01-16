@@ -59,7 +59,7 @@ class WaterTest( unittest.TestCase ):
 
             for at in wat:
                 q += at.Property["charge"]
-                d += at.Property["dipole"] + at.Property["charge"] * at.r
+                d += at.Property["dipole"] + at.Property["charge"] * (at.r-wat.coc)
                 a += Rotator.ut_2_square( at.Property["alpha"] )
                 b += Rotator.ut_3_square( at.Property["beta"] )
 
@@ -71,7 +71,7 @@ class WaterTest( unittest.TestCase ):
             self.eq( q, 0.0 )
             self.eq( np.dot( np.einsum('iij->j',b), d)/np.linalg.norm(d), 
                     np.dot( np.einsum('iij->j',b_ref),d_ref)/np.linalg.norm(d_ref),
-                    decimal = 7)
+                    decimal = 4)
 
     def test_tensor_to_ut(self):
         t = np.zeros( (3, 6) )
