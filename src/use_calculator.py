@@ -58,7 +58,7 @@ import os, re, subprocess
 import numpy as np
 import math as m
 
-import argparse
+import argparse,h5py, read_dal
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
@@ -69,7 +69,6 @@ from template import Template
 from molecules import *
 from dic import Dic
 
-import read_dal
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
@@ -138,10 +137,8 @@ class Calculator:
         a = np.zeros( len(files) )
         b1 = np.zeros( len(files) )
         b2 = np.zeros( len(files) )
-        res = np.zeros( len(files) )
-
-
-        b = Template().get( dist = False, model = model )[('O1','beta')]
+        res = np.zeros( (len(files), 3) )
+        b = np.array(Template().get( dist = False, model = model )[('O1','beta')])
 
         for i in range(len(files)):
             base = map(float,files[i][:-4].split('_')[-3:])
@@ -149,10 +146,15 @@ class Calculator:
             b2[ i ] = base[-2]
             a[ i ] =  base[-1]
             b_qm = read_dal.read_beta_hf( files[i] )[3]
-
             b_qm = Rotator.square_3_ut( b_qm )
-            res[i]= np.sqrt( np.linalg.norm( (b-b_qm)**2) )
-        print res.min()
+            res[i]= np.sqrt(( b[[2,7,9]] - b_qm[[2,7,9]])**2 )
+
+        h5 = h5py.File('data.h5','w')
+        base = '%s/%s/' %(molecule, model)
+        h5[ base + 'r_oh1' ] = b1
+        h5[ base + 'r_oh2' ] = b2
+        h5[ base + 'a_h1oh2' ] = a
+        h5[ base + 'b_res' ] = res
         raise SystemExit
     def get_x_and_y( self ):
         x = []
