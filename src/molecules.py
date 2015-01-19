@@ -1185,7 +1185,8 @@ class Water( Molecule ):
         [w.append(i.copy_atom()) for i in self]
         return w
     @staticmethod
-    def get_standard( AA = False):
+    def get_standard( AA = False,
+            worst = False):
         """
 Return water molecule from specified template with :math:`r=0.9572` Angstrom and 
 :math:`\\theta=104.52` degrees.
@@ -1223,7 +1224,13 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         w.append( o )
         w.append( h1 )
         w.append( h2 )
-        
+        if worst:
+            w.populate_bonds()
+            w.populate_angles()
+            w.h1.scale_angle( 0.988 )
+            w.h1.scale_bond( 0.985 )
+            w.h2.scale_bond( 1.015 )
+            w.inv_rotate()
         return w
 
     def is_worst(self):
