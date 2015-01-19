@@ -121,10 +121,11 @@ class Property( dict ):
 Puts properties read from the :ref:`template` module into the :ref:`atom` at.
 
     
-    >>> temp = template.Template().get() #Default template
-    >>> w = Water.get_standard() #Default water
+    >>> #Dist = True is the default, properties obtained using LoProp
+    >>> temp = template.Template().get( dist = False ) 
+    >>> w = Water.get_standard() 
     >>> Property.add_prop_from_template( w.o, temp )
-    >>> print w.o["dipole"]
+    >>> print w.o.Property["dipole"]
     [0.0, 0.0, 0.78719]
 
 """
@@ -194,9 +195,10 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
 
 .. code:: python
 
-    >>> d = numpy.array( [ 1, 0, 0] )
-    >>> print Rotator.transform_1( d, numpy.pi/2, 0, 0 )
-    [ 0., -1., 0. ]
+    >>> import numpy as np
+    >>> d = np.array( [ 1, 0, 0] )
+    >>> print Rotator.transform_1( d, 0, numpy.pi/2, 0 )
+    [ 0.0, 0.0, 1.0 ]
 """
         d_new1 = np.zeros([3]) #will be returned
         d_new2 = np.zeros([3]) #will be returned
@@ -1112,7 +1114,7 @@ Override list append method, will add up to 3 atoms,
 .. code:: python
 
     >>> m = Water()
-    >>> m.add_atom( Atom( z : 0.11, element : 'H' ) )
+    >>> m.append( Atom( z = 0.11, element = 'H' ) )
     >>> m.coc
 
 """
@@ -1762,7 +1764,7 @@ Return a cluster of water molecules given file.
 
 .. code:: python
 
-    >>> c = Cluster.get_water_cluster( 'somefile.mol' , in_AA = False, out_AA = False, N_waaters = 10 )
+    >>> c = Cluster.get_water_cluster( 'somefile.mol' , in_AA = False, out_AA = False, N_waters = 10 )
     >>> print len( c )
     10
 
