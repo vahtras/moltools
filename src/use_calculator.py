@@ -74,12 +74,12 @@ a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 index_dict = { 
-        ('static', 'dipole', 'X'): (0, 1,),
-        ('static', 'dipole', 'Y'): (0, 2,),
-        ('static', 'dipole', 'Z'): (0, 3,),
+        ('static', 'dipole', 'X'): (0, 0,),
+        ('static', 'dipole', 'Y'): (0, 1,),
+        ('static', 'dipole', 'Z'): (0, 2,),
         ('polar', 'dipole', 'X'): (1, 0,),
-        ('polar', 'dipole', 'Y'): (1, 0,),
-        ('polar', 'dipole', 'Z'): (1, 0,),
+        ('polar', 'dipole', 'Y'): (1, 1,),
+        ('polar', 'dipole', 'Z'): (1, 2,),
         ('polar', 'alpha', 'X'): (3, 0,),
         ('polar', 'alpha', 'Y'): (3, 1,),
         ('polar', 'alpha', 'Z'): (3, 2,),
@@ -208,6 +208,8 @@ class Calculator( dict ):
                 if rho3 != self.opts["rho3"]["constant"]:
                     continue
             if var == 'r':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = "%.2f" % float(r)
                 if out_AA and not in_AA:
                     r_x = "%.2f" % (float(r)*a0)
                 x.append( r_x )
@@ -224,12 +226,13 @@ class Calculator( dict ):
             noqm = False,
             model = "gaussian",
             qm_method = "hfqua",
-            dists = [0, 1],
+            dists = [0],
             max_ls = [1],
             in_AA = False,
             out_AA = False,
             Rp = 0.000001,
             Rq = 0.000001,
+            worst = False,
             ):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
@@ -247,6 +250,26 @@ class Calculator( dict ):
                                         out_AA = out_AA):
 
                                     templ = Template().get(*( mol_model.upper(), "HF",basis.upper(), dist,"0.0"))
+
+#If we want to analyze the properties from the worst-case obained from MD:
+#We create new water since h1 and h2 might now be propertly defined for this read
+#water due to C1 symmetry
+                                    if j.is_worst() and worst:
+                                        w1 = Water.get_standard( AA = in_AA )
+                                        w1.populate_bonds()
+                                        w1.populate_angles()
+                                        w1.h1.scale_angle( 0.988 )
+                                        w1.h1.scale_bond( 0.985 )
+                                        w1.h2.scale_bond( 1.015 )
+                                        templ = Template().get(*( "%s_WORST"
+                                            %mol_model.upper(),
+                                            "HF",basis.upper(),
+                                            dist,"0.0"))
+                                        for at in w1:
+                                            Property.add_prop_from_template( at, templ )
+                                        tmp_waters.append( w1 )
+                                        continue
+#End of worst case tip3p
                                     for at in j:
                                         Property.add_prop_from_template( at, templ )
                                     t1, t2, t3 =  j.get_euler()
@@ -445,7 +468,7 @@ class Calculator( dict ):
                                         beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
                                         val = [ dipole, dipole, dipole, alpha, alpha, beta ]
 #End of two blocks
-                                    self[ (r, tau, theta, rho1, rho2, rho3 )] = val
+                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
 
     def get_matching_out_and_mol(self):
         tmp = []
@@ -607,6 +630,7 @@ class Calculator( dict ):
             out_AA = False,
             Rq = 0.000001,
             Rp = 0.000001,
+            qm_method = 'hfqua',
             ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
@@ -742,7 +766,7 @@ class Calculator( dict ):
                                     string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
                                 except IndexError:
                                     print x[i], ind1, ind2
-                                    print len(y[ind1][ind2])
+                                    print y[ind1][ind2]
                                     raise SystemExit
                                 except TypeError:
                                     print ind1, ind2 
@@ -1011,6 +1035,7 @@ if __name__ == '__main__':
     #A.add_argument( "-hyper", type = int , default = 1, choices = [1] )
 # TWO MOLS RELATED
     A.add_argument( "-two_mols", default = False , action = 'store_true' ) 
+    A.add_argument( "-worst", default = False , action = 'store_true' ) 
 
     A.add_argument( "-o", dest = "output" , default = "tmp.xvg" , help = "Name of output xmgrace file" )
 
@@ -1083,6 +1108,7 @@ if __name__ == '__main__':
                 out_AA = args.out_AA,
                 Rp = args.Rp,
                 Rq = args.Rq,
+                worst = args.worst,
                 )
 
         string = c.get_xvg_string( var = args.vary,
@@ -1096,6 +1122,6 @@ if __name__ == '__main__':
                 dists = args.dist,
                 noqm = args.noqm,
                 Rq = args.Rq,
-                Rp = args.Rp
+                Rp = args.Rp,
                 )
         open( args.output , 'w').write( string )
