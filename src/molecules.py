@@ -471,6 +471,10 @@ AA       True     bool
     def __iter__(self):
         yield self
 
+    #@property
+    #def angles(self):
+    #    self.Molecule.populate_angles()
+    #    return self.angles
 
     def scale_angle(self, scale = 1.0):
         """scales only angle
@@ -1183,8 +1187,8 @@ class Water( Molecule ):
     @staticmethod
     def get_standard( AA = False):
         """
-Return water molecule from specified template with :math:`r=0.972` Angstrom and 
-:math:`\\theta=104.5` degrees.
+Return water molecule from specified template with :math:`r=0.9572` Angstrom and 
+:math:`\\theta=104.52` degrees.
 
 .. code:: python
 
@@ -1193,8 +1197,8 @@ Return water molecule from specified template with :math:`r=0.972` Angstrom and
 """
 #Geometrical parameters
         center = [0, 0, 0]
-        r_oh =  104.5
-        a_hoh = 0.9720
+        r_oh = 0.95720
+        a_hoh =  104.52
         r_oh = r_oh / a0
         d = (90 - a_hoh/2 ) * np.pi / 180
         origin = np.array( [ 0, 0, 0] )
@@ -1215,12 +1219,22 @@ Return water molecule from specified template with :math:`r=0.972` Angstrom and
         h2.y = center[1] 
         h2.z = (center[2] + r_oh* np.sin(d))
 
-        w = Water()
+        w = Water( AA = AA)
         w.append( o )
         w.append( h1 )
         w.append( h2 )
         
         return w
+
+    def is_worst(self):
+        self.populate_bonds()
+        self.populate_angles()
+        r1 = self.h1.dist_to_atom( self.o )
+        r2 = self.h2.dist_to_atom( self.o )
+        a = self.h1.get_angle( self.o, self.h2 ) /np.pi * 180
+        if np.allclose( [r1, r2, a], [1.7817, 1.8360, 103.2658 ] ,atol = 0.0001) or np.allclose( [r2, r1, a], [1.7817, 1.8360, 103.2658 ] ,atol = 0.0001) :
+            return True
+        return False
 
 #Center of oxygen
     @property
