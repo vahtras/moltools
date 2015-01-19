@@ -230,8 +230,8 @@ class Calculator( dict ):
             max_ls = [1],
             in_AA = False,
             out_AA = False,
-            Rp = 0.000001,
-            Rq = 0.000001,
+            Rps = [0.000001],
+            Rqs = [0.000001],
             worst = False,
             ):
         """combine get_rel_error and get_abs_value"""
@@ -244,231 +244,233 @@ class Calculator( dict ):
                     for prop in props:
                         for comp in comps:
                             for dist in dists:
+                                for Rp in Rps:
+                                    for Rq in Rqs:
 # Gather the water molecules from the .mol file
-                                tmp_waters = []
-                                for j in Water.read_waters( i + ".mol", in_AA = in_AA,
-                                        out_AA = out_AA):
+                                        tmp_waters = []
+                                        for j in Water.read_waters( i + ".mol", in_AA = in_AA,
+                                                out_AA = out_AA):
 
-                                    templ = Template().get(*( mol_model.upper(), "HF",basis.upper(), dist,"0.0"))
+                                            templ = Template().get(*( mol_model.upper(), "HF",basis.upper(), dist==1,"0.0"))
 
 #If we want to analyze the properties from the worst-case obained from MD:
 #We create new water since h1 and h2 might now be propertly defined for this read
 #water due to C1 symmetry
-                                    if j.is_worst() and worst:
-                                        w1 = Water.get_standard( AA = in_AA )
-                                        w1.populate_bonds()
-                                        w1.populate_angles()
-                                        w1.h1.scale_angle( 0.988 )
-                                        w1.h1.scale_bond( 0.985 )
-                                        w1.h2.scale_bond( 1.015 )
-                                        templ = Template().get(*( "%s_WORST"
-                                            %mol_model.upper(),
-                                            "HF",basis.upper(),
-                                            dist,"0.0"))
-                                        for at in w1:
-                                            Property.add_prop_from_template( at, templ )
-                                        tmp_waters.append( w1 )
-                                        continue
+                                            if j.is_worst() and worst:
+                                                w1 = Water.get_standard( AA = in_AA )
+                                                w1.populate_bonds()
+                                                w1.populate_angles()
+                                                w1.h1.scale_angle( 0.988 )
+                                                w1.h1.scale_bond( 0.985 )
+                                                w1.h2.scale_bond( 1.015 )
+                                                templ = Template().get(*( "%s_WORST"
+                                                    %mol_model.upper(),
+                                                    "HF",basis.upper(),
+                                                    dist == 1,"0.0"))
+                                                for at in w1:
+                                                    Property.add_prop_from_template( at, templ )
+                                                tmp_waters.append( w1 )
+                                                continue
 #End of worst case tip3p
-                                    for at in j:
-                                        Property.add_prop_from_template( at, templ )
-                                    t1, t2, t3 =  j.get_euler()
-                                    for at in j:
-                                        Property.transform_ut_properties( at.Property, t1, t2, t3 )
-                                    tmp_waters.append( j )
+                                            for at in j:
+                                                Property.add_prop_from_template( at, templ )
+                                            t1, t2, t3 =  j.get_euler()
+                                            for at in j:
+                                                Property.transform_ut_properties( at.Property, t1, t2, t3 )
+                                            tmp_waters.append( j )
 
 #Gather the QM result and save it in the dictionary for the relative error
-                                if rel:
-                                    file_name = qm_method + "_" + i + ".out"
-                                    if self.opts["r"].has_key( "constant" ):
-                                        if r != self.opts["r"]["constant"]:
-                                            continue
-                                    if self.opts["tau"].has_key( "constant" ):
-                                        if tau != self.opts["tau"]["constant"]:
-                                            continue
-                                    if self.opts["theta"].has_key( "constant" ):
-                                        if theta != self.opts["theta"]["constant"]:
-                                            continue
-                                    if self.opts["rho1"].has_key( "constant" ):
-                                        if rho1 != self.opts["rho1"]["constant"]:
-                                            continue
-                                    if self.opts["rho2"].has_key( "constant" ):
-                                        if rho2 != self.opts["rho2"]["constant"]:
-                                            continue
-                                    if self.opts["rho3"].has_key( "constant" ):
-                                        if rho3 != self.opts["rho3"]["constant"]:
-                                            continue
+                                        if rel:
+                                            file_name = qm_method + "_" + i + ".out"
+                                            if self.opts["r"].has_key( "constant" ):
+                                                if r != self.opts["r"]["constant"]:
+                                                    continue
+                                            if self.opts["tau"].has_key( "constant" ):
+                                                if tau != self.opts["tau"]["constant"]:
+                                                    continue
+                                            if self.opts["theta"].has_key( "constant" ):
+                                                if theta != self.opts["theta"]["constant"]:
+                                                    continue
+                                            if self.opts["rho1"].has_key( "constant" ):
+                                                if rho1 != self.opts["rho1"]["constant"]:
+                                                    continue
+                                            if self.opts["rho2"].has_key( "constant" ):
+                                                if rho2 != self.opts["rho2"]["constant"]:
+                                                    continue
+                                            if self.opts["rho3"].has_key( "constant" ):
+                                                if rho3 != self.opts["rho3"]["constant"]:
+                                                    continue
 
-                                    if qm_method == "ccsd":
-                                        qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
-                                    else:
-                                        qm_dipole = self.get_qm_dipole( file_name )
-                                        qm_alpha = self.get_qm_alpha(  file_name )
-                                        qm_beta = self.get_qm_beta(   file_name )
+                                            if qm_method == "ccsd":
+                                                qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
+                                            else:
+                                                qm_dipole = self.get_qm_dipole( file_name )
+                                                qm_alpha = self.get_qm_alpha(  file_name )
+                                                qm_beta = self.get_qm_beta(   file_name )
 #Defaults to this model
 
-                                    if model == "pointdipole":
-                                        static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                                max_l = max_l , pol = 0, hyper = 0, dist = dist ) )
-                                        polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                                max_l = max_l, pol = 2, hyper = 1, dist = dist ))
-                                        hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                                max_l = max_l, pol = 22, hyper = 1, dist = dist ))
-                                    if model == "gaussian":
-                                        tmp_Rq = float(Rq)
-                                        tmp_Rp = float(Rp)
-                                        if level == "static":
-                                            static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
-                                            static.set_damping( tmp_Rq, tmp_Rp )
+                                            if model == "pointdipole":
+                                                static= PointDipoleList.from_string( self.get_string( tmp_waters ,
+                                                        max_l = max_l , pol = 0, hyper = 0, dist = dist ) )
+                                                polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
+                                                        max_l = max_l, pol = 2, hyper = 1, dist = dist ))
+                                                hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
+                                                        max_l = max_l, pol = 22, hyper = 1, dist = dist ))
+                                            if model == "gaussian":
+                                                tmp_Rq = float(Rq)
+                                                tmp_Rp = float(Rp)
+                                                if level == "static":
+                                                    static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                        max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
+                                                    static.set_damping( tmp_Rq, tmp_Rp )
 
-                                        if level == "polar":
-                                            polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 2 , hyper = 0 , dist = dist ))
-                                            polar.set_damping( tmp_Rq, tmp_Rp )
+                                                if level == "polar":
+                                                    polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                        max_l = max_l , pol = 2 , hyper = 0 , dist = dist ))
+                                                    polar.set_damping( tmp_Rq, tmp_Rp )
 
-                                        if level == "hyper":
-                                            hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
-                                            hyper.set_damping( tmp_Rq, tmp_Rp )
-                                    try:
-                                        static.solve_scf()
-                                        polar.solve_scf()
-                                        hyper.solve_scf()
-                                    except UnboundLocalError:
-                                        pass
+                                                if level == "hyper":
+                                                    hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                        max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
+                                                    hyper.set_damping( tmp_Rq, tmp_Rp )
+                                            try:
+                                                static.solve_scf()
+                                                polar.solve_scf()
+                                                hyper.solve_scf()
+                                            except UnboundLocalError:
+                                                pass
 
-                                    d_static = []
-                                    d_polar = []
-                                    d_hyper = []
+                                            d_static = []
+                                            d_polar = []
+                                            d_hyper = []
 
-                                    a_polar = []
-                                    a_hyper = []
+                                            a_polar = []
+                                            a_hyper = []
 
-                                    b_hyper = []
+                                            b_hyper = []
 
-                                    if level == "static":
-                                        d_static =  \
-                                                 [(this-ref)/ref for this, ref in zip(
-                                                        static.total_dipole_moment(),
-                                                                qm_dipole )] 
-
-                                    if level == "polar":
-                                        d_polar =  \
-                                                 [(this-ref)/ref for this, ref in zip(
-                                                        polar.total_dipole_moment(),
-                                                                qm_dipole )] 
-
-                                        a_polar = \
-                                                 [(this-ref)/ref for this, ref in zip(
-                                                        polar.alpha().diagonal(),
-                                                                qm_alpha.diagonal() )] 
-
-                                    if level == "hyper":
-                                        d_hyper = \
-                                                 [(this-ref)/ref for this, ref in zip(
-                                                        hyper.total_dipole_moment(),
-                                                                qm_dipole )] 
-
-                                        a_hyper = \
-                                                 [(this-ref)/ref for this, ref in zip(
-                                                        hyper.alpha().diagonal(),
-                                                                qm_alpha.diagonal() )] 
-
-                                        reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
-
-                                        b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
-
-                                    val = [d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
-                                else:
-# Get absolute values using the quadratic model
-                                    if noqm:
-                                        if model == "pointdipole":
-                                            static= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                                    max_l = max_l, pol = 0, hyper = 0, dist = dist ) )
-                                            polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                                    max_l = max_l, pol = 2, hyper = 1, dist = dist ))
-                                            hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                                    max_l = max_l, pol = 22, hyper = 1, dist = dist ))
-
-                                        if model == "gaussian":
-                                            tmp_Rq = float(Rq)
-                                            tmp_Rp = float(Rp)
                                             if level == "static":
-                                                static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
-                                                static.set_damping( tmp_Rq, tmp_Rp )
-                                            if level == "polar":
-                                                polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = max_l , pol = 2 , hyper = 1 , dist = dist ))
-                                                polar.set_damping( tmp_Rq, tmp_Rp )
-                                            if level == "hyper:":
-                                                hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                    max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
-                                                hyper.set_damping( tmp_Rq, tmp_Rp )
-                                        try:
-                                            static.solve_scf()
-                                        except UnboundLocalError:
-                                            pass
-                                        try:
-                                            polar.solve_scf()
-                                        except UnboundLocalError:
-                                            pass
-                                        try:
-                                            hyper.solve_scf()
-                                        except UnboundLocalError:
-                                            pass
-                                        d_static = []
-                                        d_polar = []
-                                        d_hyper = []
-                                        a_polar = []
-                                        a_hyper = []
-                                        b_hyper = []
-                                        if "static" in l:
-                                            d_static = static.total_dipole_moment( )
-                                        if "polar" in l:
-                                            d_polar =  polar.total_dipole_moment( )
-                                            a_polar = polar.alpha().diagonal()
-                                        if "hyper" in l:
-                                            d_hyper = hyper.total_dipole_moment( )
-                                            a_hyper = hyper.alpha().diagonal()
-                                            b_hyper =  [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select]
-                                        val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
-                                    else:
-                                        file_name = qm_method + "_" + i + ".out"
-                                        if self.opts["r"].has_key( "constant" ):
-                                            if r != self.opts["r"]["constant"]:
-                                                continue
-                                        if self.opts["tau"].has_key( "constant" ):
-                                            if tau != self.opts["tau"]["constant"]:
-                                                continue
-                                        if self.opts["theta"].has_key( "constant" ):
-                                            if theta != self.opts["theta"]["constant"]:
-                                                continue
-                                        if self.opts["rho1"].has_key( "constant" ):
-                                            if rho1 != self.opts["rho1"]["constant"]:
-                                                continue
-                                        if self.opts["rho2"].has_key( "constant" ):
-                                            if rho2 != self.opts["rho2"]["constant"]:
-                                                continue
-                                        if self.opts["rho3"].has_key( "constant" ):
-                                            if rho3 != self.opts["rho3"]["constant"]:
-                                                continue
-#By default read values obtained by QM, will be overridden by -noqm later if want rgs.model value
-                                        if qm_method == "ccsd":
-                                            qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
-                                        else:
-                                            qm_dipole = self.get_qm_dipole( file_name )
-                                            qm_alpha =  self.get_qm_alpha(  file_name )
-                                            qm_beta =   self.get_qm_beta(   file_name )
+                                                d_static =  \
+                                                         [(this-ref)/ref for this, ref in zip(
+                                                                static.total_dipole_moment(),
+                                                                        qm_dipole )] 
 
-                                        dipole = qm_dipole
-                                        alpha  = np.einsum('ii->i', np.array(qm_alpha))
-                                        beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
-                                        val = [ dipole, dipole, dipole, alpha, alpha, beta ]
+                                            if level == "polar":
+                                                d_polar =  \
+                                                         [(this-ref)/ref for this, ref in zip(
+                                                                polar.total_dipole_moment(),
+                                                                        qm_dipole )] 
+
+                                                a_polar = \
+                                                         [(this-ref)/ref for this, ref in zip(
+                                                                polar.alpha().diagonal(),
+                                                                        qm_alpha.diagonal() )] 
+
+                                            if level == "hyper":
+                                                d_hyper = \
+                                                         [(this-ref)/ref for this, ref in zip(
+                                                                hyper.total_dipole_moment(),
+                                                                        qm_dipole )] 
+
+                                                a_hyper = \
+                                                         [(this-ref)/ref for this, ref in zip(
+                                                                hyper.alpha().diagonal(),
+                                                                        qm_alpha.diagonal() )] 
+
+                                                reference = [ qm_beta[ii, jj, kk] for ii, jj, kk in select ]
+
+                                                b_hyper =  [(this-ref)/ref for this, ref in zip( [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
+
+                                            val = [d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
+                                            self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
+                                        else:
+# Get absolute values using the quadratic model
+                                            if noqm:
+                                                if model == "pointdipole":
+                                                    static= PointDipoleList.from_string( self.get_string( tmp_waters ,
+                                                            max_l = max_l, pol = 0, hyper = 0, dist = dist ) )
+                                                    polar = PointDipoleList.from_string( self.get_string(  tmp_waters ,
+                                                            max_l = max_l, pol = 2, hyper = 1, dist = dist ))
+                                                    hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
+                                                            max_l = max_l, pol = 22, hyper = 1, dist = dist ))
+
+                                                if model == "gaussian":
+                                                    tmp_Rq = float(Rq)
+                                                    tmp_Rp = float(Rp)
+                                                    if "static" in level:
+                                                        static = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                            max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
+                                                        static.set_damping( tmp_Rq, tmp_Rp )
+                                                    if "polar" in level:
+                                                        polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                            max_l = max_l , pol = 2 , hyper = 1 , dist = dist ))
+                                                        polar.set_damping( tmp_Rq, tmp_Rp )
+                                                    if "hyper" in level:
+                                                        hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
+                                                            max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
+                                                        hyper.set_damping( tmp_Rq, tmp_Rp )
+                                                try:
+                                                    static.solve_scf()
+                                                except UnboundLocalError:
+                                                    pass
+                                                try:
+                                                    polar.solve_scf()
+                                                except UnboundLocalError:
+                                                    pass
+                                                try:
+                                                    hyper.solve_scf()
+                                                except UnboundLocalError:
+                                                    pass
+                                                d_static = []
+                                                d_polar = []
+                                                d_hyper = []
+                                                a_polar = []
+                                                a_hyper = []
+                                                b_hyper = []
+                                                if "static" in level:
+                                                    d_static = static.total_dipole_moment( )
+                                                if "polar" in level:
+                                                    d_polar =  polar.total_dipole_moment( )
+                                                    a_polar = polar.alpha().diagonal()
+                                                if "hyper" in level:
+                                                    d_hyper = hyper.total_dipole_moment( )
+                                                    a_hyper = hyper.alpha().diagonal()
+                                                    b_hyper =  [ hyper.beta()[ii, jj, kk] for ii, jj, kk in select]
+                                                val = [ d_static, d_polar, d_hyper, a_polar, a_hyper, b_hyper ]
+                                            else:
+                                                file_name = qm_method + "_" + i + ".out"
+                                                if self.opts["r"].has_key( "constant" ):
+                                                    if r != self.opts["r"]["constant"]:
+                                                        continue
+                                                if self.opts["tau"].has_key( "constant" ):
+                                                    if tau != self.opts["tau"]["constant"]:
+                                                        continue
+                                                if self.opts["theta"].has_key( "constant" ):
+                                                    if theta != self.opts["theta"]["constant"]:
+                                                        continue
+                                                if self.opts["rho1"].has_key( "constant" ):
+                                                    if rho1 != self.opts["rho1"]["constant"]:
+                                                        continue
+                                                if self.opts["rho2"].has_key( "constant" ):
+                                                    if rho2 != self.opts["rho2"]["constant"]:
+                                                        continue
+                                                if self.opts["rho3"].has_key( "constant" ):
+                                                    if rho3 != self.opts["rho3"]["constant"]:
+                                                        continue
+#By default read values obtained by QM, will be overridden by -noqm later if want rgs.model value
+                                                if qm_method == "ccsd":
+                                                    qm_dipole, qm_alpha, qm_beta = self.get_props_ccsd( file_name )
+                                                else:
+                                                    qm_dipole = self.get_qm_dipole( file_name )
+                                                    qm_alpha =  self.get_qm_alpha(  file_name )
+                                                    qm_beta =   self.get_qm_beta(   file_name )
+
+                                                dipole = qm_dipole
+                                                alpha  = np.einsum('ii->i', np.array(qm_alpha))
+                                                beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
+                                                val = [ dipole, dipole, dipole, alpha, alpha, beta ]
 #End of two blocks
-                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
+                                            self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
 
     def get_matching_out_and_mol(self):
         tmp = []
@@ -628,8 +630,8 @@ class Calculator( dict ):
             noqm = False,
             in_AA = False,
             out_AA = False,
-            Rq = 0.000001,
-            Rp = 0.000001,
+            Rqs = [0.000001],
+            Rps = [0.000001],
             qm_method = 'hfqua',
             ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
@@ -649,149 +651,156 @@ class Calculator( dict ):
                 for level in levels:
                     for prop in props:
                         for comp in comps:
-                            try:
-                                ind1, ind2 =  index_dict[ (level, prop, comp) ]
-                                width = line_thick_dict[ level ][ prop ][ comp ]
-                                style = line_style_dict[ level ][ prop ][ comp ]
-                            except KeyError:
-                                print level, prop, comp
-                                print "Skipping (%s, %s, %s, )" %( level, prop, comp )
-                                continue
+                            for Rp in Rps:
+                                for Rq in Rqs:
+                                    try:
+                                        ind1, ind2 =  index_dict[ (level, prop, comp) ]
+                                        width = line_thick_dict[ level ][ prop ][ comp ]
+                                        style = line_style_dict[ level ][ prop ][ comp ]
+                                    except KeyError:
+                                        print level, prop, comp
+                                        print "Skipping (%s, %s, %s, )" %( level, prop, comp )
+                                        continue
 
-                            if rel:
-                                string += '@TITLE "Relative errors as a function of %s"\n' \
-                                    % Xms(var).make_greek() 
-                            else:
-                                if noqm:
-                                    string += '@TITLE "Absolute values model"\n'
-                                else:
-                                    string += '@TITLE "Absolute values for qm method %s"\n' \
-                                        % qm_method
+                                    if rel:
+                                        string += '@TITLE "Relative errors as a function of %s"\n' \
+                                            % Xms(var).make_greek() 
+                                    else:
+                                        if noqm:
+                                            string += '@TITLE "Absolute values model"\n'
+                                        else:
+                                            string += '@TITLE "Absolute values for qm method %s"\n' \
+                                                % qm_method
 
-                            subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
-                                %( Rq, Rp, max_l )
-                            
-                            if dist:
-                                subtitle += 'Distributed;'
-                            else:
-                                subtitle += 'Oxygen-cent;'
+                                    subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
+                                        %( Rq, Rp, max_l )
+                                    
+                                    if dist:
+                                        subtitle += 'Distributed;'
+                                    else:
+                                        subtitle += 'Oxygen-cent;'
 
-                            if var == 'r':
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(
-                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                          Xms("theta").make_greek(),   self.opts["theta"]["constant"],
-                                          Xms("rho1").make_greek(),  self.opts["rho1"]["constant"],
-                                          Xms("rho2").make_greek(),  self.opts["rho2"]["constant"],
-                                          Xms("rho3").make_greek(),  self.opts["rho3"]["constant"])
-                            if var == 'tau':
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(
-                                          Xms("r").make_greek(), self.opts["r"]["constant"],
-                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                            if var == 'theta':
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(
-                                          Xms("r").make_greek(), self.opts["r"]["constant"],
-                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                            if var == "rho1":
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(
-                                          Xms("r").make_greek(), self.opts["r"]["constant"],
-                                          Xms("tau").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
-                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                            if var == "rho2":
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(
-                                          Xms("r").make_greek(), self.opts["r"]["constant"],
-                                          Xms("tau").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                          Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
-                            if var == "rho3":
-                                subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
-                                        %(Xms("r").make_greek(), self.opts["r"]["constant"],
-                                          Xms("tau").make_greek(), self.opts["tau"]["constant"],
-                                          Xms("theta").make_greek(), self.opts["theta"]["constant"],
-                                          Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
-                                          Xms("rho2").make_greek(), self.opts["rho2"]["constant"])
-                                        
-                            if args.no_subtitle:
-                                subtitle = '@SUBTITLE "\n' 
-                            else:
-                                string += subtitle
+                                    if var == 'r':
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(
+                                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                                  Xms("theta").make_greek(),   self.opts["theta"]["constant"],
+                                                  Xms("rho1").make_greek(),  self.opts["rho1"]["constant"],
+                                                  Xms("rho2").make_greek(),  self.opts["rho2"]["constant"],
+                                                  Xms("rho3").make_greek(),  self.opts["rho3"]["constant"])
+                                    if var == 'tau':
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(
+                                                  Xms("r").make_greek(), self.opts["r"]["constant"],
+                                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                                    if var == 'theta':
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(
+                                                  Xms("r").make_greek(), self.opts["r"]["constant"],
+                                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                                    if var == "rho1":
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(
+                                                  Xms("r").make_greek(), self.opts["r"]["constant"],
+                                                  Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"],
+                                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                                    if var == "rho2":
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(
+                                                  Xms("r").make_greek(), self.opts["r"]["constant"],
+                                                  Xms("tau").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                                  Xms("rho3").make_greek(), self.opts["rho3"]["constant"])
+                                    if var == "rho3":
+                                        subtitle += ' Constant %s: %s, %s: %s, %s: %s, %s: %s, %s: %s" \n'\
+                                                %(Xms("r").make_greek(), self.opts["r"]["constant"],
+                                                  Xms("tau").make_greek(), self.opts["tau"]["constant"],
+                                                  Xms("theta").make_greek(), self.opts["theta"]["constant"],
+                                                  Xms("rho1").make_greek(), self.opts["rho1"]["constant"],
+                                                  Xms("rho2").make_greek(), self.opts["rho2"]["constant"])
+                                                
+                                    if args.no_subtitle:
+                                        subtitle = '@SUBTITLE "\n' 
+                                    else:
+                                        string += subtitle
 
-                            string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
-                            string +=  '@LEGEND ON\n'
-                            string +=  '@LEGEND BOX ON\n'
-                            string +=  '@LEGEND BOX FILL OFF\n'
-                            string +=  '@LEGEND LOCTYPE VIEW\n'
-                            string +=  '@LEGEND 0.8, 0.5\n' 
-                            string +=  '@LEGEND CHAR SIZE 1.2\n' 
+                                    string +=  '@VIEW 0.15, 0.10, 1.15, 0.85\n'
+                                    string +=  '@LEGEND ON\n'
+                                    string +=  '@LEGEND BOX ON\n'
+                                    string +=  '@LEGEND BOX FILL OFF\n'
+                                    string +=  '@LEGEND LOCTYPE VIEW\n'
+                                    string +=  '@LEGEND 0.8, 0.5\n' 
+                                    string +=  '@LEGEND CHAR SIZE 1.2\n' 
 
-                            xvg_label = self.input_style_to_xvg_output( level, prop, comp, max_l)
-                            if dist:
-                                string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, comp, str(max_l), "LoProp") 
-                            else:
-                                string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
+                                    xvg_label = self.input_style_to_xvg_output( level, prop, comp, dist, max_l)
+                                    string +=  '@ s%d LEGEND "%s"\n' %( localCounter,xvg_label)
+#                            if dist:
+#                                string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, comp, str(max_l), "LoProp") 
+#                            else:
+#                                string +=  '@ s%d LEGEND "%s"\n' %( localCounter, xvg_label )
 
-                            if out_AA:
-                                au = "Angstrom"
-                            else:
-                                au = "A.U."
-                            string +=  '@ XAXIS LABEL "%s \[%s\]"\n' % ( Xms( var ).make_greek(), au )
+                                    if out_AA:
+                                        au = "Angstrom"
+                                    else:
+                                        au = "A.U."
+                                    string +=  '@ XAXIS LABEL "%s \[%s\]"\n' % ( Xms( var ).make_greek(), au )
 
-                            if rel:
-                                string +=  '@ YAXIS LABEL "Relative error"\n' 
-                            else:
-                                string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
+                                    if rel:
+                                        string +=  '@ YAXIS LABEL "Relative error"\n' 
+                                    else:
+                                        string +=  '@ YAXIS LABEL "Absolute value \[A.U.\]"\n' 
 
-                            string +=  '@ XAXIS LABEL CHAR SIZE 1.5\n' 
-                            string +=  '@ YAXIS LABEL CHAR SIZE 1.5\n'
-                            string +=  '@ TITLE SIZE 2\n'
-                            string +=  '@ SUBTITLE SIZE 1.0\n'
+                                    string +=  '@ XAXIS LABEL CHAR SIZE 1.5\n' 
+                                    string +=  '@ YAXIS LABEL CHAR SIZE 1.5\n'
+                                    string +=  '@ TITLE SIZE 2\n'
+                                    string +=  '@ SUBTITLE SIZE 1.0\n'
 
 #add the actual data x and y    
 
-                            for i in range(len( x )):
-                                try:
-                                    string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
-                                except IndexError:
-                                    print x[i], ind1, ind2
-                                    print y[ind1][ind2]
-                                    raise SystemExit
-                                except TypeError:
-                                    print ind1, ind2 
-                                    print y[i][ ind1][ ind2 ]
-                                    raise SystemExit
-                            string += '@ SORT s%d X ASCENDING\n' % localCounter
-                            string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
-                            string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
-                            localCounter += 1
+                                    for i in range(len( x )):
+                                        try:
+                                            string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
+                                        except IndexError:
+                                            print x[i], ind1, ind2
+                                            print y[i]
+                                            raise SystemExit
+                                        except TypeError:
+                                            print ind1, ind2 
+                                            print y[i][ ind1][ ind2 ]
+                                            raise SystemExit
+                                    string += '@ SORT s%d X ASCENDING\n' % localCounter
+                                    string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
+                                    string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
+                                    localCounter += 1
 
         return string
 
-    def input_style_to_xvg_output( self, level, prop, component, max_l):
+    def input_style_to_xvg_output( self, level, prop, component, dist, max_l):
         """level = static, polar, hyper
         prop = dipole, alpha, beta
         component = X, Y, Z
         max_l = 1, 2
         return nice label string for xmgrace"""
         
+        d = ""
+        if dist:
+            d += "LoProp"
+
         t_level = "Static "
         t_component = component
         if level == "polar":
-            t_level = "Polarizable "
+            t_level = "Linear "
         elif level == "hyper":
-            t_level = "Hyperpolarizable "
+            t_level = "Quadratic "
 
         if prop == "dipole":
             t_prop = 'p'
@@ -801,7 +810,7 @@ class Calculator( dict ):
         elif prop == "beta":
             t_component *= 3
             t_prop = r'\xb\0'
-        return t_level + t_prop + r"\s%s\N" % t_component
+        return t_level + t_prop + (r"\s%s\N " % t_component) + d
 
     def get_static_string( self, waters, to_au = True, dist = False ):
         """ Converts list of waters into Olav string for .pot"""
@@ -1004,9 +1013,9 @@ if __name__ == '__main__':
     A.add_argument( "-mol_model"  , type = str, default = "tip3p", choices = [ "tip3p", "spc"] )
 
     A.add_argument( "-basis"  , type = str, default = "ANOPVDZ" )
-    A.add_argument( "-Rp"  , type = str, default = "0.00001" )
-    A.add_argument( "-Rq"  , type = str, default = "0.00001" )
-    A.add_argument( "-R"  , type = str, default = "0.00001" )
+    A.add_argument( "-Rp"  ,nargs = '*',  type = str, default = ["0.00001"] )
+    A.add_argument( "-Rq"  ,nargs = '*',  type = str, default = ["0.00001"] )
+    A.add_argument( "-R"  , nargs = '*',  type = str, default =  ["0.00001"] )
 
 # RELATED TO WATER ERRORS
     A.add_argument( "-water_errors"  , default = False, action ='store_true' )
@@ -1055,6 +1064,7 @@ if __name__ == '__main__':
     A.add_argument( "-rho3",   type = str ) 
 
     args = A.parse_args()
+    args.c = map( lambda x: x.upper() , args.c )
     c = Calculator()
 
 
@@ -1106,8 +1116,8 @@ if __name__ == '__main__':
                 mol_model = args.mol_model,
                 in_AA = args.in_AA,
                 out_AA = args.out_AA,
-                Rp = args.Rp,
-                Rq = args.Rq,
+                Rps = args.Rp,
+                Rqs = args.Rq,
                 worst = args.worst,
                 )
 
@@ -1121,7 +1131,7 @@ if __name__ == '__main__':
                 rel = args.rel,
                 dists = args.dist,
                 noqm = args.noqm,
-                Rq = args.Rq,
-                Rp = args.Rp,
+                Rqs = args.Rq,
+                Rps = args.Rp,
                 )
         open( args.output , 'w').write( string )
