@@ -98,15 +98,21 @@ class Generator( dict ):
 .PARALLELL
 **WAVE FUNCTION
 .HF
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
 **RESPONSE
 *QUADRATIC
+.QLOP
 .DIPLEN
 **END OF DALTON INPUT"""
 
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
-            AA = True):
+            AA = True,
+            worst = False):
         r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
             self[ ('r', 'points' ) ]  )
         tau = np.linspace( self[ ('tau', 'min')] , self[ ('tau', 'max')] ,
@@ -138,6 +144,17 @@ class Generator( dict ):
                                 w1 = self.get_mol( [0, 0, 0], 
                                         mol = mol,
                                         model = model, AA = AA)
+                                if worst:
+                                    w1 = self.get_mol( [0, 0, 0], 
+                                            mol = mol,
+                                            model = model, AA = AA)
+                                    w1.populate_bonds()
+                                    w1.populate_angles()
+                                    w1.h1.scale_angle( 0.988 )
+                                    w1.h1.scale_bond( 0.985 )
+                                    w1.h2.scale_bond( 1.015 )
+                                    w1.inv_rotate()
+
                                 c.append( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_mol( [x,y,z], mol, AA = AA)
@@ -403,6 +420,7 @@ if __name__ == '__main__':
             help = "Which specific molecules to generate")
     A.add_argument( "-two_mols_model", type = str, default = 'tip3p',
             help = "Which specific model of the molecule to generate")
+    A.add_argument( "-worst", action = 'store_true', default = False,)
 
     A.add_argument( "-r_min"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta_min" ,   type = float , default = 0.00  ) 
@@ -479,7 +497,8 @@ if __name__ == '__main__':
                 mol = args.two_mols_mol ,
                 model = args.two_mols_model,
                 basis = args.basis,
-                AA = False )
+                AA = False,
+                worst = args.worst )
     if args.one_mol_gen:
         g.one_mol_gen(
             mol = args.one_mol_mol,
