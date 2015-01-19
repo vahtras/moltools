@@ -156,7 +156,8 @@ class Calculator( dict ):
         a = np.zeros( len(files) )
         b1 = np.zeros( len(files) )
         b2 = np.zeros( len(files) )
-        res = np.zeros( (len(files), 3) )
+        bcl = np.zeros( (len(files), 10) )
+        bqm = np.zeros( (len(files), 10) )
         b = np.array(Template().get( dist = False, model = model )[('O1','beta')])
 
         for i in range(len(files)):
@@ -164,16 +165,17 @@ class Calculator( dict ):
             b1[ i ] = base[-3]
             b2[ i ] = base[-2]
             a[ i ] =  base[-1]
-            b_qm = read_dal.read_beta_hf( files[i] )[3]
-            b_qm = Rotator.square_3_ut( b_qm )
-            res[i]= np.sqrt(( b[[2,7,9]] - b_qm[[2,7,9]])**2 )
+            b_ref = read_dal.read_beta_hf( files[i] )[3]
+            b_ref = Rotator.square_3_ut( b_ref )
+            bqm[i] = b_ref
 
         h5 = h5py.File('data.h5','w')
         base = '%s/%s/' %(molecule, model)
         h5[ base + 'r_oh1' ] = b1
         h5[ base + 'r_oh2' ] = b2
         h5[ base + 'a_h1oh2' ] = a
-        h5[ base + 'b_res' ] = res
+        h5[ base + 'b_qm' ] = bqm
+        h5[ base + 'b_cl' ] = b
         raise SystemExit
     def get_x_and_y( self, 
             var = 'r',
