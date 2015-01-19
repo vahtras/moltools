@@ -350,17 +350,17 @@ class Calculator( dict ):
                                     if model == "gaussian":
                                         tmp_Rq = float(Rq)
                                         tmp_Rp = float(Rp)
-                                        if "zeroth" in level:
+                                        if "zeroth" in levels:
                                             zeroth = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 0 , quadratic = 0 ,  dist = dist ))
+                                                max_l = max_l , pol = 0 , hyper = 0 ,  dist = dist ))
                                             zeroth.set_damping( tmp_Rq, tmp_Rp )
-                                        if "linear" in level:
+                                        if "linear" in levels:
                                             linear = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 2 , quadratic = 1 , dist = dist ))
+                                                max_l = max_l , pol = 2 , hyper = 1 , dist = dist ))
                                             linear.set_damping( tmp_Rq, tmp_Rp )
-                                        if "quadratic" in level:
+                                        if "quadratic" in levels:
                                             quadratic = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                                max_l = max_l , pol = 22,  quadratic = 1 , dist = dist ))
+                                                max_l = max_l , pol = 22,  hyper = 1 , dist = dist ))
                                             quadratic.set_damping( tmp_Rq, tmp_Rp )
                                     try:
                                         zeroth.solve_scf()
@@ -380,12 +380,12 @@ class Calculator( dict ):
                                     a_linear = []
                                     a_quadratic = []
                                     b_quadratic = []
-                                    if "zeroth" in level:
+                                    if "zeroth" in levels:
                                         d_zeroth = zeroth.total_dipole_moment( )
-                                    if "linear" in level:
+                                    if "linear" in levels:
                                         d_linear =  linear.total_dipole_moment( )
                                         a_linear = linear.alpha().diagonal()
-                                    if "quadratic" in level:
+                                    if "quadratic" in levels:
                                         d_quadratic = quadratic.total_dipole_moment( )
                                         a_quadratic = quadratic.alpha().diagonal()
                                         b_quadratic =  [ quadratic.beta()[ii, jj, kk] for ii, jj, kk in select]
