@@ -172,6 +172,8 @@ class Calculator( dict ):
             out_AA = False,
             max_l = 1,
             dist = 0, 
+            Rq = "0.00",
+            Rp = "0.00",
             ):
 
         x = []
@@ -187,7 +189,7 @@ class Calculator( dict ):
                 if out_AA and not in_AA:
                     r_x = "%.2f" % (float(r)*a0)
                 x.append( r_x )
-                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist ) ] )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
         return  x , y 
 
     def two_mols( self, 
@@ -335,7 +337,11 @@ class Calculator( dict ):
                                     b_quadratic =  [(this-ref)/ref for this, ref in zip( [ quadratic.beta()[ii, jj, kk] for ii, jj, kk in select], reference  ) ] 
 
                                 val = [d_zeroth, d_linear, d_quadratic, a_linear, a_quadratic, b_quadratic ]
-                                self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
+
+# Dictionary key for damping coeff is 2 decimal strings
+                                Rp_ind = "%.2f" %float(Rp)
+                                Rq_ind = "%.2f" %float(Rq)
+                                self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq_ind, Rp_ind )] = val
                             else:
 # Get absolute values using the quadratic model
                                 if noqm:
@@ -407,7 +413,9 @@ class Calculator( dict ):
                                     beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
                                     val = [ dipole, dipole, dipole, alpha, alpha, beta ]
 #End of two blocks
-                                self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist )] = val
+                                    Rp_ind = "%.2f" %(Rp)
+                                    Rq_ind = "%.2f" %(Rq)
+                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq_ind, Rp_ind )] = val
 
     def get_matching_out_and_mol(self):
         tmp = []
@@ -578,17 +586,19 @@ class Calculator( dict ):
 
         for max_l in max_ls:
             for dist in dists:
-                x, y = self.get_x_and_y( var = var,
-                        in_AA = in_AA,
-                        out_AA = out_AA,
-                        max_l = max_l,
-                        dist = dist,
-                        )
-                for level in levels:
-                    for prop in props:
-                        for comp in comps:
-                            for Rp in Rps:
-                                for Rq in Rqs:
+                for Rp in Rps:
+                    for Rq in Rqs:
+                        x, y = self.get_x_and_y( var = var,
+                                in_AA = in_AA,
+                                out_AA = out_AA,
+                                max_l = max_l,
+                                dist = dist,
+                                Rq = "%.2f" %float(Rq),
+                                Rp = "%.2f" %float(Rp),
+                                )
+                        for level in levels:
+                            for prop in props:
+                                for comp in comps:
                                     try:
                                         ind1, ind2 =  index_dict[ (level, prop, comp) ]
                                         width = line_thick_dict[ level ][ prop ][ comp ]
@@ -717,7 +727,6 @@ class Calculator( dict ):
                                     string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
                                     string += '@ s%d LINESTYLE %d\n' % (localCounter, style )
                                     localCounter += 1
-
         return string
 
     def input_style_to_xvg_output( self, level, prop, component, dist, max_l):
