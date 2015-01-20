@@ -174,6 +174,7 @@ class Calculator( dict ):
             dist = 0, 
             Rq = "0.00",
             Rp = "0.00",
+            out_degree = True,
             ):
 
         x = []
@@ -183,6 +184,7 @@ class Calculator( dict ):
             if self.continue_if_not_relevant_var( r, tau, theta,
                     rho1, rho2, rho3):
                 continue
+
             if var == 'r':
 #To be able to plot angstrom if water was calculated in AU
                 r_x = "%.2f" % float(r)
@@ -190,10 +192,60 @@ class Calculator( dict ):
                     r_x = "%.2f" % (float(r)*a0)
                 x.append( r_x )
                 y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
+                continue
+
+            if var == 'tau':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = float(tau)
+                if out_degree:
+                    r_x *= 180/np.pi
+                x.append( r_x )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
+
+            if var == 'theta':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = float(theta)
+                if out_degree:
+                    r_x *= 180/np.pi
+                x.append( r_x )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
+            if var == 'rho1':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = float(rho1)
+                if out_degree:
+                    r_x *= 180/np.pi
+                x.append( r_x )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
+            if var == 'rho2':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = float(rho2)
+                if out_degree:
+                    r_x *= 180/np.pi
+                x.append( r_x )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
+            if var == 'rho3':
+#To be able to plot angstrom if water was calculated in AU
+                r_x = float(rho3)
+                if out_degree:
+                    r_x *= 180/np.pi
+                x.append( r_x )
+                y.append( self[ ( r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq, Rp ) ] )
         return  x , y 
 
+    def choose_relevant_var( self,r, tau, theta, rho1, rho2, rho3):
+        if self.opts["r"].has_key( "vary" ):
+            return r
+        if self.opts["tau"].has_key( "vary" ):
+            return tau
+        if self.opts["theta"].has_key( "vary" ):
+            return theta
+        if self.opts["rho1"].has_key( "vary" ):
+            return rho1
+        if self.opts["rho2"].has_key( "vary" ):
+            return rho2
+        if self.opts["rho3"].has_key( "vary" ):
+            return rho3
     def two_mols( self, 
-            var = 'r',
             levels = ['zeroth'],
             props = ['dipole'],
             comps = ['Z'],
@@ -215,8 +267,6 @@ class Calculator( dict ):
             ):
         """combine get_rel_error and get_abs_value"""
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
-
-        f_ = h5py.File( out ,'w')
         for i in self.get_matching_out_and_mol():
             r, tau, theta, rho1, rho2, rho3 = i.split('-')
             for max_l in max_ls:
@@ -224,6 +274,8 @@ class Calculator( dict ):
                     for Rp in Rps:
                         for Rq in Rqs:
 # Gather the water molecules from the .mol file
+                            Rp_ind = "%.2f" %float(Rp)
+                            Rq_ind = "%.2f" %float(Rq)
                             tmp_waters = []
                             for j in Water.read_waters( i + ".mol", in_AA = in_AA,
                                     out_AA = out_AA):
@@ -396,6 +448,7 @@ class Calculator( dict ):
                                         a_quadratic = quadratic.alpha().diagonal()
                                         b_quadratic =  [ quadratic.beta()[ii, jj, kk] for ii, jj, kk in select]
                                     val = [ d_zeroth, d_linear, d_quadratic, a_linear, a_quadratic, b_quadratic ]
+                                    self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq_ind, Rp_ind )] = val
                                 else:
                                     file_name = qm_method + "_" + i + ".out"
 
@@ -413,8 +466,6 @@ class Calculator( dict ):
                                     beta = [ qm_beta[ii,jj,kk] for (ii, jj, kk) in select ]
                                     val = [ dipole, dipole, dipole, alpha, alpha, beta ]
 #End of two blocks
-                                    Rp_ind = "%.2f" %(Rp)
-                                    Rq_ind = "%.2f" %(Rq)
                                     self[ (r, tau, theta, rho1, rho2, rho3, max_l, dist, Rq_ind, Rp_ind )] = val
 
     def get_matching_out_and_mol(self):
@@ -563,9 +614,15 @@ class Calculator( dict ):
                         beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
         return beta
 
+    def get_var(self):
+        for i, key in enumerate(self.opts):
+            if 'vary' in self.opts[key].keys():
+                var = key
+                break
+        return var
+
 #If data is in absolute value, format xvg string with qm method in labels
     def get_xvg_string( self,
-            var = 'r',
             levels = ["zeroth"], 
             props = ["dipole"], 
             comps = ["Z"], 
@@ -578,23 +635,28 @@ class Calculator( dict ):
             Rqs = [0.000001],
             Rps = [0.000001],
             qm_method = 'hfqua',
+            out_degree = False,
             ):
         """ kwargs is a dictionary where user specifies which components, dipole models and properties
         will be returned and printed for a finished formatted .xvg xmgrace plot"""
         localCounter = 0
         string = ""
 
+        var = self.get_var()
+
         for max_l in max_ls:
             for dist in dists:
                 for Rp in Rps:
                     for Rq in Rqs:
-                        x, y = self.get_x_and_y( var = var,
+                        x, y = self.get_x_and_y(
+                                var = var,
                                 in_AA = in_AA,
                                 out_AA = out_AA,
                                 max_l = max_l,
                                 dist = dist,
                                 Rq = "%.2f" %float(Rq),
                                 Rp = "%.2f" %float(Rp),
+                                out_degree = out_degree,
                                 )
                         for level in levels:
                             for prop in props:
@@ -618,7 +680,7 @@ class Calculator( dict ):
                                             string += '@TITLE "Absolute values for qm method %s"\n' \
                                                 % qm_method
 
-                                    subtitle = '@SUBTITLE "Using Rp, Rq: (%s, %s); max_l = %d;' \
+                                    subtitle = '@SUBTITLE "Using Rq, Rp: (%s, %s); max_l = %d;' \
                                         %( Rq, Rp, max_l )
                                     
                                     if dist:
@@ -687,7 +749,7 @@ class Calculator( dict ):
                                     string +=  '@LEGEND 0.8, 0.5\n' 
                                     string +=  '@LEGEND CHAR SIZE 1.2\n' 
 
-                                    xvg_label = self.input_style_to_xvg_output( level, prop, comp, dist, max_l)
+                                    xvg_label = self.input_style_to_xvg_output( level, prop, comp, dist, max_l,Rq,Rp)
                                     string +=  '@ s%d LEGEND "%s"\n' %( localCounter,xvg_label)
 #                            if dist:
 #                                string +=  '@ s%d LEGEND "%s, %s, %s, %s, %s"\n' %( localCounter, level, prop, comp, str(max_l), "LoProp") 
@@ -729,23 +791,32 @@ class Calculator( dict ):
                                     localCounter += 1
         return string
 
-    def input_style_to_xvg_output( self, level, prop, component, dist, max_l):
+    def input_style_to_xvg_output( self, level, prop,
+            component,
+            dist,
+            max_l,
+            Rq = "0.00",
+            Rp = "0.00",
+            ):
         """level = zeroth, linear, quadratic
         prop = dipole, alpha, beta
         component = X, Y, Z
         max_l = 1, 2
         return nice label string for xmgrace"""
         
-        d = ""
-        if dist:
-            d += "LoProp"
+        Rq = "%.1f" %float(Rq)
+        Rp = "%.1f" %float(Rp)
 
-        t_level = "Zeroth "
+        d = " "
+        if dist:
+            d += "LoProp "
+
+        t_level = "(0) "
         t_component = component
         if level == "linear":
-            t_level = "Linear "
+            t_level = "(1) "
         elif level == "quadratic":
-            t_level = "Quadratic "
+            t_level = "(2) "
 
         if prop == "dipole":
             t_prop = 'p'
@@ -755,7 +826,9 @@ class Calculator( dict ):
         elif prop == "beta":
             t_component *= 3
             t_prop = r'\xb\0'
-        return t_level + t_prop + (r"\s%s\N " % t_component) + d
+        lab = t_level + t_prop + (r"\s%s\N " % t_component) + d
+        lab += '(%s,%s)' %(Rq,Rp)
+        return lab
 
     def get_zeroth_string( self, waters, to_au = True, dist = False ):
         """ Converts list of waters into Olav string for .pot"""
@@ -989,8 +1062,8 @@ if __name__ == '__main__':
     A.add_argument( "-mol_model"  , type = str, default = "tip3p", choices = [ "tip3p", "spc"] )
 
     A.add_argument( "-basis"  , type = str, default = "ANOPVDZ" )
-    A.add_argument( "-Rp"  ,nargs = '*',  type = str, default = ["0.00001"] )
     A.add_argument( "-Rq"  ,nargs = '*',  type = str, default = ["0.00001"] )
+    A.add_argument( "-Rp"  ,nargs = '*',  type = str, default = ["0.00001"] )
     A.add_argument( "-R"  , nargs = '*',  type = str, default =  ["0.00001"] )
 
 # RELATED TO WATER ERRORS
@@ -1022,6 +1095,7 @@ if __name__ == '__main__':
     A.add_argument( "-two_mols", default = False , action = 'store_true' ) 
     A.add_argument( "-worst", default = False , action = 'store_true' ) 
     A.add_argument( "-h5", default = False , action = 'store_true' ) 
+    A.add_argument( "-out_degree", default = False , action = 'store_true' ) 
 
     A.add_argument( "-o", dest = "output" , default = "tmp.xvg" , help = "Name of output xmgrace file" )
 
@@ -1081,6 +1155,25 @@ if __name__ == '__main__':
         c.errors( molecule = args.molecule,
                 model = args.mol_model )
     if args.two_mols:
+        #c.two_mols_python(
+        #        basis = args.basis,
+        #        levels = args.l,
+        #        props = args.p,
+        #        comps = args.c,
+        #        max_ls = args.max_l,
+        #        dists = args.dist,
+        #        rel = args.rel,
+        #        h5 = args.h5,
+        #        noqm = args.noqm,
+        #        model = args.model,
+        #        mol_model = args.mol_model,
+        #        in_AA = args.in_AA,
+        #        out_AA = args.out_AA,
+        #        Rps = args.Rp,
+        #        Rqs = args.Rq,
+        #        worst = args.worst,
+        #        )
+        #raise SystemExit
 
         c.two_mols(basis = args.basis,
                 levels = args.l,
@@ -1095,12 +1188,12 @@ if __name__ == '__main__':
                 mol_model = args.mol_model,
                 in_AA = args.in_AA,
                 out_AA = args.out_AA,
-                Rps = args.Rp,
                 Rqs = args.Rq,
+                Rps = args.Rp,
                 worst = args.worst,
                 )
 
-        string = c.get_xvg_string( var = args.vary,
+        string = c.get_xvg_string( 
                 levels = args.l,
                 props = args.p,
                 comps = args.c,
@@ -1112,5 +1205,6 @@ if __name__ == '__main__':
                 noqm = args.noqm,
                 Rqs = args.Rq,
                 Rps = args.Rp,
+                out_degree = args.out_degree,
                 )
         open( args.output , 'w').write( string )
