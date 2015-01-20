@@ -165,11 +165,11 @@ class Generator( dict ):
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
 
-                                m = c.get_qm_mol_string( AA = AA,
+                                tmp_mol = c.get_qm_mol_string( AA = AA,
                                         basis = tuple(basis),
                                         )
                                 f_ = open(name, 'w')
-                                f_.write( m )
+                                f_.write( tmp_mol )
         return 0
 
     def vary_parameters( self, opts ):
