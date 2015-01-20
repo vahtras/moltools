@@ -266,6 +266,8 @@ class Calculator( dict ):
             out = 'data.h5',
             ):
         """combine get_rel_error and get_abs_value"""
+#
+# XXZ (2), YYZ(7) and ZZZ(9) in ut form
         select = [ (0, 0, 2), (1, 1, 2), (2, 2, 2)]
         for i in self.get_matching_out_and_mol():
             r, tau, theta, rho1, rho2, rho3 = i.split('-')
@@ -324,18 +326,20 @@ class Calculator( dict ):
 #Defaults to this model
 
                                 if model == "pointdipole":
-                                    zeroth= PointDipoleList.from_string( self.get_string( tmp_waters ,
-                                            max_l = max_l , pol = 0, hyper = 0, dist = dist ) )
-                                    linear = PointDipoleList.from_string( self.get_string(  tmp_waters ,
-                                            max_l = max_l, pol = 2, hyper = 1, dist = dist ))
-                                    hyper = PointDipoleList.from_string( self.get_string(  tmp_waters,
-                                            max_l = max_l, pol = 22, hyper = 1, dist = dist ))
+                                    if "zeroth" in levels:
+                                        zeroth= PointDipoleList.from_string( Water.get_string_from_waters( tmp_waters , max_l = max_l , pol = 0, hyper = 0, dist = dist ) )
+                                        zeroth.solve_scf()
+                                    if "linear" in levels:
+                                        linear = PointDipoleList.from_string( Water.get_string_from_waters(  tmp_waters , max_l = max_l, pol = 2, hyper = 1, dist = dist ))
+                                        linear.solve_scf()
+                                    if "quadratic" in levels:
+                                        quadratic = PointDipoleList.from_string( Water.get_string_from_waters(  tmp_waters, max_l = max_l, pol = 22, hyper = 1, dist = dist ))
+                                        quadratic.solve_scf()
                                 if model == "gaussian":
                                     tmp_Rq = float(Rq)
                                     tmp_Rp = float(Rp)
                                     if "zeroth" in levels:
-                                        zeroth = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters,
-                                            max_l = max_l , pol = 0 , hyper = 0 ))
+                                        zeroth = GaussianQuadrupoleList.from_string( Water.get_string_from_waters(  tmp_waters, max_l = max_l , pol = 0 , hyper = 0 ))
                                         zeroth.set_damping( tmp_Rq, tmp_Rp )
                                         zeroth.solve_scf()
 
@@ -824,7 +828,8 @@ class Calculator( dict ):
             t_component *= 2
             t_prop = r'\xa\0'
         elif prop == "beta":
-            t_component *= 3
+            t_component *= 2
+            t_component += 'Z'
             t_prop = r'\xb\0'
         lab = t_level + t_prop + (r"\s%s\N " % t_component) + d
         lab += '(%s,%s)' %(Rq,Rp)
