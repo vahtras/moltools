@@ -56,21 +56,25 @@ class Generator( dict ):
     """
     def __init__(self, *args, **kwargs):
 
-#This waater is TIP3P model, generalzie later
-        self[ ("water","a_hoh", "degree") ] = 104.5
-        self[ ("water","r_oh", "AA") ] = 0.9572
+#This waater is TIP3P model,
+        self[ ("water", "tip3p", "a_hoh", "degree") ] = 104.52
+        self[ ("water", "tip3p", "r_oh", "AA") ] = 0.9572
 
-        self[ ("methanol", "r_oh", "AA" ) ] = 0.967
-        self[ ("methanol", "r_co", "AA" ) ] = 1.428
-        self[ ("methanol", "r_ch", "AA" ) ] = 1.098
+#This waater is SPC model,
+        self[ ("water", "spc", "a_hoh", "degree") ] = 109.47
+        self[ ("water", "spc", "r_oh", "AA") ] = 1.0
 
-        self[ ("methanol", "a_coh", "degree" ) ] = 107.16
-        self[ ("methanol", "a_hch", "degree" ) ] = 109.6
-        self[ ("methanol", "a_hco", "degree" ) ] = 109.342
+        self[ ("methanol", "gas_opt", "r_oh", "AA" ) ] = 0.967
+        self[ ("methanol", "gas_opt", "r_co", "AA" ) ] = 1.428
+        self[ ("methanol", "gas_opt", "r_ch", "AA" ) ] = 1.098
 
-        self[ ("methanol", "d_hcoh", "h4", "degree" ) ] =  60.0
-        self[ ("methanol", "d_hcoh", "h5", "degree" ) ] = -60.0
-        self[ ("methanol", "d_hcoh", "h6", "degree" ) ] =  180.0
+        self[ ("methanol", "gas_opt", "a_coh", "degree" ) ] = 107.16
+        self[ ("methanol", "gas_opt", "a_hch", "degree" ) ] = 109.6
+        self[ ("methanol", "gas_opt", "a_hco", "degree" ) ] = 109.342
+
+        self[ ("methanol", "gas_opt", "d_hcoh", "h4", "degree" ) ] =  60.0
+        self[ ("methanol", "gas_opt", "d_hcoh", "h5", "degree" ) ] = -60.0
+        self[ ("methanol", "gas_opt", "d_hcoh", "h6", "degree" ) ] =  180.0
 
         
 #Default options for water
@@ -94,14 +98,21 @@ class Generator( dict ):
 .PARALLELL
 **WAVE FUNCTION
 .HF
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
 **RESPONSE
 *QUADRATIC
+.QLOP
 .DIPLEN
 **END OF DALTON INPUT"""
 
     def gen_mols_param(self, mol = "water", 
+            model = 'tip3p',
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
-            AA = True):
+            AA = True,
+            worst = False):
         r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
             self[ ('r', 'points' ) ]  )
         tau = np.linspace( self[ ('tau', 'min')] , self[ ('tau', 'max')] ,
@@ -115,8 +126,13 @@ class Generator( dict ):
         rho3 = np.linspace( self[ ('rho3', 'min')], self[ ('rho3', 'max')],
             self[ ('rho3', 'points' )  ] )
 
-        r_oh = self[ ("water","r_oh", "AA") ]
-        a_hoh = np.pi * self[ ("water", "a_hoh", "degree" )] / 180.0
+        
+        if model == 'tip3p':
+            r_oh = self[ ("water", 'tip3p', "r_oh", "AA") ]
+            a_hoh = np.pi * self[ ("water", 'tip3p', "a_hoh", "degree" )] / 180.0
+        else:
+            r_oh = self[ ("water", 'tip3p', "r_oh", "AA") ]
+            a_hoh = np.pi * self[ ("water", 'tip3p', "a_hoh", "degree" )] / 180.0
 
         for i in r:
             for j in tau:
@@ -125,7 +141,20 @@ class Generator( dict ):
                         for m in rho2:
                             for n in rho3:
                                 c= Cluster()
-                                w1 = self.get_mol( [0, 0, 0], mol , AA = AA)
+                                w1 = self.get_mol( [0, 0, 0], 
+                                        mol = mol,
+                                        model = model, AA = AA)
+                                if worst:
+                                    w1 = self.get_mol( [0, 0, 0], 
+                                            mol = mol,
+                                            model = model, AA = AA)
+                                    w1.populate_bonds()
+                                    w1.populate_angles()
+                                    w1.h1.scale_angle( 0.988 )
+                                    w1.h1.scale_bond( 0.985 )
+                                    w1.h2.scale_bond( 1.015 )
+                                    w1.inv_rotate()
+
                                 c.append( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_mol( [x,y,z], mol, AA = AA)
@@ -136,11 +165,11 @@ class Generator( dict ):
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
 
-                                m = c.get_qm_mol_string( AA = AA,
+                                tmp_mol = c.get_qm_mol_string( AA = AA,
                                         basis = tuple(basis),
                                         )
                                 f_ = open(name, 'w')
-                                f_.write( m )
+                                f_.write( tmp_mol )
         return 0
 
     def vary_parameters( self, opts ):
@@ -164,7 +193,11 @@ class Generator( dict ):
             self[ (val, 'max') ] = opts[val][ "max" ]
             self[ (val, 'points') ] = opts[val][ "points" ]
 
-    def get_mol( self, center = [0,0,0], mol = "water", AA = False ):
+    def get_mol( self, 
+            center = [0,0,0], 
+            mol = "water", 
+            model = "tip3p",
+            AA = False ):
         """return molecule in center, all molecules have different definition
         of euler angles
 
@@ -174,9 +207,15 @@ class Generator( dict ):
         """
 
         if mol == "water":
-#Geometrical parameters
-            r_oh = self[ ("water","r_oh", "AA") ]
-            a_hoh = self[ ("water","a_hoh","degree") ]
+#Geometrical parameters, dependent om model
+            if model == "tip3p":
+                r_oh = self[ ("water", "tip3p", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "tip3p", "a_hoh","degree") ]
+
+            if model == "spc":
+                r_oh = self[ ("water", "spc", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "spc", "a_hoh","degree") ]
+
             if not AA:
                 r_oh = r_oh / a0
 
@@ -220,22 +259,22 @@ class Generator( dict ):
 
         elif mol == "methanol":
 
-            r_co = self[ ("methanol", "r_co", "AA" )]
-            r_oh = self[ ("methanol", "r_oh", "AA" )]
-            r_ch = self[ ("methanol", "r_ch", "AA" )]
+            r_co = self[ ("methanol", "gas_opt", "r_co", "AA" )]
+            r_oh = self[ ("methanol", "gas_opt", "r_oh", "AA" )]
+            r_ch = self[ ("methanol", "gas_opt", "r_ch", "AA" )]
 
-            a_coh = self[ ("methanol", "a_coh", "degree" ) ]
-            #a_hch = self[ ("methanol", "a_hch", "degree" ) ]
-            a_hco = self[ ("methanol", "a_hco", "degree" ) ]
+            a_coh = self[ ("methanol", "gas_opt", "a_coh", "degree" ) ]
+            #a_hch = self[ ("methanol","gas_opt",  "a_hch", "degree" ) ]
+            a_hco = self[ ("methanol", "gas_opt", "a_hco", "degree" ) ]
 
             a_coh *= np.pi / 180
             a_hco *= np.pi / 180
 
-            d_hcoh_4 = self[ ("methanol", "d_hcoh", "h4", "degree" ) ]
+            d_hcoh_4 = self[ ("methanol","gas_opt",  "d_hcoh", "h4", "degree" ) ]
             d_hcoh_4 *= np.pi / 180
-            d_hcoh_5 = self[ ("methanol", "d_hcoh", "h5", "degree" ) ]
+            d_hcoh_5 = self[ ("methanol","gas_opt",  "d_hcoh", "h5", "degree" ) ]
             d_hcoh_5 *= np.pi / 180
-            d_hcoh_6 = self[ ("methanol", "d_hcoh", "h6", "degree" ) ]
+            d_hcoh_6 = self[ ("methanol","gas_opt",  "d_hcoh", "h6", "degree" ) ]
             d_hcoh_6 *= np.pi / 180
 
             if not AA:
@@ -279,6 +318,38 @@ class Generator( dict ):
 
         return x , y , z
 
+    def one_mol_gen(self, mol = 'water', model = 'tip3p',):
+        """
+        Only implemented for water so far"""
+
+
+        if mol == "water":
+            d = self[ ("r_oh_dev", "max") ]
+            p = self[ ("r_oh_dev", "points") ]
+            r_d =  0.01*np.linspace( -d, d, p )
+
+            d = self[ ("theta_hoh_dev", "max") ]
+            p = self[ ("theta_hoh_dev", "points") ]
+            theta_d =  0.01*np.linspace( -d, d, p )
+
+            #a_hoh = self[ ( mol, model, "a_hoh", "degree" ) ] *np.pi/180
+            #r_oh = self[ ( mol, model, "r_oh", "AA" ) ]
+
+            for i in r_d:
+                for j in r_d:
+                    for k in theta_d:
+                        scale_bond1 = 1 + i
+                        scale_bond2 = 1 + j
+                        scale_angle = 1 + k
+                        names = map( lambda x:"%.3f"%x, [i, j, k] )
+                        w = self.get_mol( mol = mol, model = model)
+                        w.populate_bonds() ; w.populate_angles()
+                        w.h1.scale_bond( scale_bond1 )
+                        w.h2.scale_bond( scale_bond2 )
+                        w.h1.scale_angle( scale_angle )
+                        w.inv_rotate()
+                        open( "_".join([model]+names) + ".mol",'w').write(w.get_mol_string())
+        
     def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
             mult_r = 10,
@@ -339,13 +410,17 @@ if __name__ == '__main__':
 
     A = argparse.ArgumentParser( add_help= True)
 
-#Related to generating molecules with specified parameters
+# Related to generating molecules with specified parameters
 # Right now 2 waters implemented with 6 parameters
+# TWO MOLS GEN RELATED
 
-    A.add_argument( "-param", action = 'store_true', default = False )
-    A.add_argument( "-param_mol", type = str, default = 'water' )
-
-
+    A.add_argument( "-two_mols_gen", action = 'store_true', default = False,
+            help = "Generate two molecule at certain distance/parameters relative to each other")
+    A.add_argument( "-two_mols_mol", type = str, default = 'water',
+            help = "Which specific molecules to generate")
+    A.add_argument( "-two_mols_model", type = str, default = 'tip3p',
+            help = "Which specific model of the molecule to generate")
+    A.add_argument( "-worst", action = 'store_true', default = False,)
 
     A.add_argument( "-r_min"     ,   type = float , default = 3.00  ) 
     A.add_argument( "-theta_min" ,   type = float , default = 0.00  ) 
@@ -368,10 +443,22 @@ if __name__ == '__main__':
     A.add_argument( "-rho2_points"  ,   type = int , default = 1) 
     A.add_argument( "-rho3_points"  ,   type = int , default = 1) 
 
+
+# ONE MOL GEN RELATED
+    A.add_argument( "-one_mol_gen", action = 'store_true', default = False,)
+    A.add_argument( "-one_mol_mol", type = str, default = 'water',)
+    A.add_argument( "-one_mol_model", type = str, default = 'tip3p',)
+    A.add_argument( "-r_oh_dev", type = float, default = 5,)
+    A.add_argument( "-theta_hoh_dev", type = float, default = 5,)
+
+    A.add_argument( "-r_oh_points", type = int, default = 1,)
+    A.add_argument( "-theta_hoh_points", type = int, default = 1,)
+
 #Related to generating/getting one water
     A.add_argument( "-get_mol", 
             type = str, choices = ["water",
                 "methanol" , "ethane"] )
+    A.add_argument( "-model", type = str, default = 'tip3p' )
     A.add_argument( "-basis", type = str, nargs = "*",
             default =["ano-1 2 1", "ano-1 3 2 1" ] )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
@@ -399,15 +486,24 @@ if __name__ == '__main__':
        "rho1" :{"min":args.rho1_min, "max": args.rho1_max, "points":args.rho1_points, },
        "rho2" :{"min":args.rho2_min, "max": args.rho2_max, "points":args.rho2_points, },
        "rho3" :{"min":args.rho3_min, "max": args.rho3_max, "points":args.rho3_points, },
+       "r_oh_dev" :{"min":0, "max": args.r_oh_dev, "points": args.r_oh_points },
+       "theta_hoh_dev" :{"min":0, "max": args.theta_hoh_dev, "points": args.theta_hoh_points },
     }
     g.vary_parameters( opts )
 
 
-    if args.param:
+    if args.two_mols_gen:
         g.gen_mols_param( 
-                mol = args.param_mol ,
+                mol = args.two_mols_mol ,
+                model = args.two_mols_model,
                 basis = args.basis,
-                AA = False )
+                AA = False,
+                worst = args.worst )
+    if args.one_mol_gen:
+        g.one_mol_gen(
+            mol = args.one_mol_mol,
+            model = args.one_mol_model,
+            )
 
     if args.get_mol:
         mol = g.get_mol( center = [0, 0, 0 ], mol = args.get_mol , AA = args.AA )

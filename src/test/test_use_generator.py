@@ -23,7 +23,7 @@ class GeneratorTestCase( unittest.TestCase ):
 
     def test_get_mol(self):
         w = self.g.get_mol( center = [0, 1, 1], mol = "water", AA = False )
-        m = self.g.get_mol( center = [0, 1, 1], mol = "methanol", AA = False )
+        m = self.g.get_mol( center = [0, 1, 1], mol = "methanol",model = "gas_opt", AA = False )
         self.assertIsInstance( w, Molecule )
         self.assertIsInstance( m, Molecule )
         self.assertNotIsInstance( w, Methanol )

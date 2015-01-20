@@ -2,7 +2,6 @@
 
 import os,sys, re, argparse, ctypes, multiprocessing
 import numpy as np
-import fractions as fr
 import math as m
 
 #from particles import *
@@ -13,8 +12,8 @@ from template import Template
 
 from matplotlib import pyplot as plt
 
-#import h5py
-#from calculator import *
+import h5py, functools
+from use_calculator import *
 
 
 a0 = 0.52917721092
@@ -80,7 +79,7 @@ def qm_generation( ending = "pdb",
 
     for files in pdb_files:
         c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
-                N_waters = 340 )
+                N_waters = 50 )
         for n_qm in qm_waters:
             c.set_qm_mm( N_qm = n_qm, N_mm = 0 )
             out_mol = "%s_%dqm.mol" % ( files.rstrip( '.' + ending ),
@@ -171,6 +170,10 @@ Each .pdb files in the working directory will be converted into .mol files for t
 #TEMPORARY PARALLEL SOLUTION TO PROBLEM parsing 1500 files
 N_waters = 15
 
+#Store energy of output file
+shared_erg_base = multiprocessing.Array( ctypes.c_double,101*N_waters**2*2)
+shared_erg = np.ctypeslib.as_array(shared_erg_base.get_obj())
+shared_erg = shared_erg.reshape(101, N_waters, N_waters, 2)
 
 #Store minimum distance between two oxygens
 shared_dists_base = multiprocessing.Array( ctypes.c_double,101*N_waters**2*2)
@@ -219,6 +222,7 @@ shared_b_qm = shared_b_qm.reshape(101, N_waters, 10, 2)
 outs = [f for f in os.listdir(os.getcwd()) if f.endswith(".out") ]
 
 def beta_analysis_par( val, 
+        erg =  shared_erg,
         dists =  shared_dists,
         sd_cl = shared_sd_cl,
         pd_cl = shared_pd_cl,
@@ -230,9 +234,10 @@ def beta_analysis_par( val,
         a_qm =  shared_a_qm ,
         b_qm =  shared_b_qm ,
         dal = "hfqua_",
-        N_waters = 15, in_AA = False, out_AA = False, basis = "ANOPVDZ"
+        N_waters = 15, in_AA = False, out_AA = False, basis = "ANOPVDZ",
+        model = "spc",
         ):
-    ps = re.compile(r'tip3p(\d+)_')
+    ps = re.compile(r'%s(\d+)_' %model)
     pqm = re.compile(r'_(\d+)qm')
     for dist in [False, True]:
 #properties for POT
@@ -250,6 +255,8 @@ def beta_analysis_par( val,
             distind = 0
 
         if int(qm) > 15:
+            continue
+        if int(qm) > N_waters:
             continue
 
         dipole = np.zeros( [3] )
@@ -271,6 +278,8 @@ def beta_analysis_par( val,
                     in_AA = in_AA, out_AA = out_AA )
 #Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
 
+
+
         alpha_qm = Rotator.square_2_ut( alpha_qm )
         beta_qm = Rotator.square_3_ut( beta_qm )
 
@@ -282,7 +291,7 @@ def beta_analysis_par( val,
 # by transfer of dipole, alpha and beta to coordinates
         for wat in waters:
             t1, t2, t3  = wat.get_euler()
-            kwargs_dict = Template().get( *("TIP3P", "HF", basis,
+            kwargs_dict = Template().get( *(model, "HF", basis,
                 dist, "0.0"))
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
@@ -310,6 +319,8 @@ def beta_analysis_par( val,
         c = Cluster()
         for i in waters:
             c.append(i)
+
+        erg[ snapind, qmind, :qmind+1, distind  ] = read_energy( out )
         dists[ snapind, qmind, :qmind+1, distind] = \
                 c.min_dist_coo()
         sd_cl[ snapind, qmind, :, distind] = \
@@ -335,18 +346,23 @@ def beta_analysis_par( val,
                 beta_qm
         print "finished", snapind, qmind
 
-def run_beta_analysis_par( N_waters = 15 ):
-
+def run_beta_analysis_par( N_waters = 15,
+        ncpu = 4,
+        model = "tip3p"):
     #beta_analysis_par( dists  )
-    p = multiprocessing.Pool(4)
+    p = multiprocessing.Pool(ncpu)
     vals = range(len(outs))
-    p.map( beta_analysis_par,
-            vals )
+    mod_func = functools.partial( beta_analysis_par,
+            N_waters = N_waters,
+            model = model )
+    p.map( mod_func,
+            vals, )
     p.close()
     p.join()
 
     h5name = "beta/%s" % "anopvdz".lower()
     f_ = h5py.File("data.h5",'w')
+    f_[ h5name + "/erg"] = shared_erg
     f_[ h5name + "/dists"] = shared_dists
     f_[ h5name + "/sd_cl"] = shared_sd_cl
     f_[ h5name + "/pd_cl"] = shared_pd_cl
@@ -358,153 +374,6 @@ def run_beta_analysis_par( N_waters = 15 ):
     f_[ h5name + "/a_qm"] = shared_a_qm
     f_[ h5name + "/b_qm"] = shared_b_qm
     f_.close()
-
-def beta_analysis(args,
-        dist = True,
-        basis = "ANOPVDZ",
-        dal = "hfqua_",
-        freqs = ["0.0",], in_AA = False, out_AA = False,
-        ncpu = 4,
-        N_waters = 19):
-    outs = [f for f in os.listdir(os.getcwd()) if f.endswith(".out") ]
-
-    dists = np.zeros( (101,N_waters-1, N_waters-1,2) ) 
-
-    sd_cl = np.zeros( (101,N_waters-1, 3,2) ) 
-    pd_cl = np.zeros( (101,N_waters-1, 3,2) ) 
-    pa_cl = np.zeros( (101,N_waters-1, 6,2) ) 
-
-    hd_cl = np.zeros( (101,N_waters-1, 3, 2) ) 
-    ha_cl = np.zeros( (101,N_waters-1, 6, 2) ) 
-    hb_cl = np.zeros( (101,N_waters-1, 10,2) ) 
-
-    d_qm = np.zeros( (101,N_waters-1, 3, 2) ) 
-    a_qm = np.zeros( (101,N_waters-1, 6, 2) ) 
-    b_qm = np.zeros( (101,N_waters-1, 10,2) ) 
-
-    ps = re.compile(r'tip3p(\d+)_')
-    pqm = re.compile(r'_(\d+)qm')
-
-    for ind, ii in enumerate(outs):
-        for dist in [False, True]:
-#properties for POT
-            try:
-                snap = ps.search(ii).group(1)
-                qm = pqm.search(ii).group(1)
-#This is because sometimes a non matching .out file can be copied to the working dir
-            except AttributeError:
-                continue
-
-            snapind= int(snap)
-            qmind = int(qm)-2
-            if dist:
-                distind = 1
-            else:
-                distind = 0
-
-            if not snapind in [10]:
-                continue
-            dipole = np.zeros( [3] )
-            alpha = np.zeros( [3, 3] )
-            beta = np.zeros( [3, 3, 3])
-
-#properties for QM
-            dipole_qm = np.zeros( [3] )
-            alpha_qm = np.zeros( [3, 3] )
-            beta_qm = np.zeros( [3, 3, 3] )
-
-            out = os.path.join(os.getcwd(), ii )
-            mol = os.path.join(os.getcwd(), ii.replace( dal, "").replace(".out",".mol" ))
-
-            if is_ccsd( out ):
-                atoms, dipole_qm , alpha_qm , beta_qm = read_beta_ccsd( out )
-            else:
-                atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, "0.0",
-                        in_AA = in_AA, out_AA = out_AA )
-#Explicit printing to stdout for testing, only the model water from linear / quadratic calc is printed
-
-            alpha_qm = Rotator.square_2_ut( alpha_qm )
-            beta_qm = Rotator.square_3_ut( beta_qm )
-
-#Read coordinates for water molecules where to put properties to
-            waters = Water.read_waters( mol , in_AA = in_AA , out_AA = out_AA , N_waters = N_waters )
-#
-#
-# Read in rotation angles for each water molecule follow 
-# by transfer of dipole, alpha and beta to coordinates
-            for wat in waters:
-                t1, t2, t3  = wat.get_euler()
-                kwargs_dict = Template().get( *("TIP3P", "HF", basis,
-                    dist, "0.0"))
-                for at in wat:
-                    Property.add_prop_from_template( at, kwargs_dict )
-                    at.Property.transform_ut_properties( t1, t2 ,t3)
-
-            static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = dist , AA = out_AA ))
-            polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = dist , AA = out_AA ))
-            hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
-                hyper = 1, dist = dist , AA = out_AA ))
-
-            #hyper.set_damping( args.R , args.R  )
-
-            static.solve_scf()
-            polar.solve_scf()
-            hyper.solve_scf()
-
-            #sd = static.total_dipole_moment()
-            #pd = polar.total_dipole_moment()
-            #pa = Rotator.square_2_ut( polar.alpha() )
-
-            #hd =  hyper.total_dipole_moment()
-            #ha =  Rotator.square_2_ut( hyper.alpha() )
-            #hb =  Rotator.square_3_ut( hyper.beta() )
-
-            #c = Cluster()
-            #for i in waters:
-            #    c.append(i)
-            #dists[ snapind, qmind, :qmind+1, distind] = \
-            #        c.min_dist_coo()
-            #sd_cl[ snapind, qmind, :, distind] = \
-            #        sd
-
-            #pd_cl[ snapind, qmind, :, distind] = \
-            #        pd
-            #pa_cl[ snapind, qmind, :, distind] = \
-            #        pa
-
-            #hd_cl[ snapind, qmind, :, distind] = \
-            #        hd
-            #ha_cl[ snapind, qmind, :, distind] = \
-            #        ha
-            #hb_cl[ snapind, qmind, :, distind] = \
-            #        hb
-
-            #d_qm[ snapind, qmind, :, distind] = \
-            #        dipole_qm
-            #a_qm[ snapind, qmind, :, distind] = \
-            #        alpha_qm
-            #b_qm[ snapind, qmind, :, distind] = \
-            #        beta_qm
-            print "finished", snapind, qmind
-
-    print dists[5,13,:,:]
-    h5name = "beta/%s" % basis.lower()
-
-    if args.hdf:
-        f_ = h5py.File("data.h5",'w')
-        f_[ h5name + "/dists"] = dists
-        f_[ h5name + "/sd_cl"] = sd_cl
-        f_[ h5name + "/pd_cl"] = pd_cl
-        f_[ h5name + "/pa_cl"] = pa_cl
-        f_[ h5name + "/hd_cl"] = hd_cl
-        f_[ h5name + "/ha_cl"] = ha_cl
-        f_[ h5name + "/hb_cl"] = hb_cl
-        f_[ h5name + "/d_qm"] = d_qm
-        f_[ h5name + "/a_qm"] = a_qm
-        f_[ h5name + "/b_qm"] = b_qm
-        f_.close()
-
-
 
 def qmmm_analysis( args ):
 
@@ -927,6 +796,7 @@ def run_argparse( args ):
     A.add_argument( "-beta_dal", type= str, default = "hfqua_" )
     A.add_argument( "-Ncpu", type= int, default = "4" )
     A.add_argument( "-N_waters", type= int, default = 15 )
+    A.add_argument( "-model", default = "tip3p" )
 
 # ----------------------------
 # ALPHA ANALYSIS RELATED
@@ -1087,6 +957,13 @@ def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
         return freqlist
 
     return alpha 
+
+def read_energy( fname, calctype = 'HF' ):
+    """Return the energy from dalton .out file fname"""
+
+    for line in open(fname).readlines():
+        if re.compile(r'.*Final.*energy').match(line):
+            return line.split()[-1]
 
 def read_beta_ccsd( args ):
 
@@ -1431,8 +1308,11 @@ def main():
                 out_AA = args.out_AA,
                 ncpu = args.Ncpu,
                 N_waters = args.N_waters)
+
     if args.beta_analysis_par:
-        run_beta_analysis_par( N_waters = 15 )
+        run_beta_analysis_par( N_waters = args.N_waters,
+                ncpu = args.Ncpu,
+                model = args.model )
 
     if args.alpha_analysis:
         alpha_analysis(args)

@@ -45,11 +45,9 @@ class MoleculesTestCase( unittest.TestCase ):
         st = """3
 
 O            0.000000   0.000000   0.000000
-H            0.756848   0.000000   0.586014
-H           -0.756848   0.000000   0.586014
+H            0.756950   0.000000   0.585882
+H           -0.756950   0.000000   0.585882
 """
-        print self.wat.get_xyz_string()
-
         self.wat.to_AA()
         self.assertEqual( st, self.wat.get_xyz_string() )
         self.wat.to_AU()
@@ -62,8 +60,8 @@ Atomtypes=2 Charge=0 Nosymm Angstrom
 Charge=8.0 Atoms=1 Basis=ano-1 3 2 1
 O 0.00000 0.00000 0.00000
 Charge=1.0 Atoms=2 Basis=ano-1 2 1
-H 0.75685 0.00000 0.58601
-H -0.75685 0.00000 0.58601
+H 0.75695 0.00000 0.58588
+H -0.75695 0.00000 0.58588
 """
         self.wat.to_AA()
         assert self.wat.get_mol_string() == st 
