@@ -8,7 +8,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, h5py, warnings
+import re, os, itertools, h5py, warnings, subprocess
+
+from use_generator import Generator
 
 from template import Template
 
@@ -1186,6 +1188,25 @@ class Water( Molecule ):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
         return w
+
+    def props_from_qm(self, dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
+            procs = 4,
+            ):
+        """
+        Will generate a .mol file of itself, run a DALTON calculation as a
+        childed process, get the properties back and put them on all atoms.
+
+        Might take long time.
+        """
+        if not os.path.isfile('hfqua.dal'):
+            open('hfqua.dal','w').write( Generator().get_hfqua_dal() )
+        open('tmp.mol','w').write( self.get_mol_string() )
+        p = subprocess.Popen([dalpath, 
+            '-N', str(procs), 'hfqua.dal', 'tmp.mol'], stdout = subprocess.PIPE,
+            )
+        out, err = p.communicate()
+        print out, err
+
     @staticmethod
     def get_standard( AA = False,
             worst = False):
