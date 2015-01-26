@@ -1773,7 +1773,7 @@ class Cluster(list):
             nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
             dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
             dip = el_dip + nuc_dip
-            return dip.sum(axis=0)+ dip_lop.sum(axis=0)
+            return (dip + dip_lop) .sum(axis=0)
 
         return np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
 
@@ -2192,6 +2192,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             t1, t2, t3 = mol.get_euler()
             for at in mol:
                 at.Property.transform_ut_properties( t1, t2, t3 )
+        self.Property = True
 
     def add_mol(self, mol, *args):
         #if type(args):
