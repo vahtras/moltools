@@ -1,9 +1,8 @@
 import unittest, subprocess, os
 import numpy as np
 
-from use_generator import Generator
 from template import Template
-from molecules import Water, Atom, Property
+from molecules import Generator, Water, Atom, Property
 
 
 class WaterTest( unittest.TestCase ):
