@@ -7,7 +7,7 @@ import math as m
 #from particles import *
 #from gaussian import *
 
-from molecules import Atom, Water, Property, Cluster, Rotator
+import molecules 
 from template import Template
 
 from matplotlib import pyplot as plt
@@ -32,7 +32,7 @@ def write_related( args ):
 
     if args.xyz.endswith(".pdb"):
         name = args.xyz.split(".")[0] + "_" + str(args.waters) + ".mol"
-        waters = Water.read_waters( args.xyz ,
+        waters = molecules.Water.read_waters( args.xyz ,
                 in_AA = args.xAA, 
                 out_AA = args.oAA,
                 N_waters = args.waters )
@@ -46,7 +46,7 @@ def write_related( args ):
         str_ = "Angstrom"
     else:
         str_ = ""
-    f_.write( "ATOMBASIS\n\nComment\nAtomtypes=2 Charge=0 Nosymm %s\n" %str_)
+    f_.write( "ATOMBASIS\n\nComment\nmolecules.Atomtypes=2 Charge=0 Nosymm %s\n" %str_)
 
     if not args.wat:
         "Can't write to .mol file, didn't read water molecules"
@@ -55,14 +55,14 @@ def write_related( args ):
     hCnt = len(waters) * 2
     oCnt = len(waters)
 
-    f_.write( "Charge=1.0 Atoms=%d Basis=cc-pVDZ\n" % hCnt)
+    f_.write( "Charge=1.0 molecules.Atoms=%d Basis=cc-pVDZ\n" % hCnt)
 
     for i in waters:
         for j in i:
             if j.element == "H":
                 f_.write( "%s   %.5f   %.5f   %.5f\n" %( j.element, j.x, j.y, j.z ))
 
-    f_.write( "Charge=8.0 Atoms=%d Basis=cc-pVDZ\n" % oCnt)
+    f_.write( "Charge=8.0 molecules.Atoms=%d Basis=cc-pVDZ\n" % oCnt)
     for i in waters:
         for j in i:
             if j.element == "O":
@@ -78,7 +78,7 @@ def qm_generation( ending = "pdb",
     pdb_files = [ i for i in os.listdir(os.getcwd()) if i.endswith( ".pdb" ) ]
 
     for files in pdb_files:
-        c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
+        c = molecules.Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
                 N_waters = 50 )
         for n_qm in qm_waters:
             c.set_qm_mm( N_qm = n_qm, N_mm = 0 )
@@ -96,7 +96,7 @@ def qm_analysis( in_AA = False, out_AA = False,
     mols = [i for i in os.listdir(os.getcwd()) if i.endswith( ".mol" ) ]
     dist = np.zeros( (len(mols), N_waters ))
     for ind, i in enumerate(mols):
-        c = Cluster.get_water_cluster( i, in_AA = in_AA, out_AA = out_AA,
+        c = molecules.Cluster.get_water_cluster( i, in_AA = in_AA, out_AA = out_AA,
                 N_waters = N_waters )
         print c.min_dist_coo()
         raise SystemExit
@@ -134,7 +134,7 @@ Each .pdb files in the working directory will be converted into .mol files for t
 
 
     for files in pdb_files:
-        c = Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
+        c = molecules.Cluster.get_water_cluster( files , in_AA = True, out_AA = False,
                 N_waters = 340 )
         for n_qm in qm_waters:
             for n_mm in mm_waters:
@@ -150,11 +150,11 @@ Each .pdb files in the working directory will be converted into .mol files for t
                             kwargs_dict = Template().get( *("TIP3P", "HF", basis,
                                 dist == "dist" , freq ))
                             for at in wat:
-                                Property.add_prop_from_template( at, kwargs_dict )
+                                molecules.Property.add_prop_from_template( at, kwargs_dict )
                             t1, t2, t3  = wat.get_euler()
-                            Property.transform_ut_properties( wat.h1.Property, t1, t2 ,t3)
-                            Property.transform_ut_properties( wat.h2.Property, t1, t2 ,t3)
-                            Property.transform_ut_properties( wat.o.Property,  t1, t2 ,t3)
+                            molecules.Property.transform_ut_properties( wat.h1.molecules.Property, t1, t2 ,t3)
+                            molecules.Property.transform_ut_properties( wat.h2.molecules.Property, t1, t2 ,t3)
+                            molecules.Property.transform_ut_properties( wat.o.molecules.Property,  t1, t2 ,t3)
 
                         if potstyle == "QMMM":
                             open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
@@ -280,11 +280,11 @@ def beta_analysis_par( val,
 
 
 
-        alpha_qm = Rotator.square_2_ut( alpha_qm )
-        beta_qm = Rotator.square_3_ut( beta_qm )
+        alpha_qm = molecules.Rotator.square_2_ut( alpha_qm )
+        beta_qm = molecules.Rotator.square_3_ut( beta_qm )
 
 #Read coordinates for water molecules where to put properties to
-        waters = Water.read_waters( mol , in_AA = in_AA , out_AA = out_AA , N_waters = N_waters )
+        waters = molecules.Water.read_waters( mol , in_AA = in_AA , out_AA = out_AA , N_waters = N_waters )
 #
 #
 # Read in rotation angles for each water molecule follow 
@@ -294,12 +294,12 @@ def beta_analysis_par( val,
             kwargs_dict = Template().get( *(model, "HF", basis,
                 dist, "0.0"))
             for at in wat:
-                Property.add_prop_from_template( at, kwargs_dict )
-                at.Property.transform_ut_properties( t1, t2 ,t3)
+                molecules.Property.add_prop_from_template( at, kwargs_dict )
+                at.molecules.Property.transform_ut_properties( t1, t2 ,t3)
 
-        static= GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = dist , AA = out_AA ))
-        polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = dist , AA = out_AA ))
-        hyper = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 22,
+        static= GaussianQuadrupoleList.from_string( molecules.Water.get_string_from_waters( waters, pol = 0, hyper = 0, dist = dist , AA = out_AA ))
+        polar = GaussianQuadrupoleList.from_string( molecules.Water.get_string_from_waters( waters, pol = 2, hyper = 0, dist = dist , AA = out_AA ))
+        hyper = GaussianQuadrupoleList.from_string( molecules.Water.get_string_from_waters( waters, pol = 22,
             hyper = 1, dist = dist , AA = out_AA ))
 
         #hyper.set_damping( args.R , args.R  )
@@ -310,13 +310,13 @@ def beta_analysis_par( val,
 
         sd = static.total_dipole_moment()
         pd = polar.total_dipole_moment()
-        pa = Rotator.square_2_ut( polar.alpha() )
+        pa = molecules.Rotator.square_2_ut( polar.alpha() )
 
         hd =  hyper.total_dipole_moment()
-        ha =  Rotator.square_2_ut( hyper.alpha() )
-        hb =  Rotator.square_3_ut( hyper.beta() )
+        ha =  molecules.Rotator.square_2_ut( hyper.alpha() )
+        hb =  molecules.Rotator.square_3_ut( hyper.beta() )
 
-        c = Cluster()
+        c = molecules.Cluster()
         for i in waters:
             c.append(i)
 
@@ -383,7 +383,7 @@ def qmmm_analysis( args ):
     dipole_qm = np.zeros( [3] )
     alpha_qm = np.zeros( [3, 3] )
 
-    waters = Cluster()
+    waters = molecules.Cluster()
 
 # args.mol by default tip3p, change to spc or olav or whatever if other needed
     pat_snap = re.compile(r'%s(\d+)' %args.mol)
@@ -401,14 +401,14 @@ def qmmm_analysis( args ):
 # Grab all files for alpha analysis, only plot the specified by args
 # -nums [] -snaps [] -freqs []
 
-    freqs = Water.unique([  pat_freq.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.dal')])
+    freqs = molecules.Water.unique([  pat_freq.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.dal')])
 
-    snaps = Water.unique([ pat_snap.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    snaps = molecules.Water.unique([ pat_snap.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
-    N_qm = Water.unique([ pat_qm_mm.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    N_qm = molecules.Water.unique([ pat_qm_mm.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
 
-    N_mm = Water.unique([ pat_qm_mm.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    N_mm = molecules.Water.unique([ pat_qm_mm.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
     
     if len(snaps) != len( args.snaps ):
         print "WARNING ; supplied args.snaps doesn't match calculated ones"
@@ -579,7 +579,7 @@ def alpha_analysis(args ):
     dipole_qm = np.zeros( [3] )
     alpha_qm = np.zeros( [3, 3] )
 
-    waters = Cluster()
+    waters = molecules.Cluster()
 
     pat_snap_mol = re.compile(r'%s(\d+)_(\d+)' % args.mol)
 
@@ -588,9 +588,9 @@ def alpha_analysis(args ):
 
     freqs = [ i.split('_')[1].rstrip('.dal') for i in os.listdir(os.getcwd()) if i.endswith('.dal')]
 
-    snaps = Water.unique([ pat_snap_mol.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    snaps = molecules.Water.unique([ pat_snap_mol.search(i).group(1) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
-    nums = Water.unique([ pat_snap_mol.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
+    nums = molecules.Water.unique([ pat_snap_mol.search(i).group(2) for i in os.listdir(os.getcwd()) if i.endswith('.out')])
 
     if len(snaps) != len( args.snaps ):
         print "WARNING ; supplied args.snaps doesn't match calculated ones"
@@ -638,9 +638,9 @@ def alpha_analysis(args ):
 
                     atoms, dipole_qm , alpha_qm , beta_qm = read_beta_hf( out, freq )
 
-#Read in Water molecules for where to put properties to
+#Read in molecules.Water molecules for where to put properties to
 
-                    waters = Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
+                    waters = molecules.Water.read_waters( mol , in_AA = args.xAA , out_AA = args.oAA, N_waters = num )
 
 # Calculate rotation angles for each water molecule followed by a transfer of the dipole, alpha and beta 
                     for wat in waters:
@@ -653,12 +653,12 @@ def alpha_analysis(args ):
                                     *( args.tname , args.tmethod,
                                         args.tbasis, dist == 1, freq ))
                         for at in wat:
-                            Property.add_prop_from_template( at, kwargs_dict )
+                            molecules.Property.add_prop_from_template( at, kwargs_dict )
                         t1, t2, t3  = wat.get_euler()
                         for at in wat:
-                            Property.transform_ut_properties( at.Property, t1, t2, t3 )
+                            molecules.Property.transform_ut_properties( at.molecules.Property, t1, t2, t3 )
 
-                    polar = GaussianQuadrupoleList.from_string( Water.get_string_from_waters( waters, pol = 2, hyper = 0, AA = args.oAA ))
+                    polar = GaussianQuadrupoleList.from_string( molecules.Water.get_string_from_waters( waters, pol = 2, hyper = 0, AA = args.oAA ))
 
                     polar.solve_scf()
 
@@ -1064,7 +1064,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 #Skip coordinates in out file that are for MM region from QMMM
             kwargs = { "element" :  matched[0], "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
-            tmpAtom = Atom( **kwargs )
+            tmpAtom = molecules.Atom( **kwargs )
             atoms.append( tmpAtom )
 
         if pat_pol.search(i):
@@ -1192,7 +1192,7 @@ def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
 
             kwargs = { "element" :  matched[0], "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
-            tmpAtom = Atom( **kwargs )
+            tmpAtom = molecules.Atom( **kwargs )
             atoms.append( tmpAtom )
 
         if pat_pol.search(i):
