@@ -11,7 +11,6 @@ import numpy as np
 import re, os, itertools, h5py, warnings, subprocess
 
 from template import Template
-from funcs import read_beta_hf
 
 from loprop import *
 import read_dal
