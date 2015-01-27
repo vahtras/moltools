@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, h5py, warnings, subprocess
+import re, os, itertools, h5py, warnings, subprocess, shutil
 
 from template import Template
 
@@ -117,6 +117,42 @@ class Property( dict ):
                     self["beta"][6], self["beta"][7], self["beta"][8] ,
                     self["beta"][9])
         return string
+
+
+    @staticmethod
+    def from_propline( st, maxl = 2, pol = 2, hyper = 2 ):
+        """
+Given dalton POT, returns class Property that can be attached to Atom.
+
+Convinience function for generating properties for the class Molecule directly by 
+invoking dalton on a supercomputer.
+
+    >>> p = Property.from_propline( "1 0.0 0.0 0.0 -0.25", maxl = 0 )
+    >>> at.Property = p
+        """
+        st = map( float, st.split()[4:] )
+        p = Property()
+
+        p['charge'][0] = st.pop(0)
+        if maxl > 0:
+            for i in range(3):
+                p['dipole'][i] = st.pop(0)
+        if maxl > 1:
+            for i in range(6):
+                p['quadrupole'][i] = st.pop(0)
+
+        if pol == 1:
+            iso = st.pop(0)
+            p['alpha'][0] 
+            p['alpha'][4] 
+            p['alpha'][6] 
+        elif pol%10 == 2:
+            for i in range(6):
+                p['alpha'][i] = st.pop(0)
+        if hyper == 2:
+            for i in range(10):
+                p['beta'][i] = st.pop(0)
+        return p
 
     @staticmethod
     def add_prop_from_template( at, wat_templ ):
@@ -233,7 +269,7 @@ class Generator( dict ):
             self[ ( val, "active" ) ]  = False
 
     @staticmethod
-    def get_hfqua_dal():
+    def get_hfqua_dal( ):
         return """**DALTON INPUT
 .RUN RESPONSE
 .DIRECT
@@ -254,7 +290,7 @@ ZDIPLEN
 *QUADRATIC
 .QLOP
 .DIPLEN
-**END OF DALTON INPUT"""
+**END OF DALTON INPUT""" 
 
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
@@ -303,12 +339,12 @@ ZDIPLEN
                                     w1.h2.scale_bond( 1.015 )
                                     w1.inv_rotate()
 
-                                c.append( w1, in_qm = True )
+                                c.add_mol( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_mol( [x,y,z], mol, AA = AA)
                                 w2.rotate( l, m, n )
 
-                                c.append( w2, in_qm = True )
+                                c.add_mol( w2, in_qm = True )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
@@ -1086,6 +1122,7 @@ class Molecule( list ):
             pol = 2,
             hyper = 2,
             env = os.environ,
+            basis = ['ano-1 2 1', 'ano-1 3 2 1'],
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1094,12 +1131,11 @@ class Molecule( list ):
         Might take long time.
         """
 
+        tmpdir = os.path.join( tmpdir, str(os.getpid()) )
         dal = 'hfqua.dal'
         mol = 'tmp.mol'
-        open(os.path.join(tmpdir, dal),
-                'w').write( Generator.get_hfqua_dal() )
-
-        open(os.path.join(tmpdir, mol), 'w').write( self.get_mol_string() )
+        open( dal, 'w').write( Generator.get_hfqua_dal( ) )
+        open( mol, 'w').write( self.get_mol_string( basis = basis) )
 
 #Make sure that the external dalton script copies the .out and .tar.gz
 #files from calculation to current directory once child process finishes
@@ -1114,7 +1150,7 @@ class Molecule( list ):
             raise SystemExit
 
         p = subprocess.Popen([dal_exe, 
-            '-N', str(procs), '-t', tmpdir,
+            '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
             dal, mol
             ], stdout = subprocess.PIPE,
             )
@@ -1125,7 +1161,7 @@ class Molecule( list ):
         at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
-        print MolFrag( tmpdir = tmpdir,
+        outpot = MolFrag( tmpdir = tmpdir,
                 max_l = maxl,
                 pol = pol,
                 pf = penalty_function( 2.0 ),
@@ -1138,9 +1174,22 @@ class Molecule( list ):
                         #template_full = False,
                         #decimal = 5,
                         )
+
+        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
+        if not len(lines) == len(self):
+            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
+            raise SystemExit
+        for at, prop in zip(self, lines):
+            at.Property = Property.from_propline( prop ,
+                    maxl = maxl,
+                    pol = pol,
+                    hyper = hyper )
 #So that we do not pollute current directory with dalton outputs
         os.remove( tar )
         os.remove( of )
+
+#Also remove confliction inter-dalton calculation files
+        shutil.rmtree( tmpdir )
 
     @classmethod
     def from_string(cls, fil):
@@ -2153,15 +2202,6 @@ class Cluster(list):
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
-
-    def append(self, mol, in_mm = False, in_qm = False,
-            in_qmmm = False):
-        mol.in_mm = in_mm
-        mol.in_qm = in_qm
-        mol.in_qmmm = in_qmmm
-
-        super( Cluster, self ).append( mol )
-
     def min_dist_coo(self):
         dist = np.zeros( (len(self),len(self)) )
         new = np.zeros( len(self) - 1 )
@@ -2634,10 +2674,13 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 at.Property.transform_ut_properties( t1, t2, t3 )
         self.Property = True
 
-    def add_mol(self, mol, *args):
-        #if type(args):
-        self.append( mol )
+    def add_mol(self, mol, in_mm = False, in_qm = False,
+            in_qmmm = False, *args):
+        mol.in_mm = in_mm
+        mol.in_qm = in_qm
+        mol.in_qmmm = in_qmmm
         mol.cluster = self
+        super( Cluster, self ).append( mol )
 
     def add_atom(self, *at):
         for i, iat in enumerate(at):
