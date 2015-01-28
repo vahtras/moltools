@@ -2773,7 +2773,7 @@ Return the sum properties of all molecules in cluster
             os.mkdir( tmpdir )
 #Want to clean out dalton restart files that messes up calculations
         else:
-            for f_ in [f for f in os.listdir(tmpdir) if f.startswith('RSP')]:
+            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
                 if os.path.isfile( os.path.join( tmpdir, f_ ) ):
                     os.remove( os.path.join( tmpdir, f_) )
 
@@ -2823,7 +2823,7 @@ Return the sum properties of all molecules in cluster
 #Also remove confliction inter-dalton calculation files
 # For triolith specific calculations, remove all files in tmp
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
+            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
                 os.remove( f_ )
         else:
             os.remove( tar )
