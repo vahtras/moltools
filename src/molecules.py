@@ -2789,19 +2789,23 @@ Return the sum properties of all molecules in cluster
         at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
-        outpot = MolFrag( tmpdir = tmpdir,
-                max_l = maxl,
-                pol = pol,
-                pf = penalty_function( 2.0 ),
-                freqs = None,
-                ).output_potential_file(
-                        maxl = maxl,
-                        pol = pol,
-                        hyper = hyper,
-                        decimal = decimal,
-                        #template_full = False,
-                        #decimal = 5,
-                        )
+        try:
+            outpot = MolFrag( tmpdir = tmpdir,
+                    max_l = maxl,
+                    pol = pol,
+                    pf = penalty_function( 2.0 ),
+                    freqs = None,
+                    ).output_potential_file(
+                            maxl = maxl,
+                            pol = pol,
+                            hyper = hyper,
+                            decimal = decimal,
+                            #template_full = False,
+                            #decimal = 5,
+                            )
+        except:
+            print "Something wrong in props_from_qm"
+            print tmpdir
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         if not len(lines) == len([at for mol in self for at in mol]):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
