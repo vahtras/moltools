@@ -17,11 +17,12 @@ import read_dal
 
 a0 = 0.52917721092
 
-charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
+charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
+        "P" : 15 }
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
-    "X" : 1.008 }
+        "X" : 1.008, 'P' : 30.974 }
 
 def upper_triangular(n, start=0):
     """Recursive generator for triangular looping of Carteesian tensor
@@ -544,7 +545,7 @@ ZDIPLEN
         np.random.seed( seed )
 
         c = Cluster()
-        c.append(pna, in_qm = True)
+        c.add_mol(pna, in_qm = True)
         cnt = 0
         while cnt < waters:
 # Random rotation angles
@@ -569,7 +570,7 @@ ZDIPLEN
                 continue
 
 #We are satisfied with this position, add properties to the water, and rotate them according to t1, t2, t3 so they match the water orientation
-            c.append( wat, in_mm = True )
+            c.add_mol( wat, in_mm = True )
             cnt += 1
 
         for f_mm in freqs:
@@ -1096,8 +1097,8 @@ class Molecule( list ):
         self.no_hydrogens = True
 
 # For plotting different elements:
-        self.style = {"H":'wo', "O":'ro'}
-        self.linewidth = {"H":25, "O":40}
+        self.style = {"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro'}
+        self.linewidth = {"H":25, "N": 30, "C": 30, "O":40, "P" : 40}
 
 # Make emptpy, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
@@ -1520,9 +1521,11 @@ Plot the molecule in a 3D frame
         plt.ylim(-5,5)
         plt.show()
 
-    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) ):
+    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1",
+        "ano-2 4 3 2 1" ) ):
         if len( basis ) > 1:
-            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1  }
+            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1,
+                    "S" : 2, "P" : 2}
         else:
             el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
         st = ""
