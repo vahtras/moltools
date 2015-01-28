@@ -88,7 +88,7 @@ class Property( dict ):
             tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
         return tmp
 
-    def potline(self, max_l , pol, hyper, fmt = "%.5f "):
+    def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
             string += fmt % tuple(self["charge"] )
@@ -102,13 +102,8 @@ class Property( dict ):
             string += fmt %( 
                     float(self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
                     )
-        if pol == 2 :
+        elif pol %10 == 2 :
             string += fmt * 6 %( 
-                    self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
-                    self["alpha"][3], self["alpha"][4], self["alpha"][5] )
-            return string
-        if pol == 22 :
-            string += fmt * 6%( 
                     self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
                     self["alpha"][3], self["alpha"][4], self["alpha"][5] )
         if hyper == 1:
@@ -881,6 +876,8 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
+    def __len__( self ):
+        return 1
     def __iter__(self):
         yield self
 
@@ -992,7 +989,7 @@ AA       True     bool
             return self.Molecule.res_id
         return None
 
-    def potline(self, max_l, pol, hyper):
+    def potline(self, max_l=2, pol=22, hyper=1):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
@@ -2405,7 +2402,7 @@ Plot all the molecule in a 3D frame in the cluster
                 st += ls
 
         return st
-# This is the old *QMMM input style in dalton
+# This is the old *QMMM input style in dalton, also valid for PointDipoleList
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
             hyp = 1,
@@ -2419,11 +2416,11 @@ Plot all the molecule in a 3D frame in the cluster
 # Old qmmm format requires integer at end to properly read charges
         if ignore_qmmm:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self ]), 
-                    max_l, pol, 1 )
+                    max_l, pol, hyp )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
-                    max_l, pol, 1 )
+                    max_l, pol, hyp )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 
@@ -2692,12 +2689,12 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         self.Property = True
 
     def add_mol(self, mol, in_mm = False, in_qm = False,
-            in_qmmm = False, *args):
+            in_qmmm = False, *args, **kwargs):
         mol.in_mm = in_mm
         mol.in_qm = in_qm
         mol.in_qmmm = in_qmmm
+        super( Cluster, self ).append( mol, *args, **kwargs )
         mol.cluster = self
-        super( Cluster, self ).append( mol )
 
     def add_atom(self, *at):
         for i, iat in enumerate(at):
@@ -2733,7 +2730,100 @@ Return the sum properties of all molecules in cluster
             for at in mol:
                 p += at.Property
         return p
+    def props_from_qm(self,
+            tmpdir = '/tmp',
+            dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
+            procs = 4,
+            decimal = 5,
+            maxl = 2,
+            pol = 2,
+            hyper = 2,
+            env = os.environ,
+            basis = ['ano-1 2 1', 'ano-1 3 2 1'],
+            ):
+        """
+        Will generate a .mol file of cluster, run a DALTON calculation as a
+        childed process, get the properties back and put them on all atoms.
 
+        Might take long time.
+        """
+
+        if os.environ.has_key( 'SLURM_JOB_NAME' ):
+            pass
+        else:
+            tmpdir = os.path.join( tmpdir, str(os.getpid()) )
+        dal = 'hfqua.dal'
+        mol = 'tmp.mol'
+        open( dal, 'w').write( Generator.get_hfqua_dal( ) )
+        open( mol, 'w').write( self.get_qm_mol_string( basis = basis) )
+
+#Make sure that the external dalton script copies the .out and .tar.gz
+#files from calculation to current directory once child process finishes
+        if env.has_key( 'DALTON' ):
+            dal_exe = env['DALTON']
+        elif os.path.isfile( dalpath ):
+            dal_exe = dalpath
+        else:
+            print "set env variable DALTON to dalton script, \
+             or supply the script to props_from_qm directly as  \
+             dalpath = <path-to-dalscript> "
+            raise SystemExit
+
+        if not os.path.isdir( tmpdir):
+            os.mkdir( tmpdir )
+#Want to clean out dalton restart files that messes up calculations
+        else:
+            for f_ in ["RSPVEC", "SIRIUS.RST"]:
+                os.remove( os.path.join( tmpdir, f_) )
+
+
+        p = subprocess.Popen([dal_exe, 
+            '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
+            dal, mol
+            ], stdout = subprocess.PIPE,
+            )
+        out, err = p.communicate()
+
+        of = "hfqua_tmp.out"
+        tar = "hfqua_tmp.tar.gz"
+        at, p, a, b = read_dal.read_beta_hf( of )
+
+#Using Olavs external scripts
+        outpot = MolFrag( tmpdir = tmpdir,
+                max_l = maxl,
+                pol = pol,
+                pf = penalty_function( 2.0 ),
+                freqs = None,
+                ).output_potential_file(
+                        maxl = maxl,
+                        pol = pol,
+                        hyper = hyper,
+                        decimal = decimal,
+                        #template_full = False,
+                        #decimal = 5,
+                        )
+        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
+        if not len(lines) == len([at for mol in self for at in mol]):
+            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
+            print self
+            print len(lines)
+            raise SystemExit
+        for at, prop in zip([at for mol in self for at in mol], lines):
+            at.Property = Property.from_propline( prop ,
+                    maxl = maxl,
+                    pol = pol,
+                    hyper = hyper )
+#So that we do not pollute current directory with dalton outputs
+
+#Also remove confliction inter-dalton calculation files
+# For triolith specific calculations, remove all files in tmp
+        if os.environ.has_key( 'SLURM_JOB_NAME' ):
+            for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
+                os.remove( f_ )
+        else:
+            os.remove( tar )
+            os.remove( of )
+            shutil.rmtree( tmpdir )
 
 
 if __name__ == '__main__':
