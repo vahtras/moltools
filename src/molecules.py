@@ -2773,7 +2773,7 @@ Return the sum properties of all molecules in cluster
             os.mkdir( tmpdir )
 #Want to clean out dalton restart files that messes up calculations
         else:
-            for f_ in ["RSPVEC", "SIRIUS.RST"]:
+            for f_ in [f for f in os.listdir(tmpdir) if f.startswith('RSP')]:
                 if os.path.isfile( os.path.join( tmpdir, f_ ) ):
                     os.remove( os.path.join( tmpdir, f_) )
 
