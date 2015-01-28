@@ -1131,7 +1131,10 @@ class Molecule( list ):
         Might take long time.
         """
 
-        tmpdir = os.path.join( tmpdir, str(os.getpid()) )
+        if os.environ.has_key( 'SLURM_JOB_NAME' ):
+            pass
+        else:
+            tmpdir = os.path.join( tmpdir, str(os.getpid()) )
         dal = 'hfqua.dal'
         mol = 'tmp.mol'
         open( dal, 'w').write( Generator.get_hfqua_dal( ) )
@@ -1149,6 +1152,9 @@ class Molecule( list ):
              dalpath = <path-to-dalscript> "
             raise SystemExit
 
+        if not os.path.isdir( tmpdir):
+            os.mkdir( tmpdir )
+
         p = subprocess.Popen([dal_exe, 
             '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
             dal, mol
@@ -1161,19 +1167,22 @@ class Molecule( list ):
         at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
-        outpot = MolFrag( tmpdir = tmpdir,
-                max_l = maxl,
-                pol = pol,
-                pf = penalty_function( 2.0 ),
-                freqs = None,
-                ).output_potential_file(
-                        maxl = maxl,
-                        pol = pol,
-                        hyper = hyper,
-                        decimal = decimal,
-                        #template_full = False,
-                        #decimal = 5,
-                        )
+        try:
+            outpot = MolFrag( tmpdir = tmpdir,
+                    max_l = maxl,
+                    pol = pol,
+                    pf = penalty_function( 2.0 ),
+                    freqs = None,
+                    ).output_potential_file(
+                            maxl = maxl,
+                            pol = pol,
+                            hyper = hyper,
+                            decimal = decimal,
+                            #template_full = False,
+                            #decimal = 5,
+                            )
+        except:
+            print tmpdir
 
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         if not len(lines) == len(self):
@@ -1185,11 +1194,16 @@ class Molecule( list ):
                     pol = pol,
                     hyper = hyper )
 #So that we do not pollute current directory with dalton outputs
-        os.remove( tar )
-        os.remove( of )
 
 #Also remove confliction inter-dalton calculation files
-        shutil.rmtree( tmpdir )
+# For triolith specific calculations, remove all files in tmp
+        if os.environ.has_key( 'SLURM_JOB_NAME' ):
+            for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
+                os.remove( f_ )
+        else:
+            os.remove( tar )
+            os.remove( of )
+            shutil.rmtree( tmpdir )
 
     @classmethod
     def from_string(cls, fil):
