@@ -2774,7 +2774,8 @@ Return the sum properties of all molecules in cluster
 #Want to clean out dalton restart files that messes up calculations
         else:
             for f_ in ["RSPVEC", "SIRIUS.RST"]:
-                os.remove( os.path.join( tmpdir, f_) )
+                if os.path.isfile( os.path.join( tmpdir, f_ ) ):
+                    os.remove( os.path.join( tmpdir, f_) )
 
 
         p = subprocess.Popen([dal_exe, 
