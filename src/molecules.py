@@ -1570,7 +1570,7 @@ Center molecule with center-of-mass in origo
 
 
     @staticmethod
-    def from_mol_file( molfile, AA = False):
+    def from_mol_file( molfile, in_AA = False, out_AA = False):
         """
 Read in molecule given .mol file and unit specification.
 
@@ -1590,8 +1590,10 @@ Read in molecule given .mol file and unit specification.
             if pat_xyz.search(i):
                 matched = pat_xyz.match(i).groups()
                 pd = matched[0].split('-')[-1]
-                kwargs = { "name" :  matched[0], "x" : matched[1],
-                        "y" : matched[2], "z" : matched[3], "AA" : AA,
+                kwargs = { "AA": in_AA, 
+                        "element" : matched[0][0],
+                        "name" :  matched[0], "x" : matched[1],
+                        "y" : matched[2], "z" : matched[3], 
                         "pdbname" : pd }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
@@ -2748,10 +2750,19 @@ Return the sum properties of all molecules in cluster
         Might take long time.
         """
 
+
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            pass
+            tmpdir = os.environ['SNIC_TMP']
         else:
             tmpdir = os.path.join( tmpdir, str(os.getpid()) )
+
+        if os.getcwd == tmpdir:
+            print "Warning, will exit since tmpdir is current directory"
+            raise SystemExit
+#Clean out stuff that might have been there
+        for f in os.listdir( tmpdir ):
+            if os.path.isfile( os.path.join( tmpdir, f)):
+                os.remove( os.path.join( tmpdir, f))
         dal = 'hfqua.dal'
         mol = 'tmp.mol'
         open( dal, 'w').write( Generator.get_hfqua_dal( ) )

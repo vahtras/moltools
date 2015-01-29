@@ -109,7 +109,7 @@ def qmmm_generation( ending = "pdb",
         mm_waters = [0],
         potfreqs = ["0.0"],
         potstyle = "QMMM",
-        basis = "ANOPVDZ" ):
+        basis = ('ano-1 2 1', 'ano-1 3 2 1')):
     """
 Generate a set of qm_waters for dalton QM input, with mm_waters in the MM region for QM/MM calculations.
 
@@ -161,8 +161,7 @@ Each .pdb files in the working directory will be converted into .mol files for t
                         elif potstyle == "PEQM":
                             open( out_pot , 'w' ).write( c.get_pe_pot_string()   )
                         open( out_mol , 'w' ).write( \
-                                c.get_qm_mol_string( basis = ("ano-1 2 1",
-                                    "ano-1 3 2 1") )     )
+                                c.get_qm_mol_string( basis = basis  ))
 
                         print "wrote: %s %s" %(out_mol, out_pot)
     raise SystemExit
@@ -792,7 +791,7 @@ def run_argparse( args ):
 
     A.add_argument( "-in_AA", action = "store_true", default = False )
     A.add_argument( "-out_AA", action = "store_true", default = False )
-    A.add_argument( "-basis", type= str, default = "ANOPVDZ" )
+    A.add_argument( "-basis", type= str, nargs = '*', default = "ANOPVDZ" )
     A.add_argument( "-beta_dal", type= str, default = "hfqua_" )
     A.add_argument( "-Ncpu", type= int, default = "4" )
     A.add_argument( "-N_waters", type= int, default = 15 )
@@ -1320,6 +1319,7 @@ def main():
     if args.qm_generation:
         qm_generation( 
                 qm_waters = args.qm_waters,
+                basis = args.basis
                 )
 
     if args.qmmm_generation:
@@ -1327,7 +1327,8 @@ def main():
                 qm_waters = args.qm_waters,
                 mm_waters = args.mm_waters,
                 potfreqs = args.potfreqs,
-                potstyle = args.potstyle)
+                potstyle = args.potstyle,
+                basis = args.basis)
 
     if args.qm_analysis:
         qm_analysis( in_AA = args.in_AA,
