@@ -28,6 +28,14 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+
+def unique(arr):
+    tmp = []
+    for i in arr:
+        if i not in tmp:
+            tmp.append(i)
+    return tmp
+
 def write_related( args ):
 
     if args.xyz.endswith(".pdb"):
@@ -1340,5 +1348,6 @@ def main():
     if args.write:
         write_related( args )
     
+
 if __name__ == '__main__':
     main()
