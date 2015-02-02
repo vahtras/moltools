@@ -160,10 +160,8 @@ Each .pdb files in the working directory will be converted into .mol files for t
                             for at in wat:
                                 molecules.Property.add_prop_from_template( at, kwargs_dict )
                             t1, t2, t3  = wat.get_euler()
-                            molecules.Property.transform_ut_properties( wat.h1.molecules.Property, t1, t2 ,t3)
-                            molecules.Property.transform_ut_properties( wat.h2.molecules.Property, t1, t2 ,t3)
-                            molecules.Property.transform_ut_properties( wat.o.molecules.Property,  t1, t2 ,t3)
-
+                            for at in wat:
+                                at.Property.transform_ut_properties(  t1, t2 ,t3)
                         if potstyle == "QMMM":
                             open( out_pot , 'w' ).write( c.get_qmmm_pot_string()   )
                         elif potstyle == "PEQM":
