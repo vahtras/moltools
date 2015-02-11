@@ -10,7 +10,7 @@ Linux
 
 1) Clone the repository git@github.com:fishstamp82/dalton_tools.git
 
-2) set the PYTHONPATH environment variable to the target dalton_tools path.
+2) set the PYTHONPATH environment variable to the target dalton_tools/src path.
 
 .. .. toctree::
 ..    :maxdepth: 1
