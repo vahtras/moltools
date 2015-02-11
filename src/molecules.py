@@ -1130,7 +1130,9 @@ class Molecule( list ):
         """
 
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            pass
+            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
+                if os.path.isfile( os.path.join( tmpdir, f_ ) ):
+                    os.remove( os.path.join( tmpdir, f_) )
         else:
             tmpdir = os.path.join( tmpdir, str(os.getpid()) )
         dal = 'hfqua.dal'
