@@ -1107,7 +1107,7 @@ class Molecule( list ):
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
-
+            self.AA = kwargs.get( "AA" , False )
 
     def props_from_qm(self,
             tmpdir = '/tmp',
@@ -1616,15 +1616,15 @@ Angstrom [ out_AA = True ]
     O
     
 """
-
         if not os.path.isfile( f ):
             print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
             raise SystemExit
 
         fil = open(f).readlines()
-        m = Molecule()
+        m = Molecule( AA = in_AA )
         for ind, i in enumerate( fil ):
-            if ind in [0, 1]: continue
+            if ind in [0, 1]: 
+                continue
 
             elem = i.split()[0]
             x = i.split()[1]
@@ -1636,7 +1636,6 @@ Angstrom [ out_AA = True ]
                 "z" : z,
                 "AA" : in_AA,
                 }))
-
         if in_AA:
             if not out_AA:
                 m.to_AU()
