@@ -5,12 +5,7 @@ python:
 # install: PLEASE CHANGE ME
 # command to run tests, e.g. python setup.py test
 install:
-  pip install coveralls 
-  pip install matplotlib 
-  pip install numpy 
-  pip install cython
-  pip install h5py
-
+  pip install coveralls matplotlib numpy cython h5py
 script: 
   nosetests --cover-erase --with-coverage --cover-package=molecules,dic,read_dal,template,use_calculator,use_generator,ut,xms,graph
 

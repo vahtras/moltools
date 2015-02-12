@@ -1131,7 +1131,7 @@ class Molecule( list ):
 
 #Specific for triolith host, will remove in slurm environment leftover RSP
 #files if they exist
-        if env.has_key( 'SLURM_JOB_NAME' ):
+        if os.environ.has_key( 'SLURM_JOB_NAME' ):
             for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
                 if os.path.isfile( os.path.join( tmpdir, f_ ) ):
                     os.remove( os.path.join( tmpdir, f_) )
