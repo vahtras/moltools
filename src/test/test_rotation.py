@@ -118,6 +118,7 @@ class WaterTest( unittest.TestCase ):
         w.rotate( 0, 0, np.pi/2 )
         print "After 90 around Z-axis: counter-clock"
         print w.p
+        w.inv_rotate()
         w.rotate( np.pi/2, np.pi/2, np.pi/2 )
         print w.p
         self.eq( w.p ,[0, -0.3972, 0])
