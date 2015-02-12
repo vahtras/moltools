@@ -116,7 +116,7 @@ class Property( dict ):
 
 
     @staticmethod
-    def from_propline( st, maxl = 2, pol = 2, hyper = 2 ):
+    def from_propline( st, maxl = 2, pol = 22, hyper = 2 ):
         """
 Given dalton POT, returns class Property that can be attached to Atom.
 
@@ -139,9 +139,9 @@ invoking dalton on a supercomputer.
 
         if pol == 1:
             iso = st.pop(0)
-            p['alpha'][0] 
-            p['alpha'][4] 
-            p['alpha'][6] 
+            p['alpha'][0] = iso
+            p['alpha'][4] = iso
+            p['alpha'][6] = iso
         elif pol%10 == 2:
             for i in range(6):
                 p['alpha'][i] = st.pop(0)
@@ -951,8 +951,6 @@ AA       True     bool
         for at in self.bonds:
             self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
 
-    def translate(self, r ):
-        self.x, self.y, self.z = r
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
@@ -1117,7 +1115,7 @@ class Molecule( list ):
             procs = 4,
             decimal = 5,
             maxl = 2,
-            pol = 2,
+            pol = 22,
             hyper = 2,
             env = os.environ,
             basis = ['ano-1 2 1', 'ano-1 3 2 1'],
@@ -1129,8 +1127,12 @@ class Molecule( list ):
         Might take long time.
         """
 
-        if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            pass
+#Specific for triolith host, will remove in slurm environment leftover RSP
+#files if they exist
+        if env.has_key( 'SLURM_JOB_NAME' ):
+            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
+                if os.path.isfile( os.path.join( tmpdir, f_ ) ):
+                    os.remove( os.path.join( tmpdir, f_) )
         else:
             tmpdir = os.path.join( tmpdir, str(os.getpid()) )
         dal = 'hfqua.dal'
@@ -1191,8 +1193,9 @@ class Molecule( list ):
                     maxl = maxl,
                     pol = pol,
                     hyper = hyper )
-#So that we do not pollute current directory with dalton outputs
 
+
+#So that we do not pollute current directory with dalton outputs
 #Also remove confliction inter-dalton calculation files
 # For triolith specific calculations, remove all files in tmp
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
@@ -1564,11 +1567,6 @@ Center molecule with center-of-mass in origo
         tmp = np.array( [0,0,0] )
         self.translate( tmp )
 
-
-
-
-
-
     @staticmethod
     def from_mol_file( molfile, in_AA = False, out_AA = False):
         """
@@ -1932,7 +1930,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
 
         """
 # Place water molecule in origo, and rotate it so hydrogens in xz plane
-        self.inv_rotate()
+        #self.inv_rotate()
 
         H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
         TMP = self.o.get_array()
@@ -2738,7 +2736,7 @@ Return the sum properties of all molecules in cluster
             procs = 4,
             decimal = 5,
             maxl = 2,
-            pol = 2,
+            pol = 22,
             hyper = 2,
             env = os.environ,
             basis = ['ano-1 2 1', 'ano-1 3 2 1'],
