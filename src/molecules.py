@@ -1119,6 +1119,8 @@ class Molecule( list ):
             hyper = 2,
             env = os.environ,
             basis = ['ano-1 2 1', 'ano-1 3 2 1'],
+            dalexe = None,
+            basdir = '/home/x_ignha/repos/beta/basis',
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1142,28 +1144,64 @@ class Molecule( list ):
 
 #Make sure that the external dalton script copies the .out and .tar.gz
 #files from calculation to current directory once child process finishes
-        if env.has_key( 'DALTON' ):
-            dal_exe = env['DALTON']
+
+        if dalexe is not None:
+#On triolith modern dalton can only be run this custom way
+            p = subprocess.Popen(['sbcast', dal,
+                os.path.join( tmpdir , 'DALTON.INP')],
+                stdout = subprocess.PIPE )
+            out, err = p.communicate()
+            p = subprocess.Popen(['sbcast', mol,
+                os.path.join( tmpdir, 'MOLECULE.INP'), ],
+                stdout = subprocess.PIPE )
+            out, err = p.communicate()
+        elif env.has_key( 'DALTON' ):
+            dalton = env['DALTON']
         elif os.path.isfile( dalpath ):
-            dal_exe = dalpath
+            dalton = dalpath
         else:
             print "set env variable DALTON to dalton script, \
              or supply the script to props_from_qm directly as  \
              dalpath = <path-to-dalscript> "
             raise SystemExit
 
-        if not os.path.isdir( tmpdir):
-            os.mkdir( tmpdir )
 
-        p = subprocess.Popen([dal_exe, 
-            '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
-            dal, mol
-            ], stdout = subprocess.PIPE,
-            )
-        out, err = p.communicate()
+        if dalexe:
+#Run as dalton executable directly in the dir with *.INP files
+            os.chdir( tmpdir )
+            p = subprocess.Popen([ 
+                "WORK_MEM_MB=1024",
+                "WRKMEM=$(($WORK_MEM_MB*131072))"
+                "DALTON_TMPDIR=%s"%tmpdir,
+                "BASDIR=%s" %basdir,
+                "mpprun",
+                "-np",
+                "%d" %procs,
+                dalexe], stdout = subprocess.PIPE )
+            out, err = p.communicate()
 
-        of = "hfqua_tmp.out"
-        tar = "hfqua_tmp.tar.gz"
+            tar = "hfqua_tmp.tar.gz"
+            of = "DALTON.OUT"
+            #p = subprocess.Popen(['tar',
+            #    'cvfz',
+            #    'AOONEINT','AOPROPER','DALTON.BAS',
+            #    'SIRIFC','RSPVEC','SIRIUS.RST',
+            #    tar
+            #    ],
+            #    stdout = subprocess.PIPE)
+
+        else:
+            if not os.path.isdir( tmpdir):
+                os.mkdir( tmpdir )
+#Run as dalton script
+            p = subprocess.Popen([dalton, 
+                '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
+                dal, mol
+                ], stdout = subprocess.PIPE,
+                )
+            out, err = p.communicate()
+            of = "hfqua_tmp.out"
+            tar = "hfqua_tmp.tar.gz"
         at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
@@ -2729,115 +2767,6 @@ Return the sum properties of all molecules in cluster
             for at in mol:
                 p += at.Property
         return p
-    def props_from_qm(self,
-            tmpdir = '/tmp',
-            dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
-            procs = 4,
-            decimal = 5,
-            maxl = 2,
-            pol = 22,
-            hyper = 2,
-            env = os.environ,
-            basis = ['ano-1 2 1', 'ano-1 3 2 1'],
-            ):
-        """
-        Will generate a .mol file of cluster, run a DALTON calculation as a
-        childed process, get the properties back and put them on all atoms.
-
-        Might take long time.
-        """
-
-
-        if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            tmpdir = os.environ['SNIC_TMP']
-        else:
-            tmpdir = os.path.join( tmpdir, str(os.getpid()) )
-
-        if os.getcwd == tmpdir:
-            print "Warning, will exit since tmpdir is current directory"
-            raise SystemExit
-#Clean out stuff that might have been there
-        for f in os.listdir( tmpdir ):
-            if os.path.isfile( os.path.join( tmpdir, f)):
-                os.remove( os.path.join( tmpdir, f))
-        dal = 'hfqua.dal'
-        mol = 'tmp.mol'
-        open( dal, 'w').write( Generator.get_hfqua_dal( ) )
-        open( mol, 'w').write( self.get_qm_mol_string( basis = basis) )
-
-#Make sure that the external dalton script copies the .out and .tar.gz
-#files from calculation to current directory once child process finishes
-        if env.has_key( 'DALTON' ):
-            dal_exe = env['DALTON']
-        elif os.path.isfile( dalpath ):
-            dal_exe = dalpath
-        else:
-            print "set env variable DALTON to dalton script, \
-             or supply the script to props_from_qm directly as  \
-             dalpath = <path-to-dalscript> "
-            raise SystemExit
-
-        if not os.path.isdir( tmpdir):
-            os.mkdir( tmpdir )
-#Want to clean out dalton restart files that messes up calculations
-        else:
-            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
-                if os.path.isfile( os.path.join( tmpdir, f_ ) ):
-                    os.remove( os.path.join( tmpdir, f_) )
-
-
-        p = subprocess.Popen([dal_exe, 
-            '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
-            dal, mol
-            ], stdout = subprocess.PIPE,
-            )
-        out, err = p.communicate()
-
-        of = "hfqua_tmp.out"
-        tar = "hfqua_tmp.tar.gz"
-        at, p, a, b = read_dal.read_beta_hf( of )
-
-#Using Olavs external scripts
-        try:
-            outpot = MolFrag( tmpdir = tmpdir,
-                    max_l = maxl,
-                    pol = pol,
-                    pf = penalty_function( 2.0 ),
-                    freqs = None,
-                    ).output_potential_file(
-                            maxl = maxl,
-                            pol = pol,
-                            hyper = hyper,
-                            decimal = decimal,
-                            #template_full = False,
-                            #decimal = 5,
-                            )
-        except:
-            print "Something wrong in props_from_qm"
-            print tmpdir
-        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
-        if not len(lines) == len([at for mol in self for at in mol]):
-            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
-            print self
-            print len(lines)
-            raise SystemExit
-        for at, prop in zip([at for mol in self for at in mol], lines):
-            at.Property = Property.from_propline( prop ,
-                    maxl = maxl,
-                    pol = pol,
-                    hyper = hyper )
-#So that we do not pollute current directory with dalton outputs
-
-#Also remove confliction inter-dalton calculation files
-# For triolith specific calculations, remove all files in tmp
-        if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
-                os.remove( f_ )
-        else:
-            os.remove( tar )
-            os.remove( of )
-            shutil.rmtree( tmpdir )
-
 
 if __name__ == '__main__':
     from use_generator import *
