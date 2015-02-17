@@ -1621,7 +1621,7 @@ Read in molecule given .mol file and unit specification.
     
 """
         pat_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+) *$')
-        tmp_molecule = Molecule()
+        tmp_molecule = Molecule( AA = in_AA )
         for i in open( molfile ).readlines():
             if pat_xyz.search(i):
                 matched = pat_xyz.match(i).groups()
