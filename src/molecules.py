@@ -1633,6 +1633,9 @@ Read in molecule given .mol file and unit specification.
                         "pdbname" : pd }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
+        if in_AA:
+            if not out_AA:
+                tmp_molecule.to_AU()
         return tmp_molecule
 
 
