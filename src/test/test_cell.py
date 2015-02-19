@@ -10,11 +10,7 @@ FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )
 from dstruct import Cell
 class CellTest( unittest.TestCase ):
     def setUp(self):
-        self.c = Cluster.get_water_cluster(
-                FILE_MOL,
-                in_AA = False,
-                out_AA = False,
-                N_waters = 10)
+        pass
         
     def test_init(self):
         c = Cell( my_min = map(float, [0, 0, 0]),
@@ -54,7 +50,7 @@ class CellTest( unittest.TestCase ):
         assert a in c[0][0][0]
 
     def test_get_closest(self):
-        cell = Cell.from_xyz( 'pna_waters.xyz' )
+        cell = Cell.from_xyz( FILE_XYZ )
 #ensure at1 exists
         for at in cell:
             at1 = at
