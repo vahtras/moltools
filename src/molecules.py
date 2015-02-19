@@ -876,6 +876,33 @@ AA       True     bool
             self.pdbname = kwargs.get( "pdbname", 'X1' )
         self._mass = None
 
+    def plot(self ):
+        """
+Plot the Atom in a 3D frame
+
+.. code:: python
+
+    >>> a = Atom( element = 'H' )
+    >>> a.plot()
+    
+"""
+
+#Plot water molecule in green and  nice xyz axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
+
+        ax.plot( [self.x], [self.y], [self.z], self.Molecule.style[self.element], linewidth= self.Molecule.linewidth[self.element] )
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
+
+
+
     def __len__( self ):
         return 1
     def __iter__(self):
@@ -1096,8 +1123,8 @@ class Molecule( list ):
         self.no_hydrogens = True
 
 # For plotting different elements:
-        self.style = {"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro'}
-        self.linewidth = {"H":25, "N": 30, "C": 30, "O":40, "P" : 40}
+        self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro'}
+        self.linewidth = {"X":25,"H":25, "N": 30, "C": 30, "O":40, "P" : 40}
 
 # Make emptpy, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
