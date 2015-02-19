@@ -880,11 +880,13 @@ AA       True     bool
         return 1
     def __iter__(self):
         yield self
-
-    #@property
-    #def angles(self):
-    #    self.Molecule.populate_angles()
-    #    return self.angles
+    def __getitem__(self, ind):
+        if ind ==0 :
+            return self.x
+        elif ind ==1 :
+            return self.y
+        elif ind ==2 :
+            return self.z
 
     def scale_angle(self, scale = 1.0):
         """scales only angle
