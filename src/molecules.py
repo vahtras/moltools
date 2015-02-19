@@ -953,6 +953,8 @@ AA       True     bool
         for at in self.bonds:
             self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
 
+    def copy(self):
+        return self.copy_atom()
 
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
