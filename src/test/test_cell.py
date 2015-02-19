@@ -53,6 +53,26 @@ class CellTest( unittest.TestCase ):
         c.update()
         assert a in c[0][0][0]
 
+    def test_get_closest(self):
+        cell = Cell.from_xyz( 'pna_waters.xyz' )
+#ensure at1 exists
+        for at in cell:
+            at1 = at
+        x, y, z = cell.get_index( at1 )
+        ats = 0
+        tmp = []
+        for i in range( x-1, x+2 ):
+            for j in range( y-1, y+2 ):
+                for k in range( z-1, z+2 ):
+                    try:
+                        for at in cell[i][j][k]:
+                            if at in tmp:
+                                continue
+                            tmp.append(at)
+                    except IndexError:
+                        pass
+        assert len(tmp) -1 == len(cell.get_closest( at1 ))
+
 
 if __name__ == '__main__':
     unittest.main()

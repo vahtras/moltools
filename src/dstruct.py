@@ -1,5 +1,9 @@
 import numpy as np
+import molecules
 
+from matplotlib import pyplot as plt
+
+a0 = 0.52917721092
 class Cell( list ):
 
     def __init__(self, 
@@ -17,21 +21,74 @@ class Cell( list ):
 
         self.my_cutoff = my_cutoff
 
-        xdim = int( np.ceil ( (self.my_xmax - self.my_xmin)/my_cutoff ))
-        ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
-        zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
+        self.xdim = int( np.ceil ( (self.my_xmax - self.my_xmin)/my_cutoff ))
+        self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
+        self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
 
-
-        for i in range( xdim ):
+        for i in range( self.xdim ):
             self.append( [] )
-            for j in range( ydim ):
+            for j in range( self.ydim ):
                 self[i].append( [] )
-                for k in range( zdim ):
+                for k in range( self.zdim ):
                     self[i][j].append( [] )
+    @staticmethod
+    def from_xyz( fil, in_AA = False, out_AA = False ):
+
+        Cell
+        ats = []
+
+        co = 1.5
+        if not in_AA:
+            co /= a0
+
+        for f_ in open(fil ).readlines()[2:]:
+            el, x, y, z = f_.split()
+            x, y, z = map(float, [x,y,z] )
+            if in_AA and not out_AA:
+                x, y, z = map( lambda x: x/a0, [x,y,z] )
+            ats.append( molecules.Atom( element = el, x=  x, y = y, z = z ))
+
+        cell = Cell( my_min = [ min( ats, key = lambda x: x.x ).x,
+                         min( ats, key = lambda x: x.y ).y,
+                         min( ats, key = lambda x: x.z ).z],
+              my_max = [ max( ats, key = lambda x: x.x ).x,
+                         max( ats, key = lambda x: x.y ).y,
+                         max( ats, key = lambda x: x.z ).z],
+              my_cutoff = co
+              )
+        for at in ats:
+            cell.add(at)
+
+        return cell
+
+
+
+ 
+    def add_atom( self, atom ):
+        assert type( atom ) == molecules.Atom
+        self.add( atom )
+    def add_molecule( self, mol ):
+        assert isinstance( mol, molecules.Molecule )
+        for at in mol:
+            self.add( at )
+
+    def add_cluster( self, clus ):
+        assert isinstance( clus, molecules.Cluster )
+        for item in [at for mol in clus for at in mol ]:
+            self.add( item )
 
     def add(self, item ):
         x_ind, y_ind, z_ind = self.get_index( item )
-        self[ x_ind ][ y_ind ][ z_ind ].append( item )
+
+        if item not in self[ x_ind ][ y_ind ][ z_ind ]:
+            self[ x_ind ][ y_ind ][ z_ind ].append( item )
+
+    def __iter__(self):
+        for i in range(len(self)):
+            for j in range(len(self[i])):
+                for k in range(len(self[i][j])):
+                    for at in self[i][j][k]:
+                        yield at
 
     def get_closest( self, item ):
         """
@@ -47,11 +104,19 @@ to iterate not over whole cell box but closest
     [<molecules.Atom at 0x0xah5ah3h5] 
         """
         x_ind, y_ind, z_ind = self.get_index( item )
-        for i, j, k in enumerate( zip(range(x_ind-1,x_ind+1),
-                range(x_ind-1,x_ind+1),
-                range(x_ind-1,x_ind+1),
-                )):
-            pass
+        tmp_list = []
+        for i in range( x_ind -1, x_ind + 2 ):
+            for j in range( y_ind -1, y_ind + 2 ):
+                for k in range( z_ind -1, z_ind + 2 ):
+                    try:
+                        for at in self[i][j][k]:
+                            if at == item or at in tmp_list:
+                                continue
+                            tmp_list.append( at )
+                    except IndexError:
+                        pass
+        return tmp_list
+
     def update(self):
 
         tmp = []
@@ -63,6 +128,32 @@ to iterate not over whole cell box but closest
                         self[x][y][z].remove( item )
         for item in tmp:
             self.add( item )
+
+
+    def plot(self):
+        """
+Plot all Atoms in the cell
+
+.. code:: python
+
+    >>> cell = Cell()
+    >>> cell.add( Atom(element = 'H' ))
+    >>> cell.plot()
+"""
+#Plot water molecule in green and  nice xyz axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d' )
+        ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
+        ax.text( 1.1, 0, 0, "X", color = 'red' )
+        ax.text( 0, 1.1, 0, "Y", color = 'red' )
+        ax.text( 0, 0, 1.1, "Z", color = 'red' )
+
+        for at in self:
+            ax.plot( [at.x], [at.y], [at.z], at.Molecule.style[at.element], linewidth= at.Molecule.linewidth[at.element] )
+        ax.set_zlim3d( -5,5)
+        plt.xlim(-5,5)
+        plt.ylim(-5,5)
+        plt.show()
 
     def get_index( self, item ):
         """
