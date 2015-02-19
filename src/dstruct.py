@@ -9,8 +9,11 @@ class Cell( list ):
     def __init__(self, 
             my_min = [0.0, 0.0, 0.0],
             my_max = [10.0, 10.0, 10.0],
-            my_cutoff = 1.5):
+            my_cutoff = 1.5,
+            AA = False):
         """docstring for __init__"""
+        self.AA = AA
+
         self.my_xmin = my_min[0]
         self.my_ymin = my_min[1]
         self.my_zmin = my_min[2]
@@ -25,6 +28,13 @@ class Cell( list ):
         self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
         self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
 
+        if self.xdim == 0:
+            self.xdim = 1
+        if self.ydim == 0:
+            self.ydim = 1
+        if self.zdim == 0:
+            self.zdim = 1
+
         for i in range( self.xdim ):
             self.append( [] )
             for j in range( self.ydim ):
@@ -32,12 +42,10 @@ class Cell( list ):
                 for k in range( self.zdim ):
                     self[i][j].append( [] )
     @staticmethod
-    def from_xyz( fil, in_AA = False, out_AA = False ):
+    def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
 
-        Cell
         ats = []
 
-        co = 1.5
         if not in_AA:
             co /= a0
 
@@ -54,15 +62,38 @@ class Cell( list ):
               my_max = [ max( ats, key = lambda x: x.x ).x,
                          max( ats, key = lambda x: x.y ).y,
                          max( ats, key = lambda x: x.z ).z],
-              my_cutoff = co
+              my_cutoff = co,
+              AA = out_AA,
               )
         for at in ats:
             cell.add(at)
 
+        for at in cell:
+            if len(at.Molecule) == 0:
+                at.Molecule.append( at )
+            cell.build_molecules( current = at, closeby = cell.get_closest(at) )
         return cell
 
+    def build_molecules(self, current = None, visited = [],
+            closeby = [], max_dist = 1.46, AA = False):
+        visited.append( current )
+        if not self.AA:
+            max_dist /= a0
 
+        if closeby == []:
+            return
 
+        for at in closeby:
+            if at in current.Molecule:
+                continue
+
+            if max_dist < current.dist_to_atom( at ):
+                continue
+
+            current.Molecule.append( at )
+            at.Molecule = current.Molecule
+            close = [a for a in self.get_closest( at ) if a not in visited ]
+            self.build_molecules( current = at, closeby = close, visited = visited )
  
     def add_atom( self, atom ):
         assert type( atom ) == molecules.Atom

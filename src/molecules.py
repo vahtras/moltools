@@ -861,6 +861,7 @@ AA       True     bool
         self.in_water = False
         self.Molecule = Molecule()
 
+
 #Property set to true if atoms have properties
         self.Property = Property()
         self.AA = True
