@@ -44,5 +44,15 @@ class CellTest( unittest.TestCase ):
         assert a2 in c[1][1][0]
         assert a3 in c[1][1][1]
 
+    def test_update(self):
+        c = Cell(my_cutoff = 3)
+        a = Atom( z = 5 )
+        c.add( a )
+        assert a in c[0][0][1]
+        a.z = 0 
+        c.update()
+        assert a in c[0][0][0]
+
+
 if __name__ == '__main__':
     unittest.main()
