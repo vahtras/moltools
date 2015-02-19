@@ -4,6 +4,7 @@ import numpy as np
 from molecules import Cluster, Atom
 from use_generator import Generator
 
+FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )
 
@@ -34,6 +35,12 @@ class WaterTest( unittest.TestCase ):
         assert len(c) == 2
         print c.min_dist_coo()
         assert c.min_dist_coo()[0] > 4.5
+
+    def test_get_all_molecules_from_file( self ):
+        c = Cluster.get_all_molecules_from_file( FILE_XYZ,
+                in_AA = False,
+                out_AA = False,
+                )
 
     def test_get_water_cluster(self):
         c = Cluster.get_water_cluster( FILE_PDB, in_AA = True, N_waters = 10 )

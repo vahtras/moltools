@@ -2256,6 +2256,22 @@ class Cluster(list):
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
+
+    @staticmethod
+    def get_all_molecules_from_file(fil,
+            in_AA = False,
+            out_AA = False,
+            ):
+#dont add atoms to molecule if they are within 1.5 angstrom
+        max_dist = 1.5
+        if in_AA :
+            max_dist / a0
+
+        """Given pdb/mol/xyz  file return a Cluster with all seperate molecules"""
+        if fil.endswith('.xyz'):
+            with open(fil,'r') as f_:
+                pass
+     
     def min_dist_coo(self):
         dist = np.zeros( (len(self),len(self)) )
         new = np.zeros( len(self) - 1 )
@@ -2770,6 +2786,8 @@ Return the sum properties of all molecules in cluster
             for at in mol:
                 p += at.Property
         return p
+
+
 
 if __name__ == '__main__':
     from use_generator import *
