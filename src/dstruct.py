@@ -53,7 +53,7 @@ class Cell( np.ndarray ):
         if zdim == 0:
             zdim = 1
         shape = (xdim, ydim, zdim)
-        obj = np.zeros(shape, dtype = object )
+        obj = np.zeros(shape, dtype = object ).view(cls)
         return obj
 
     def __init__(self, 
@@ -79,7 +79,8 @@ class Cell( np.ndarray ):
         self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
         self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
 
-        self[:,:,:] = []
+        self[...] = [[] for i in j for j in k for k in range(3)]
+        print self[0,0,0]
 
     def __array_finalize__(self, obj):
         if obj is None:
