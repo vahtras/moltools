@@ -5,41 +5,13 @@ from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
 
-class Cellnp( np.ndarray ):
-
-    def __new__(cls, 
-            my_min = [0.0, 0.0, 0.0],
-            my_max = [10.0, 10.0, 10.0],
-            my_cutoff = 1.5,
-            AA = False,
-        ):
-
-        xdim = int( np.ceil ( (my_max[0] - my_min[0])/my_cutoff ))
-        ydim = int( np.ceil ( (my_max[1] - my_min[1])/my_cutoff ))
-        zdim = int( np.ceil ( (my_max[2] - my_min[2])/my_cutoff ))
-
-        if xdim == 0:
-            xdim = 1
-        if ydim == 0:
-            ydim = 1
-        if zdim == 0:
-            zdim = 1
-        shape = (xdim, ydim, zdim)
-
-        obj = np.zeros(shape, dtype = object).view(cls)
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-        self._I = None
-
 class Cell( np.ndarray ):
 
     def __new__(cls, 
             my_min = [0.0, 0.0, 0.0],
             my_max = [10.0, 10.0, 10.0],
             my_cutoff = 1.5,
+            AA = False,
         ):
 
         xdim = int( np.ceil ( (my_max[0] - my_min[0])/my_cutoff ))
@@ -79,8 +51,11 @@ class Cell( np.ndarray ):
         self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
         self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
 
-        self[...] = [[] for i in j for j in k for k in range(3)]
-        print self[0,0,0]
+        tmp = self.ravel()
+
+        tmp[:] = [[] for i in range(self.xdim) 
+            for j in range(self.ydim) for k in range(self.zdim)]
+        self[:] = tmp.reshape( ( self.xdim, self.ydim, self.zdim ))
 
     def __array_finalize__(self, obj):
         if obj is None:
