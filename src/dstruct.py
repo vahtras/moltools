@@ -1,5 +1,6 @@
 import numpy as np
 import molecules
+import copy
 
 from matplotlib import pyplot as plt
 
@@ -50,6 +51,13 @@ class Cell( np.ndarray ):
         self.xdim = int( np.ceil ( (self.my_xmax - self.my_xmin)/my_cutoff ))
         self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
         self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
+
+        if self.xdim == 0:
+            self.xdim = 1
+        if self.ydim == 0:
+            self.ydim = 1
+        if self.zdim == 0:
+            self.zdim = 1
 
         tmp = self.ravel()
 
@@ -130,7 +138,6 @@ class Cell( np.ndarray ):
 
     def add(self, item ):
         x_ind, y_ind, z_ind = self.get_index( item )
-
         if item not in self[ x_ind, y_ind, z_ind ]:
             self[ x_ind, y_ind, z_ind ].append( item )
 
@@ -170,15 +177,32 @@ to iterate not over whole cell box but closest
 
     def update(self):
 
-        tmp = []
+        ats = []
         for x in range(len(self)):
             for y in range(len(self[x])):
-                for z in range(len(self[x][y])):
-                    for item in self[x][y][z]:
-                        tmp.append( item )
-                        self[x][y][z].remove( item )
-        for item in tmp:
-            self.add( item )
+                for z in range(len(self[x, y])):
+                    for item in self[x, y, z]:
+                        ats.append( item )
+                        self[x, y, z].remove( item )
+        if ats == []:
+            return
+        cell = Cell( my_min = [ min( ats, key = lambda x: x.x ).x,
+                         min( ats, key = lambda x: x.y ).y,
+                         min( ats, key = lambda x: x.z ).z],
+              my_max = [ max( ats, key = lambda x: x.x ).x,
+                         max( ats, key = lambda x: x.y ).y,
+                         max( ats, key = lambda x: x.z ).z],
+              my_cutoff = self.my_cutoff,
+              AA = self.AA,
+              )
+        for item in ats:
+            if type(item) == molecules.Atom:
+                cell.add_atom( item )
+            if type(item) == molecules.Molecule:
+                cell.add_molecule( item )
+            if type(item) == molecules.Cluster:
+                cell.add_cluster( item )
+        return cell
 
 
     def plot(self):
@@ -228,3 +252,5 @@ Return the x, y, and z index for cell for this item,
         z_ind = int( np.floor( tmp_zmin /  self.my_cutoff))
         
         return (x_ind, y_ind, z_ind)
+
+

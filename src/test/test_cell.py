@@ -46,7 +46,7 @@ class CellTest( unittest.TestCase ):
         c.add( a )
         assert a in c[0][0][1]
         a.z = 0 
-        c.update()
+        c = c.update()
         assert a in c[0][0][0]
 
     def test_get_closest(self):
