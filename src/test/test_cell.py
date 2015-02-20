@@ -41,7 +41,7 @@ class CellTest( unittest.TestCase ):
         assert a3 in c[1][1][1]
 
     def test_update(self):
-        c = Cell(my_cutoff = 3)
+        c = Cell( my_cutoff = 3 )
         a = Atom( z = 5 )
         c.add( a )
         assert a in c[0][0][1]

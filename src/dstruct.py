@@ -4,7 +4,57 @@ import molecules
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
-class Cell( list ):
+
+class Cellnp( np.ndarray ):
+
+    def __new__(cls, 
+            my_min = [0.0, 0.0, 0.0],
+            my_max = [10.0, 10.0, 10.0],
+            my_cutoff = 1.5,
+            AA = False,
+        ):
+
+        xdim = int( np.ceil ( (my_max[0] - my_min[0])/my_cutoff ))
+        ydim = int( np.ceil ( (my_max[1] - my_min[1])/my_cutoff ))
+        zdim = int( np.ceil ( (my_max[2] - my_min[2])/my_cutoff ))
+
+        if xdim == 0:
+            xdim = 1
+        if ydim == 0:
+            ydim = 1
+        if zdim == 0:
+            zdim = 1
+        shape = (xdim, ydim, zdim)
+
+        obj = np.zeros(shape, dtype = object).view(cls)
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self._I = None
+
+class Cell( np.ndarray ):
+
+    def __new__(cls, 
+            my_min = [0.0, 0.0, 0.0],
+            my_max = [10.0, 10.0, 10.0],
+            my_cutoff = 1.5,
+        ):
+
+        xdim = int( np.ceil ( (my_max[0] - my_min[0])/my_cutoff ))
+        ydim = int( np.ceil ( (my_max[1] - my_min[1])/my_cutoff ))
+        zdim = int( np.ceil ( (my_max[2] - my_min[2])/my_cutoff ))
+
+        if xdim == 0:
+            xdim = 1
+        if ydim == 0:
+            ydim = 1
+        if zdim == 0:
+            zdim = 1
+        shape = (xdim, ydim, zdim)
+        obj = np.zeros(shape, dtype = object )
+        return obj
 
     def __init__(self, 
             my_min = [0.0, 0.0, 0.0],
@@ -12,6 +62,7 @@ class Cell( list ):
             my_cutoff = 1.5,
             AA = False):
         """docstring for __init__"""
+
         self.AA = AA
 
         self.my_xmin = my_min[0]
@@ -28,19 +79,12 @@ class Cell( list ):
         self.ydim = int( np.ceil ( (self.my_ymax - self.my_ymin)/my_cutoff ))
         self.zdim = int( np.ceil ( (self.my_zmax - self.my_zmin)/my_cutoff ))
 
-        if self.xdim == 0:
-            self.xdim = 1
-        if self.ydim == 0:
-            self.ydim = 1
-        if self.zdim == 0:
-            self.zdim = 1
+        self[:,:,:] = []
 
-        for i in range( self.xdim ):
-            self.append( [] )
-            for j in range( self.ydim ):
-                self[i].append( [] )
-                for k in range( self.zdim ):
-                    self[i][j].append( [] )
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+
     @staticmethod
     def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
 
@@ -111,8 +155,8 @@ class Cell( list ):
     def add(self, item ):
         x_ind, y_ind, z_ind = self.get_index( item )
 
-        if item not in self[ x_ind ][ y_ind ][ z_ind ]:
-            self[ x_ind ][ y_ind ][ z_ind ].append( item )
+        if item not in self[ x_ind, y_ind, z_ind ]:
+            self[ x_ind, y_ind, z_ind ].append( item )
 
     def __iter__(self):
         for i in range(len(self)):
