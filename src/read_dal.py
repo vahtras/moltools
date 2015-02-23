@@ -29,6 +29,41 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
 allowed_elements = ( 'H', 'O' )
 
 
+def o_filter( 
+        out_files, 
+        vary = "r", 
+        r = 0.0,
+        tau = 0.0,
+        theta = 0.0,
+        rho1 = 0.0,
+        rho2 = 0.0,
+        rho3 = 0.0,
+        ):
+    p = re.compile(r'_(.*)-(.*)-(.*)-(.*)-(.*)-(.*).out')
+    out = []
+    for f in out_files:
+        r_c, tau_c, theta_c, rho1_c, rho2_c, rho3_c = map(float, p.search(f).groups())
+        if vary == "r":
+            if (tau, theta, rho1, rho2, rho3) != (tau_c, theta_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "tau":
+            if (r, theta, rho1, rho2, rho3) != (r_c, theta_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "theta":
+            if (r, tau, rho1, rho2, rho3) != (r_c, tau_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "rho1":
+            if (r, tau, theta, rho2, rho3) != (r_c, tau_c, theta_c, rho2_c, rho3_c):
+                continue
+        if vary == "rho2":
+            if (r, tau, theta, rho1, rho3) != (r_c, tau_c, theta_c, rho1_c, rho3_c):
+                continue
+        if vary == "rho3":
+            if (r, tau, theta, rho1, rho2 ) != (r_c, tau_c, theta_c, rho1_c, rho2_c, ):
+                continue
+        out.append( f )
+    return out
+
 def unique(arr):
     tmp = []
     for i in arr:
@@ -970,7 +1005,7 @@ def read_energy( fname, calctype = 'HF' ):
         if re.compile(r'.*Final.*energy').match(line):
             return line.split()[-1]
 
-def read_beta_ccsd( fname ):
+def read_beta_ccsd( args ):
 
     mol_dip = np.zeros(3)
     alpha = np.zeros(  [3,3])
@@ -987,7 +1022,7 @@ def read_beta_ccsd( fname ):
     pat_beta=  re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
 
 # Reading in dipole
-    lines = open( fname ).readlines()
+    lines = open( args.beta ).readlines()
     for i in range(len( lines )):
         if pat_dipole.search( lines[i] ):
             mol_dip[0] = lines[i+5].split()[1]
@@ -996,7 +1031,7 @@ def read_beta_ccsd( fname ):
             print mol_dip
 
 # Reading in Alfa 
-    for i in open( fname ).readlines():
+    for i in open( args.beta ).readlines():
         if pat_alpha.search( i ):
             if len(i.split()) < 8:
                 try:
@@ -1019,7 +1054,7 @@ def read_beta_ccsd( fname ):
                 if A == "Y" and B == "Z":
                     alpha[ lab.index( B ) , lab.index( A ) ]  = frac
 #For Beta
-    for i in open( fname ).readlines():
+    for i in open( args.beta ).readlines():
         if pat_beta.search( i ):
             if len(i.split()) >8:
                 try:
