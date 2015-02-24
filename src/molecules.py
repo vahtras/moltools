@@ -1932,6 +1932,8 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
 
         theta1 = np.arctan2( dip[1], dip[0])
+        if theta1 < 0:
+            theta1 += 2 * np.pi
 
         H1 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H1 )
         H2 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H2 )
@@ -1941,6 +1943,8 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
 
 #Rotate by theta around y axis so that the dipole is in the z axis 
         theta2 = np.arctan2( -dip[0], dip[2] )
+        if theta2 < 0:
+            theta2 += 2 * np.pi
 
         H1 =  np.dot( Rotator.get_Ry( theta2 ) , H1 )
         H2 =  np.dot( Rotator.get_Ry( theta2 ) , H2 )
@@ -1956,6 +1960,8 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
             xc = H1[0]
             yc = H1[1]
         theta3 = np.arctan2( yc , xc)
+        if theta3 < 0:
+            theta3 += 2 * np.pi
 
         def eq(a, b, thr = 0.0001): 
             if abs(a-b) < thr:return True
