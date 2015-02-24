@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re, sys, os
+import itertools, re, sys, os, sys, argparse
 from matplotlib import pyplot as plt
 import numpy as np
 from read_dal import o_filter, read_beta_hf
 from gaussian import *
 from molecules import *
 import pandas as pd
-import argparse
-
-import itertools
 
 o_files = [f for f in os.listdir( os.getcwd()) if f.endswith('.out') ]
 
@@ -35,6 +32,7 @@ def run_mpl_2(
         title = "Fancy title",
         ylabel = "X-axis",
         xlabel = "X-axis",
+        verbose = False,
         ):
     comps = map( lambda x: x.lower(), comps )
     props = map( lambda x: x.lower(), props )
@@ -139,21 +137,29 @@ def run_mpl_2(
                         y.append( cl[ comp_map_beta[c]] )
                     elif yd == "rel":
                         y.append( ((cl - qm )/qm) [ comp_map_beta[c]] )
+        label = ""
+        label += r"$\mathsf{%s}_{%s}^{%s}$" %(c, p, l)
         if y == []:
             continue
         srt = np.array(sorted(zip (x,y )))
         x, y = srt[:,0], srt[:,1]
         x, y = map( np.array, [x, y] )
-        #data_frame = pd.DataFrame( y, index = x )
-        #s.sort()
-        #s.plot( label = "-".join(map(str, [c,p,l,lop] )) )
-        ax.plot( x, y, label = "-".join(map(str, [c,p,l,lop])) )
+
+        if verbose:
+            label += "-".join(map(str, [c,p,l,lop]))
+        ax.plot( x, y, label = label )
+
     if x_dim == 'r':
-        if out_AA:ax.set_xlim(2,5)
-        else:ax.set_xlim(3,10)
+        if out_AA:
+            ax.set_xlim(2,5)
+        else:
+            ax.set_xlim(3,10)
     else:
         ax.set_xlim(0, np.pi)
-    ax.legend(loc='best')
+    if "rel" in y_dims:
+        ax.set_ylim(-1, 1 )
+
+    ax.legend( loc='best' )
     ax.set_title( title )
     ax.set_xlabel( xlabel )
     ax.set_ylabel( ylabel )
@@ -161,6 +167,17 @@ def run_mpl_2(
 
 if __name__ == '__main__':
     A = argparse.ArgumentParser()
-    A.add_argument("-dal", type= str, default = 'hflin' )
-    o_files = o_filter ( o_files , vary = "r" )
-    run_mpl_2( o_files , y_dims = ["abs_qm","abs_cl"], props = ["d",],levels = [0,1,2], comps = ['z'] )
+    A.add_argument("-vary", type= str, default = 'r',
+            choices = ['r', 'tau', 'theta', 'rho1', 'rho2', 'rho3'])
+    A.add_argument("-y", nargs = '*', type= str, default = ['rel'] )
+    A.add_argument("-props", nargs = '*', type= str, default = ['d'] )
+    A.add_argument("-levels", nargs = '*', type= int, default = [0] )
+    A.add_argument("-comps", nargs = '*', type= str, default = ['z'] )
+    A.add_argument("-v","--verbose", action = 'store_true', default = False )
+    args = A.parse_args( sys.argv[1:] )
+
+    o_files = o_filter( [f for f in os.listdir(os.getcwd()) if f.endswith('.out')], vary = args.vary )
+    run_mpl_2( o_files , y_dims = args.y, props = args.props ,
+            levels = args.levels, comps = args.comps,
+            verbose = args.verbose )
+
