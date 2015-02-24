@@ -16,7 +16,7 @@ o_files = [f for f in os.listdir( os.getcwd()) if f.endswith('.out') ]
 def run_mpl_2(
         outs, 
         x_dim = "r",
-        y_dims = ["none","rel","qm_abs"],
+        y_dims = ["none","rel","abs_qm"],
         comps = ["x"],
         props = ["d"],
         levels = [0],
@@ -31,6 +31,9 @@ def run_mpl_2(
         Rps = [0.0001],
         in_AA = False,
         out_AA = False,
+        title = "Fancy title",
+        ylabel = "X-axis",
+        xlabel = "X-axis",
         ):
     comps = map( lambda x: x.lower(), comps )
     props = map( lambda x: x.lower(), props )
@@ -69,21 +72,92 @@ def run_mpl_2(
             #print Rotator.square_3_ut(g.beta())[ comp_map_beta[c] ]
             #print Rotator.square_3_ut(beta_qm) [ comp_map_beta[c] ]
             #print '------------'
-            
+#Plot only dipole for level 0
             if l == 0:
                 g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( pol = 0) )
                 g.solve_scf()
                 if p == 'd':
-                    y.append( g.total_dipole_moment() [comp_map[c]] )
-        x , y = map( np.array, [x, y] )
-        s = pd.Series( y, index = x )
-        s.sort()
-        s.plot( label = "-".join(map(str, [c,p,l,lop] )) )
-        #ax.set_ylim(0,2)
-        ax.legend(loc='best')
+                    cl = g.total_dipole_moment()
+                    qm = dipole_qm
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map[c]] )
+#Plot only dipole and alpha for level 1
+            if l == 1:
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( pol = 1, hyp = 0) )
+                g.solve_scf()
+                if p == 'd':
+                    cl = g.total_dipole_moment()
+                    qm = dipole_qm
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map[c]] )
+                if p == 'a':
+                    cl = g.alpha().diagonal()
+                    qm = np.einsum('ii->i', alpha_qm )
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map[c]] )
+#plot all comps for level 2 
+            if l == 2:
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( pol = 22, hyp = 1) )
+                g.solve_scf()
+                if p == 'd':
+                    cl = g.total_dipole_moment()
+                    qm = dipole_qm
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map[c]] )
+                if p == 'a':
+                    cl = g.alpha().diagonal()
+                    qm = np.einsum('ii->i', alpha_qm )
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map[c]] )
+                if p == 'b':
+                    cl = Rotator.square_3_ut( g.beta() )
+                    qm = Rotator.square_3_ut( beta_qm )
+                    if yd == "abs_qm":
+                        y.append( qm[ comp_map_beta[c]] )
+                    elif yd == "abs_cl":
+                        y.append( cl[ comp_map_beta[c]] )
+                    elif yd == "rel":
+                        y.append( ((cl - qm )/qm) [ comp_map_beta[c]] )
+        if y == []:
+            continue
+        srt = np.array(sorted(zip (x,y )))
+        x, y = srt[:,0], srt[:,1]
+        x, y = map( np.array, [x, y] )
+        #data_frame = pd.DataFrame( y, index = x )
+        #s.sort()
+        #s.plot( label = "-".join(map(str, [c,p,l,lop] )) )
+        ax.plot( x, y, label = "-".join(map(str, [c,p,l,lop])) )
+    if x_dim == 'r':
+        if out_AA:ax.set_xlim(2,5)
+        else:ax.set_xlim(3,10)
+    else:
+        ax.set_xlim(0, np.pi)
+    ax.legend(loc='best')
+    ax.set_title( title )
+    ax.set_xlabel( xlabel )
+    ax.set_ylabel( ylabel )
     plt.show()
-
 
 if __name__ == '__main__':
     o_files = o_filter ( o_files , vary = "r" )
-    run_mpl_2( o_files , y_dims = ["rel",], props = ["d",], comps = ['z'] )
+    run_mpl_2( o_files , y_dims = ["abs_qm","abs_cl"], props = ["d",],levels = [0,1,2], comps = ['z'] )
