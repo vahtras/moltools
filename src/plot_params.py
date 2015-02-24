@@ -8,6 +8,7 @@ from read_dal import o_filter, read_beta_hf
 from gaussian import *
 from molecules import *
 import pandas as pd
+import argparse
 
 import itertools
 
@@ -159,5 +160,7 @@ def run_mpl_2(
     plt.show()
 
 if __name__ == '__main__':
+    A = argparse.ArgumentParser()
+    A.add_argument("-dal", type= str, default = 'hflin' )
     o_files = o_filter ( o_files , vary = "r" )
     run_mpl_2( o_files , y_dims = ["abs_qm","abs_cl"], props = ["d",],levels = [0,1,2], comps = ['z'] )
