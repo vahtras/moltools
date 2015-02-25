@@ -2500,10 +2500,9 @@ Plot all the molecule in a 3D frame in the cluster
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
             hyp = 1,
-            in_AA = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
-        if in_AA:
+        if self.AA:
             st = "AA\n"
         else:
             st = "AU\n"
@@ -2753,6 +2752,7 @@ Return a cluster of water molecules given file.
             if out_AA:
                 for wat in c:
                     wat.to_AA()
+        c.set_qm_mm(10)
         return c
 
 
