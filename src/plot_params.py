@@ -21,6 +21,30 @@ class MyBoolAction( argparse.Action):
         #mod = map( lambda x: x != 0, values )
         setattr(namespace, self.dest, mod)
 
+#Customize label name
+def customize_label( yd, p, l, c, lop ):
+    label = ""
+    c_mod = c
+    if p == 'a': c_mod = c*2
+    elif p == 'b': c_mod = c*2 + 'z'
+    if lop and yd in ['abs_cl', 'rel_cl_qm']:
+        label += r"$\mathsf{%s}_{%s}^{(%s)-LoProp}$" %(to_latex(p), c_mod, l)
+    elif yd in ['abs_cl', 'rel_cl_qm']:
+        label += r"$\mathsf{%s}_{%s}^{(%s)}$" %(to_latex(p), c_mod, l)
+    else:
+        label += r"$\mathsf{%s}_{%s}$" %(to_latex(p), c_mod)
+# For none and qm, set controlling vars that ensures no duplicates are plotted
+    if yd == 'abs_none':
+        label = '$(' + label.strip('$') + ')^{\mathsf{None}}$'
+    if yd == 'abs_cl':
+        label = '$(' + label.strip('$') + ')^{\mathsf{Apple}}$'
+    if yd == 'abs_qm':
+        label = '$(' + label.strip('$') + ')^{\mathsf{Q.M.}}$'
+    if yd == 'rel_none_qm':
+        label = '$\epsilon\left(' + label.strip('$') + r'\right)^{\mathsf{None}}$'
+    if yd == 'rel_cl_qm':
+        label = '$\epsilon\left(' + label.strip('$') + r'\right)^{\mathsf{Apple}}$'
+    return label
 
 def get_style( ydim, prop, level, loprop):
 #Customize label style
@@ -30,21 +54,18 @@ def get_style( ydim, prop, level, loprop):
     elif ydim == "abs_cl":
         ls = '-'
     elif ydim == "abs_qm":
-        ls = '--'
+        ls = '-.'
     elif ydim == "rel_none_qm":
-        ls = '--'
+        ls = ':'
     elif ydim == "rel_cl_qm":
         ls = '-'
+    color = 'black'
+#Thick lines for point dipole, thin line for LoProp
+    if loprop == 0:
+        lw =2.0
+    else:
+        lw = 1.0
 
-    if prop == 'd': 
-        lw = 1.5
-        color = 'black'
-    elif prop == 'a': 
-        lw = 1.5
-        color = 'black'
-    elif prop == 'b': 
-        lw = 2.0
-        color = 'black'
     return lw, ls, color
 
 
@@ -88,6 +109,8 @@ def run_mpl_2(
         x_lim = None,
         y_lim = None,
         ):
+
+
     comps = map( lambda x: x.lower(), comps )
     props = map( lambda x: x.lower(), props )
 
@@ -99,6 +122,11 @@ def run_mpl_2(
 
     pat = re.compile(r'_(.*)-(.*)-(.*)-(.*)-(.*)-(.*).out')
 
+# sets to True later when this property has been plotted to avoid duplicates
+    abs_none_plotted = { key : value for key, value in zip(['x','y','z'],[False,False,False]) }
+    abs_qm_plotted =  { key : value for key, value in zip(['x','y','z'],[False,False,False]) }
+    rel_none_qm_plotted =  { key : value for key, value in zip(['x','y','z'],[False,False,False]) }
+
     fig, ax = plt.subplots()
     fig.subplots_adjust(right = 0.65 )
     for ind1, (yd, c, p, l, lop, f, rq, rp) in enumerate(itertools.product( y_dims, comps, props, levels, loprop, freqs, Rqs, Rps )):
@@ -106,6 +134,12 @@ def run_mpl_2(
         y_lab = y_label
         x = []
         y = []
+        if yd == 'abs_none':
+            if abs_none_plotted[ c ]:continue
+        if yd == 'abs_qm':
+            if abs_qm_plotted[ c ]:continue
+        if yd == 'rel_none_qm':
+            if rel_none_qm_plotted[ c ]:continue
         for fname in outs:
             x.append( map(float, pat.search(fname).groups())[ind_map[ x_dim ] ] )
             atoms, dipole_qm, alpha_qm, beta_qm = read_beta_hf(fname, 
@@ -235,29 +269,28 @@ def run_mpl_2(
         print "Plotting: " , yd, c, p, l, lop, f, rq, rp
 
         lw, ls, color = get_style( yd, p, l, lop )
-#Customize label name
-        label = ""
-        c_mod = c
-        if p == 'a': c_mod = c*2
-        elif p == 'b': c_mod = c*2 + 'z'
 
-        if verbose and lop:
-            label += r"$\mathsf{%s}_{%s}^{(%s)-LoProp}$" %(to_latex(p), c_mod, l)
-        else:
-            label += r"$\mathsf{%s}_{%s}^{(%s)}$" %(to_latex(p), c_mod, l)
+        label =  customize_label( yd, p, l, c, lop )
 
-        if yd == 'abs_none':label = '$|' + label.strip('$') + '|^{\mathsf{None}}$'
-        if yd == 'abs_cl':label = '$|' + label.strip('$') + '|^{\mathsf{Apple}}$'
-        if yd == 'abs_qm':label = '$|' + label.strip('$') + '|^{\mathsf{Q.M.}}$'
-        if yd == 'rel_none_qm':label = '$\epsilon\left(' + label.strip('$') + r'\right)^{\mathsf{None}}$'
-        if yd == 'rel_cl_qm':label = '$\epsilon\left(' + label.strip('$') + r'\right)^{\mathsf{Apple}}$'
+# For none and qm, set controlling vars that ensures no duplicates are plotted
+        if yd == 'abs_none':
+            abs_none_plotted[c] = True
+        if yd == 'abs_cl':
+            pass
+        if yd == 'abs_qm':
+            abs_qm_plotted[c] = True
+        if yd == 'rel_none_qm':
+            rel_none_qm_plotted[c] = True
+        if yd == 'rel_cl_qm':
+            pass
 
 #Sort the data and plot
         srt = np.array(sorted(zip (x,y )))
         x, y = srt[:,0], srt[:,1]
         x, y = map( np.array, [x, y] )
 
-        ax.plot( x, y, label = label ,color = color, lw=lw,linestyle = ls)# lw = lw, ls = ls,  label = label )
+        ax.plot( x, y, label = label ,color = color, lw=lw,linestyle = ls,)
+        
 
 #Default x and y limits, overwritten later by args
     if x_dim == 'r':
@@ -277,10 +310,13 @@ def run_mpl_2(
 
     warnings.filterwarnings('error')
     try:
-        ax.legend( bbox_to_anchor = (1.01,0.5), loc=6, 
+        ax.legend( bbox_to_anchor = (1.01,0.5), loc=6, fontsize = 17,
                 bbox_transform= ax.transAxes )
     except Warning:
         print "No data to plot, exititing ... " ; raise SystemExit
+#setting title
+    title = ""
+    title += " ".join( [ mol_model, basis] )
     ax.set_title( title )
     ax.set_xlabel( x_lab )
     ax.set_ylabel( y_lab )
@@ -301,6 +337,7 @@ if __name__ == '__main__':
     A.add_argument("-comps", nargs = '*', type= str, default = ['z'] )
     A.add_argument("-loprop", nargs = '*', type= int , default = [0] )
 
+    A.add_argument("-basis", type= str , default = "ANOPVDZ" )
 # Plotting title, etc
     A.add_argument("-title", type=str , default = r"Title" )
     A.add_argument("-x_label", type=str , default = r"X-axis" )
@@ -333,5 +370,6 @@ if __name__ == '__main__':
             out_angle = args.out_angle,
             x_lim = args.x_lim,
             y_lim = args.y_lim,
+            basis = args.basis,
             )
 

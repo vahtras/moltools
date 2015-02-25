@@ -2753,6 +2753,7 @@ Return a cluster of water molecules given file.
             if out_AA:
                 for wat in c:
                     wat.to_AA()
+        c.AA = out_AA
         c.set_qm_mm(10)
         return c
 
