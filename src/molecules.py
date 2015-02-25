@@ -2291,6 +2291,7 @@ class Cluster(list):
         """ Typical list of molecules """
         self.Property = None
         self.atom_list = []
+        self.AA = False
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
