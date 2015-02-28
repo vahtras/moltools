@@ -165,7 +165,6 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
     [0.0, 0.0, 0.78719]
 
 """
-
         p = Property()
         for i, keys in enumerate( wat_templ ):
             if keys[0] == at.name:
@@ -1763,6 +1762,7 @@ class Water( Molecule ):
         return w
     @staticmethod
     def get_standard( AA = False,
+            model = 'tip3p',
             worst = False):
         """
 Return water molecule from specified template with :math:`r=0.9572` Angstrom and 
@@ -1775,8 +1775,13 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
 """
 #Geometrical parameters
         center = [0, 0, 0]
-        r_oh = 0.95720
-        a_hoh =  104.52
+        model = model.lower()
+        if model == 'tip3p':
+            r_oh = 0.95720
+            a_hoh =  104.52
+        elif model == 'spc':
+            r_oh = 1.00
+            a_hoh =  109.47
         r_oh = r_oh / a0
         d = (90 - a_hoh/2 ) * np.pi / 180
         origin = np.array( [ 0, 0, 0] )
