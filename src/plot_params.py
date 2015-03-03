@@ -102,7 +102,7 @@ def run_mpl_2(
         levels = [0],
         mol_model = "TIP3P",
         models = ["gaussian"],
-        max_l = [1],
+        max_ls = [1],
         method = "HF",
         loprop = [True, False],
         basis = "ANOPVDZ",
@@ -142,7 +142,7 @@ def run_mpl_2(
     fig, ax = plt.subplots()
     fig.subplots_adjust(right = 0.65 )
     x_lab = '$' + to_latex(x_label) + '$'
-    for ind1, (yd, c, p, l, lop, f, rq, rp) in enumerate(itertools.product( y_dims, comps, props, levels, loprop, freqs, Rqs, Rps )):
+    for ind1, (yd, c, p, l, lop, f, max_l, rq, rp) in enumerate(itertools.product( y_dims, comps, props, levels, loprop, freqs,max_ls,  Rqs, Rps )):
         y_lab = y_label
         x = []
         y = []
@@ -426,7 +426,7 @@ if __name__ == '__main__':
             dal_suffix = args.dal,
             Rqs = args.Rq,
             Rps = args.Rp,
-            max_l = args.max_l,
+            max_ls = args.max_l,
 
             )
 
