@@ -599,10 +599,11 @@ class Rotator(object):
     def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
         """
         Requires euler.h5 binary file containing rotational angle products
+        Define it as in current script directory + euler.h5
         """
         b_new = np.zeros( (3,3,3,) )
         """given beta in molecular frame, convert to exp. reference"""
-        vec = h5py.File('euler.h5','r')['data'].value
+        vec = h5py.File( os.path.join(os.path.dirname( os.path.realpath( __file__ )), 'euler.h5' ), 'r')['data'].value
         for X in range(3):
             if X != car1:
                 continue
