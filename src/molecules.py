@@ -1626,7 +1626,7 @@ Plot the molecule in a 3D frame
         if not self.AA:
             st += "au " 
         st += '\n\ncomment\n\n'
-        st += "%d %d\n" %( self.q, 0 )
+        st += "%d %d\n" %( self.q, 1 )
         for i in self:
             st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         st+= '\n\n\n'
