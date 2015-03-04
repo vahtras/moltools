@@ -1611,6 +1611,29 @@ Plot the molecule in a 3D frame
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st
 
+    @property
+    def q(self):
+        q = 0
+        for at in self:
+            q += at.Property['charge']
+        return q[0]
+
+    def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
+        """Write gaussian .inp file for geometry optimization"""
+        st = r"%" + "Nprocshared=%d\n" %procs
+        st += r"%" + "Mem=20MW\n"
+        st += "#p %s/%s opt " %(method,basis)
+        if not self.AA:
+            st += "au " 
+        st += '\n\ncomment\n\n'
+        st += "%d %d\n" %( self.q, 0 )
+        for i in self:
+            st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
+        st+= '\n\n\n'
+        return st
+
+
+
     @staticmethod
     def unique(arr):
         tmp = []
