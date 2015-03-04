@@ -10,6 +10,5 @@ pickle_para
 templates
 *gz
 
-build*
 .gitconfig
 .coverage
