@@ -20,7 +20,7 @@ a0 = 0.52917721092
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
         "P" : 15 }
 # from TIP3P charge defs.
-el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417}
+el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
         "X" : 1.008, 'P' : 30.974 }
 
@@ -1124,8 +1124,10 @@ class Molecule( list ):
         self.no_hydrogens = True
 
 # For plotting different elements:
-        self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro'}
-        self.linewidth = {"X":25,"H":25, "N": 30, "C": 30, "O":40, "P" : 40}
+        self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro',
+                'S' : 'yo'}
+        self.linewidth = {"X":25,"H":25, "N": 30, "C": 30, "O":40, "P" : 40,
+                'S' : 45 }
 
 # Make emptpy, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
@@ -1624,7 +1626,7 @@ Plot the molecule in a 3D frame
         st += r"%" + "Mem=20MW\n"
         st += "#p %s/%s opt " %(method,basis)
         if not self.AA:
-            st += "au " 
+            st += "units=au " 
         st += '\n\ncomment\n\n'
         st += "%d %d\n" %( self.q, 1 )
         for i in self:
