@@ -2791,11 +2791,19 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
 
     def add_mol(self, mol, in_mm = False, in_qm = False,
             in_qmmm = False, *args, **kwargs):
-        mol.in_mm = in_mm
-        mol.in_qm = in_qm
-        mol.in_qmmm = in_qmmm
-        super( Cluster, self ).append( mol, *args, **kwargs )
-        mol.cluster = self
+        if type( mol ) == Water:
+            mol.in_mm = in_mm
+            mol.in_qm = in_qm
+            mol.in_qmmm = in_qmmm
+            super( Cluster, self ).append( mol, *args, **kwargs )
+            mol.cluster = self
+        elif type( mol ) == list:
+            for each in mol:
+                each.in_mm = in_mm
+                each.in_qm = in_qm
+                each.in_qmmm = in_qmmm
+                super( Cluster, self ).append( each, *args, **kwargs )
+                each.cluster = each
 
     def add_atom(self, *at):
         for i, iat in enumerate(at):
