@@ -2760,7 +2760,7 @@ Return a cluster of water molecules given file.
                 for wat in c:
                     wat.to_AA()
         c.AA = out_AA
-        c.set_qm_mm(10)
+        c.set_qm_mm(100)
         return c
 
 
