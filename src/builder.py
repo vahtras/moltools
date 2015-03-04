@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import molecules
+import molecules, os
 
-class Builder( object ):
-    def __init__(self):
-        """docstring for __init__"""
 
-def build_SO4H2( r_so = ):
+def build_sulfuric_acid():
     """Return molecule with sulfur in origo, one hydrogen in xz plane"""
+    FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , "build/sulfur_opt.xyz" )
+    m = molecules.Molecule.from_xyz( FILE )
+    return m
+
         
 
 if __name__ == '__main__':
