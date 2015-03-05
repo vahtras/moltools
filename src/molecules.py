@@ -1150,6 +1150,28 @@ class Molecule( list ):
         """Will be overwritten by specific molecule classes"""
         return np.zeros(3)
 
+    def rotate(self, t1, t2, t3):
+        """Molecular Rotation function
+
+        Will rotate around center-of-mass by default
+        """
+# Place water molecule in origo, and rotate it so hydrogens in xz plane
+        #self.inv_rotate()
+
+        com = self.com.copy()
+        orig = np.zeros( (len(self), 3) )
+# Rotate with angles t1, t2, t3
+        for at in self:
+            at.x, at.y, at.z = np.dot( Rotator.get_Rz(t1), at.r )
+            at.x, at.y, at.z = np.dot( Rotator.get_Ry_inv(t2), at.r )
+            at.x, at.y, at.z = np.dot( Rotator.get_Rz(t3), at.r )
+
+#Put back in original point
+        for ind, at in enumerate(self):
+            at.x += com[0]
+            at.y += com[0]
+            at.z += com[0]
+
     def props_from_qm(self,
             tmpdir = '/tmp',
             dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
