@@ -1123,6 +1123,9 @@ class Molecule( list ):
         self.cluster = None
         self.no_hydrogens = True
 
+# This will be set True if attaching LoProp properties
+        self.LoProp = False
+
 # For plotting different elements:
         self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro',
                 'S' : 'yo'}
@@ -1142,6 +1145,10 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+    def get_euler(self):
+        """Will be overwritten by specific molecule classes"""
+        return np.zeros(3)
 
     def props_from_qm(self,
             tmpdir = '/tmp',
@@ -1477,12 +1484,6 @@ Translate molecules center-of-mass to position r
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
 
-    def translate_o(self, r):
-        vec = r - self.o.r
-        for at in self:
-            at.x = vec[0] + at.x 
-            at.y = vec[1] + at.y 
-            at.z = vec[2] + at.z 
 
     def translate_coc(self, r):
         vec = r - self.coc
@@ -1851,6 +1852,12 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
             return True
         return False
 
+    def translate_o(self, r):
+        vec = r - self.o.r
+        for at in self:
+            at.x = vec[0] + at.x 
+            at.y = vec[1] + at.y 
+            at.z = vec[2] + at.z 
 #Center of oxygen
     @property
     def coo(self):
@@ -2532,8 +2539,15 @@ Plot all the molecule in a 3D frame in the cluster
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
             hyp = 1,
+# If complicated molecule, set dummy_pd to a coordinate to place the net property
+            dummy_pd = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
+
+# We need to check that it is not in LoProp mode
+        if dummy_pd:
+            assert self.LoProp == False
+
         if self.AA:
             st = "AA\n"
         else:
@@ -2813,11 +2827,15 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             t1, t2, t3 = mol.get_euler()
             for at in mol:
                 at.Property.transform_ut_properties( t1, t2, t3 )
+            if loprop:
+                mol.LoProp = True
+            else:
+                mol.LoProp = False
         self.Property = True
 
     def add_mol(self, mol, in_mm = False, in_qm = False,
             in_qmmm = False, *args, **kwargs):
-        if type( mol ) == Water:
+        if isinstance( mol , Molecule ):
             mol.in_mm = in_mm
             mol.in_qm = in_qm
             mol.in_qmmm = in_qmmm
