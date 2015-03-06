@@ -29,7 +29,7 @@ def tip3p():
     builddir = "build"
     molfile = "tip3p.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Water.get_standard( AA = True )
+    m = molecules.Water.get_standard( AA = False )
 
     return m
 
