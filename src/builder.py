@@ -10,7 +10,7 @@ def sulfuric_acid():
     builddir = "build"
     molfile = "sulfur_opt.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Molecule.from_xyz( FILE )
+    m = molecules.Molecule.from_xyz( FILE, in_AA = True, out_AA = False )
     return m
 
 
@@ -20,7 +20,7 @@ def paranitro_aniline():
     builddir = "build"
     molfile = "pna_opt.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Molecule.from_xyz( FILE )
+    m = molecules.Molecule.from_xyz( FILE, in_AA= True, out_AA = False )
     return m
 
 def tip3p():
@@ -30,6 +30,8 @@ def tip3p():
     molfile = "tip3p.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
     m = molecules.Water.get_standard( AA = False )
+    for ind, at in enumerate( m ):
+        at.order = ind + 1
 
     return m
 
