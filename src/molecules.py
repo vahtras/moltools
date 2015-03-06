@@ -167,7 +167,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
 """
         p = Property()
         for i, keys in enumerate( wat_templ ):
-            if keys[0] == at.name:
+            if keys[0] == ( at.element + str(at.order) ):
                 p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
         at.Molecule.Property = True
@@ -836,6 +836,9 @@ AA       True     bool
 #Element one-key char
         self.element = "X"
 
+#Order in xyz files
+        self.order = None
+
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
 #Label is custom name, for water use O1, H2 (positive x ax), H3
@@ -875,6 +878,7 @@ AA       True     bool
             self.name = kwargs.get( "name", "1-XXX-X1" )
             self.number = kwargs.get( "number", 0 )
             self.pdbname = kwargs.get( "pdbname", 'X1' )
+            self.order = kwargs.get( "order", 0 )
         self._mass = None
 
     def plot(self ):
@@ -1145,6 +1149,27 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+    def attach_properties(self, 
+            model = "TIP3P",
+            method = "HF",
+            basis = "ANOPVDZ",
+            loprop = True,
+            freq = "0.0"):
+        """
+Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
+        """
+        templ = Template().get( *(model, method, basis, loprop, freq) )
+        for at in self:
+            Property.add_prop_from_template( at, templ )
+        t1, t2, t3 = self.get_euler()
+        for at in self:
+            at.Property.transform_ut_properties( t1, t2, t3 )
+        if loprop:
+            self.LoProp = True
+        else:
+            self.LoProp = False
+        self.Property = True
 
     def get_euler(self):
         """Will be overwritten by specific molecule classes"""
@@ -1445,14 +1470,16 @@ Return the dipole moment
    -0.834
 
 """
-        #if self.Property:
-        #    el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for at in self ])
-        #    nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for at in self ])
-        #    dip_lop = np.array([at.Property['dipole'] for at in self])
-        #    dip = el_dip + nuc_dip
-        #    return dip.sum(axis=0)+ dip_lop.sum(axis=0)
-
-        return np.array([at.r*at.q for at in self]).sum(axis=0)
+    @property
+    def p(self):
+        if self.Property:
+            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+            dip = el_dip + nuc_dip
+            return (dip + dip_lop) .sum(axis=0)
+        else:
+            return np.array([at.r*at.q for at in self]).sum(axis=0)
 
     @property
     def sum_property(self):
@@ -1751,12 +1778,17 @@ Angstrom [ out_AA = True ]
             x = i.split()[1]
             y = i.split()[2]
             z = i.split()[3]
-            m.append( Atom( **{"element":elem,
+            at = Atom( **{"element":elem,
                 "x" : x,
                 "y" : y,
                 "z" : z,
                 "AA" : in_AA,
-                }))
+#Order later used to read in templates
+                "order" : ind - 1,
+                })
+            m.append( at )
+            at.Molecule = m
+
         if in_AA:
             if not out_AA:
                 m.to_AU()
