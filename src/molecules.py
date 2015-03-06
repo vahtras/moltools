@@ -1094,27 +1094,25 @@ class Molecule( list ):
                 ('H','N') : 1.1,
                 ('H','O') : 1.1,
                 ('H','P') : 1.1,
-                ('C','H') : 1.1,
+                ('H','S') : 1.3,
                 ('C','C') : 1.5,
                 ('C','N') : 1.5,
                 ('C','O') : 1.5,
                 ('C','P') : 2.0,
-                ('N','H') : 1.1,
-                ('N','C') : 1.5,
+                ('C','S') : 2.0,
                 ('N','N') : 1.5,
                 ('N','O') : 1.5,
                 ('N','P') : 1.5,
-                ('O','H') : 1.1,
-                ('O','N') : 1.5,
-                ('O','C') : 1.5,
+                ('N','S') : 1.5,
                 ('O','O') : 1.5,
                 ('O','P') : 2.0,
-                ('P','H') : 1.1,
-                ('P','N') : 1.5,
-                ('P','O') : 1.5,
-                ('P','O') : 2.0,
+                ('O','S') : 1.6,
                 ('P','P') : 1.5,
+                ('P','S') : 2.0,
+                ('S','S') : 2.1,
             }
+        for key1, key2 in self.bonding_cutoff.keys():
+            self.bonding_cutoff[ (key2, key1)] = self.bonding_cutoff[ (key1, key2) ]
 
 # Dictionary with bonds
         self.bond_dict = {}
@@ -1179,6 +1177,8 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         """Molecular Rotation function
 
         Will rotate around center-of-mass by default
+
+        If we have properties, transform them as well
         """
 # Place water molecule in origo, and rotate it so hydrogens in xz plane
         #self.inv_rotate()
@@ -1190,6 +1190,10 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             at.x, at.y, at.z = np.dot( Rotator.get_Rz(t1), at.r )
             at.x, at.y, at.z = np.dot( Rotator.get_Ry_inv(t2), at.r )
             at.x, at.y, at.z = np.dot( Rotator.get_Rz(t3), at.r )
+
+        if self.Property:
+            for at in self:
+                at.Property.transform_ut_properties( t1, t2, t3 )
 
 #Put back in original point
         for ind, at in enumerate(self):
@@ -1785,6 +1789,7 @@ Angstrom [ out_AA = True ]
                 "AA" : in_AA,
 #Order later used to read in templates
                 "order" : ind - 1,
+                'name' : elem + str(ind-1)
                 })
             m.append( at )
             at.Molecule = m
