@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os,sys, re, argparse, ctypes, multiprocessing
+import os,sys, re, argparse, ctypes, multiprocessing, functools
 import numpy as np
 import math as m
 
@@ -9,11 +9,10 @@ import math as m
 
 import molecules 
 from template import Template
-
 from matplotlib import pyplot as plt
-
-import h5py, functools
 from use_calculator import *
+
+import h5py
 
 
 a0 = 0.52917721092

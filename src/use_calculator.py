@@ -53,15 +53,17 @@ Will generate tmp.xvg, which can be plotted as
 
 """
 
-import os, re, subprocess, argparse, h5py, read_dal
+import os, re, subprocess, argparse, read_dal
 
 import numpy as np
 import math as m
 
-from gaussian import *
 
 from template import Template
 from molecules import *
+
+from gaussian import *
+import h5py
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}

@@ -5,9 +5,10 @@ import itertools, re, sys, os, sys, argparse, warnings
 from matplotlib import pyplot as plt
 import numpy as np
 from read_dal import o_filter, read_beta_hf
-from gaussian import *
 from molecules import *
 import pandas as pd
+
+from gaussian import *
 
 a0 = 0.52917721092
 

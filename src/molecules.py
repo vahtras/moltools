@@ -8,12 +8,14 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, h5py, warnings, subprocess, shutil
+import re, os, itertools, warnings, subprocess, shutil
 
 from template import Template
 
-from loprop import *
 import read_dal
+
+import h5py
+from loprop import *
 
 a0 = 0.52917721092
 
