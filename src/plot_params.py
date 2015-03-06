@@ -193,7 +193,7 @@ def run_mpl_2(
                         y.append( ((clus.p - qm )/qm) [ comp_map[c]] )
 #Plot only dipole and alpha for level 1
             if l == 1:
-                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 1, hyp = 0) )
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 2, hyp = 0) )
                 g.set_damping( rq, rp )
                 g.solve_scf()
                 if p == 'd':
@@ -224,7 +224,7 @@ def run_mpl_2(
                         y.append( ((Rotator.ut_2_square(clus.sum_property['alpha']).diagonal() - qm )/qm) [ comp_map[c]] )
 #plot all comps for level 2 
             if l == 2:
-                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 22, hyp = 1) )
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 2 , hyp = 1) )
                 g.set_damping( rq, rp )
                 g.solve_scf()
                 if p == 'd':
@@ -394,7 +394,7 @@ if __name__ == '__main__':
     A.add_argument("-out_angle", action = 'store_true', default = False )
     args = A.parse_args( sys.argv[1:] )
 
-    o_files = o_filter( [f for f in os.listdir(os.getcwd()) if f.endswith('.out')], 
+    o_files = o_filter( [f for f in os.listdir(os.getcwd()) if f.startswith( args.dal ) and f.endswith('.out')], 
             vary = args.x,
             r = args.r_const,
             tau = args.tau_const,
@@ -427,6 +427,5 @@ if __name__ == '__main__':
             Rqs = args.Rq,
             Rps = args.Rp,
             max_ls = args.max_l,
-
             )
 
