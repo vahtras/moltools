@@ -20,7 +20,7 @@ from loprop import *
 a0 = 0.52917721092
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
-        "P" : 15 }
+        "P" : 15, "X" : 0.0 }
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
@@ -866,7 +866,9 @@ AA       True     bool
         self.in_water = False
         self.Molecule = Molecule()
 
-
+        self.in_qm = False
+        self.in_mm = False
+        self.in_qmmm = False
 #Property set to true if atoms have properties
         self.Property = Property()
         self.AA = True
@@ -881,6 +883,9 @@ AA       True     bool
             self.number = kwargs.get( "number", 0 )
             self.pdbname = kwargs.get( "pdbname", 'X1' )
             self.order = kwargs.get( "order", 0 )
+            self.in_qm = kwargs.get( "in_qm", False )
+            self.in_mm = kwargs.get( "in_mm", False )
+            self.in_qmmm = kwargs.get( "in_qmmm", False )
         self._mass = None
 
     def plot(self ):
@@ -1070,7 +1075,7 @@ Return the distance to a point
 """
         return np.sqrt( (self.x - other[0])**2 + (self.y -other[1])**2 + (self.z -other[2])**2 )
 
-    def to_au(self):
+    def to_AU(self):
         if self.AA:
             self.x /= a0
             self.y /= a0
@@ -1170,6 +1175,9 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         else:
             self.LoProp = False
         self.Property = True
+
+    def dist_to_point( self , point ):
+        return np.sqrt(np.sum((self.com - np.array(point))**2))
 
     def get_euler(self):
         """Will be overwritten by specific molecule classes"""
@@ -1655,7 +1663,7 @@ Plot the molecule in a 3D frame
             el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2}
         else:
-            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
+            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0 }
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
@@ -2515,16 +2523,16 @@ Plot all the molecule in a 3D frame in the cluster
 
 
 
-    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1" ) , AA = False):
+    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) , AA = False):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
         if len( basis ) > 1:
             # Set row index number to periodic table one
-            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1  }
+            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1 , "S" : 2  }
         else:
             # Keep all 0, since basis is only len 1
-            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0 }
+            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0 }
 
         st = ""
         comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
@@ -2630,6 +2638,23 @@ Plot all the molecule in a 3D frame in the cluster
             for i in mol:
                 st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                         i.element, i.x,  i.y , i.z )
+        return st
+
+    def get_xyz_string(self, qm_region = False, mm_region = False ):
+        st = "0\n\n"
+        ats = []
+        if qm_region:
+            st = "%d\n\n" % sum([len(i) for i in self if i.in_qm ])
+            ats = [at for mol in self for at in mol if mol.in_qm]
+        if mm_region:
+            st = "%d\n\n" % sum([len(i) for i in self if i.in_mm ])
+            ats = [at for mol in self for at in mol if mol.in_mm]
+        if qm_region and mm_region:
+            st = "%d\n\n" % sum([len(i) for i in self if i.in_qmmm ])
+            ats = [at for mol in self for at in mol if mol.in_qmmm]
+        for i in ats:
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
+                    i.element, i.x,  i.y , i.z )
         return st
 
     def order_mm_atoms(self):
@@ -2932,6 +2957,11 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         return tmp_c
 
     @property
+    def com(self):
+        if len(self) == 0:return np.zeros(3)
+        return sum([at.r*at.mass for mol in self for at in mol]) / sum([at.mass for mol in self for at in mol] )
+
+    @property
     def sum_property(self):
         """
 Return the sum properties of all molecules in cluster
@@ -2944,6 +2974,20 @@ Return the sum properties of all molecules in cluster
             for at in mol:
                 p += at.Property
         return p
+
+    def to_AA(self):
+        if not self.AA:
+            for i in self:
+                i.to_AA()
+            self.AA = True
+
+    def to_AU(self):
+        if self.AA:
+            for i in self:
+                i.to_AU()
+            self.AA = False
+
+
 
 
 

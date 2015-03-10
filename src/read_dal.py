@@ -27,6 +27,11 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def polar_to_cartesian( r, tau, theta):
+    x, y, z = r* np.sin( theta )*np.cos( tau ) \
+           , r* np.sin(  theta )*np.sin( tau )  \
+           , r* np.cos(  theta ) 
+    return x , y , z
 
 def o_filter( 
         out_files, 
