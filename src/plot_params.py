@@ -21,6 +21,7 @@ class MyBoolAction( argparse.Action):
         mod = values
         #mod = map( lambda x: x != 0, values )
         setattr(namespace, self.dest, mod)
+
 #Customize label name
 def customize_label( yd, p, l, c, lop ):
     label = ""
@@ -168,6 +169,7 @@ def run_mpl_2(
                     loprop = lop == 1,
                     freq = f )
 
+            print clus.sum_property
             clus.set_qm_mm(5)
             #print fname
             #print clus.sum_property['beta'][ comp_map_beta[c] ]
