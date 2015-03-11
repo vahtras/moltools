@@ -168,8 +168,6 @@ def run_mpl_2(
                     basis = basis,
                     loprop = lop == 1,
                     freq = f )
-
-            print clus.sum_property
             clus.set_qm_mm(5)
             #print fname
             #print clus.sum_property['beta'][ comp_map_beta[c] ]
@@ -178,7 +176,7 @@ def run_mpl_2(
             #print '------------'
 #Plot only dipole for level 0
             if l == 0:
-                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 0, hyp = 0) )
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = max_l, pol = 0, hyp = 0) )
                 g.set_damping( rq, rp )
                 g.solve_scf()
                 if p == 'd':
@@ -196,7 +194,7 @@ def run_mpl_2(
                         y.append( ((clus.p - qm )/qm) [ comp_map[c]] )
 #Plot only dipole and alpha for level 1
             if l == 1:
-                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 2, hyp = 0) )
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = max_l, pol = 2, hyp = 0) )
                 g.set_damping( rq, rp )
                 g.solve_scf()
                 if p == 'd':
@@ -227,7 +225,7 @@ def run_mpl_2(
                         y.append( ((Rotator.ut_2_square(clus.sum_property['alpha']).diagonal() - qm )/qm) [ comp_map[c]] )
 #plot all comps for level 2 
             if l == 2:
-                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = 1, pol = 2 , hyp = 1) )
+                g = GaussianQuadrupoleList.from_string( clus.get_qmmm_pot_string( max_l = max_l, pol = 22, hyp = 1) )
                 g.set_damping( rq, rp )
                 g.solve_scf()
                 if p == 'd':

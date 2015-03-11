@@ -2640,8 +2640,7 @@ Plot all the molecule in a 3D frame in the cluster
                         i.element, i.x,  i.y , i.z )
         return st
 
-    def get_xyz_string(self, qm_region = False, mm_region = False ):
-        st = "0\n\n"
+    def get_xyz_string(self, both= False, qm_region = False, mm_region = False ):
         ats = []
         if qm_region:
             st = "%d\n\n" % sum([len(i) for i in self if i.in_qm ])
@@ -2652,6 +2651,9 @@ Plot all the molecule in a 3D frame in the cluster
         if qm_region and mm_region:
             st = "%d\n\n" % sum([len(i) for i in self if i.in_qmmm ])
             ats = [at for mol in self for at in mol if mol.in_qmmm]
+        if both:
+            ats = [at for mol in self for at in mol ]
+        st = "%d\n\n" %len(ats)
         for i in ats:
             st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                     i.element, i.x,  i.y , i.z )
