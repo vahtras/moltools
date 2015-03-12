@@ -18,6 +18,7 @@ import h5py
 from loprop import *
 
 a0 = 0.52917721092
+elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
         "P" : 15, "X" : 0.0 }
@@ -2729,10 +2730,31 @@ Return a cluster of water molecules given file.
                     f = pat_xyz.match(i).groups()
                     tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
                     atoms.append( tmpAtom )
+        elif fname.endswith( '.log' ):
+            pat_atoms = re.compile ( r'NAtoms=\s+(\d+)' )
+            pat_xyz = re.compile ( r'Standard ori' )
+            lines = open(fname).readlines()
+            conf = []
+            for line in lines:
+                if pat_atoms.search( line ):
+                    N = int(pat_atoms.search( line ).group(1))
+                    break
+            for ind, line in enumerate(lines):
+                if pat_xyz.search( line ):
+                    conf.append( "\n".join( map( lambda x:x.strip('\n'), lines[ ind +5 : ind + 5 + N ]) ) )
+            for each in conf[-1].split('\n'):
+                spl = each.split()
+                tmpAtom = Atom( element = elem_array[ int(spl[1]) ],
+                        AA = True,
+                        x = float(spl[3]),
+                        y = float(spl[4]),
+                        z = float(spl[5]),)
+                atoms.append( tmpAtom )
+
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
         cnt = 1
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+        if fname.endswith(".log") or fname.endswith( ".xyz" ) or fname.endswith(".mol"):
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
             xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
             for i in atoms:
@@ -2755,6 +2777,9 @@ Return a cluster of water molecules given file.
                 if i.in_water:
                     continue
                 tmp = Water( AA = in_AA)
+#Gaussian output seems to have Angstrom always
+                if fname.endswith( '.log' ):
+                    tmp.AA = True
                 i.in_water = True
                 tmp.append( i )
                 for j in atoms:
@@ -2878,7 +2903,7 @@ Return a cluster of water molecules given file.
             for atom in wat:
                 atom._res_id = wat.res_id
 
-        if in_AA:
+        if in_AA or fname.endswith( '.log' ):
             if not out_AA:
                 for wat in c:
                     wat.to_AU()
