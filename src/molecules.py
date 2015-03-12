@@ -2962,6 +2962,21 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         [tmp_c.add_mol(wat.copy_water()) for wat in self]
         return tmp_c
 
+    def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
+        """Write gaussian .inp file for geometry optimization"""
+        st = r"%" + "Nprocshared=%d\n" %procs
+        st += r"%" + "Mem=20MW\n"
+        st += "#p %s/%s opt " %(method,basis)
+        if not self.AA:
+            st += "units=au " 
+        st += '\n\ncomment\n\n'
+        st += "%d %d\n" %( self.sum_property['charge'][0], 1 )
+        for i in [at for mol in self for at in mol]:
+            st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
+        st+= '\n\n\n'
+        return st
+
+
     @property
     def com(self):
         if len(self) == 0:return np.zeros(3)
