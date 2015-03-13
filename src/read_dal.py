@@ -1098,15 +1098,24 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 
     pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
     pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
+#Special xyz hack for camb3lyp output from akka dalton to find atoms
+    pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
 
 # Reading in dipole
     for i in open( file_ ).readlines():
         if pat_xyz.match(i):
             f = pat_xyz.match(i).groups()
-            
             matched = pat_xyz.match(i).groups()
 #Skip coordinates in out file that are for MM region from QMMM
-            kwargs = { "element" :  matched[0], "x" : matched[1],
+            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
+                    "y" : matched[2], "z" : matched[3] }
+            tmpAtom = molecules.Atom( **kwargs )
+            atoms.append( tmpAtom )
+        elif pat_akka_xyz.match(i):
+            f = pat_akka_xyz.match(i).groups()
+            matched = pat_akka_xyz.match(i).groups()
+#Skip coordinates in out file that are for MM region from QMMM
+            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
             tmpAtom = molecules.Atom( **kwargs )
             atoms.append( tmpAtom )
