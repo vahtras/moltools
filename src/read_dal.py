@@ -68,11 +68,15 @@ def o_filter(
         out.append( f )
     return out
 
-def unique(arr):
+def unique(arr, key = lambda x: x):
     tmp = []
     for i in arr:
-        if i not in tmp:
-            tmp.append(i)
+        #try:
+        inew = key( i )
+        if inew not in tmp:
+            tmp.append( inew )
+        #except:
+        #    print "ASDF"
     return tmp
 
 def write_related( args ):
