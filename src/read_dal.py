@@ -27,6 +27,14 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def make_para( shape = ( 0,) ):                                                      
+    arr = np.zeros( shape )                                                          
+    sb = multiprocessing.Array( ctypes.c_double, reduce(lambda a,b:a*b, arr.shape) )              
+    sb = np.ctypeslib.as_array( sb.get_obj())                                        
+    sb[:] = None                                                                     
+    return sb.reshape( shape )  
+
+
 def polar_to_cartesian( r, tau, theta):
     x, y, z = r* np.sin( theta )*np.cos( tau ) \
            , r* np.sin(  theta )*np.sin( tau )  \
