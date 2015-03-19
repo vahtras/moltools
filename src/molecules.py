@@ -1377,6 +1377,8 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
 
                     self[i].bonds[ self[j].name ] = self[j]
                     self[j].bonds[ self[i].name ] = self[i]
+                    self.bond_dict[ self[i] ] = self[j] 
+                    self.bond_dict[ self[j] ] = self[i] 
 
     def populate_angles(self):
 # Must be run after populate_bonds
@@ -1639,8 +1641,16 @@ Plot the molecule in a 3D frame
 """
 
 #Plot water molecule in green and  nice xyz axis
+        self.populate_bonds()
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
+#Plot bonds
+        for key in self.bond_dict:
+            ax.plot( [key.x, self.bond_dict[key].x],
+                     [key.y, self.bond_dict[key].y],
+                     [key.z, self.bond_dict[key].z], color = 'black' )
+                    
+
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
         ax.text( 0, 1.1, 0, "Y", color = 'red' )
