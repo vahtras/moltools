@@ -11,6 +11,7 @@ import numpy as np
 import re, os, itertools, warnings, subprocess, shutil
 
 from template import Template
+from copy import deepcopy
 
 import read_dal
 
@@ -174,6 +175,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
                 p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
         at.Molecule.Property = True
+
 
     def transform_ut_properties( self, t1, t2, t3):
         """
@@ -889,9 +891,10 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
         self._mass = None
 
+
     def plot(self ):
         """
-Plot the Atom in a 3D frame
+Plot Atom in a 3D frame
 
 .. code:: python
 
@@ -1097,14 +1100,14 @@ class Molecule( list ):
 
     def __init__(self , *args, **kwargs):
 #Bond dict defined in angstromg, if molecule is in AU will be different later
-        self.bonding_cutoff = { ('H','H') : 1.1,
-                ('H','C') : 1.1,
+        self.bonding_cutoff = { ('H','H') : 0.8,
+                ('H','C') : 1.101,
                 ('H','N') : 1.1,
                 ('H','O') : 1.1,
                 ('H','P') : 1.1,
                 ('H','S') : 1.3,
-                ('C','C') : 1.5,
-                ('C','N') : 1.5,
+                ('C','C') : 1.66,
+                ('C','N') : 1.52,
                 ('C','O') : 1.5,
                 ('C','P') : 2.0,
                 ('C','S') : 2.0,
@@ -1367,18 +1370,23 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
 
     def populate_bonds(self):
 #Implement later that it can only be called once
+        bond_dict = {}
+        for i, at in enumerate( self ):
+            bond_dict[ at ] = []
+
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
         for i in range(len(self)):
-            for j in range( i + 1, len(self)):
+            for j in range( i + 1, len(self) ):
                 if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
 
                     self[i].bonds[ self[j].name ] = self[j]
                     self[j].bonds[ self[i].name ] = self[i]
-                    self.bond_dict[ self[i] ] = self[j] 
-                    self.bond_dict[ self[j] ] = self[i] 
+                    bond_dict[ self[i] ].append( self[j] )
+                    bond_dict[ self[j] ].append( self[i] )
+        self.bond_dict = bond_dict
 
     def populate_angles(self):
 # Must be run after populate_bonds
@@ -1601,7 +1609,6 @@ Return center of charge
 
         if self.Property:
             pass
-
         return sum( [at.r * charge_dict[at.element] for at in self])\
                 /sum( map(float,[charge_dict[at.element] for at in self]) )
 
@@ -1626,9 +1633,9 @@ Distance to other molecule, measured by center-of-mass
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
 
-    def plot(self ):
+    def plot(self, center = True, d = False ):
         """
-Plot the molecule in a 3D frame
+Plot Molecule in a 3D frame
 
 .. code:: python
 
@@ -1640,29 +1647,36 @@ Plot the molecule in a 3D frame
     
 """
 
+#Make a copy in order to not change original, and perform plot on it
+        copy = deepcopy( self )
+
+        if center:
+            copy.center()
+
 #Plot water molecule in green and  nice xyz axis
-        self.populate_bonds()
+        copy.populate_bonds()
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 #Plot bonds
-        for key in self.bond_dict:
-            ax.plot( [key.x, self.bond_dict[key].x],
-                     [key.y, self.bond_dict[key].y],
-                     [key.z, self.bond_dict[key].z], color = 'black' )
-                    
+        for each in copy.bond_dict:
+            for key in copy.bond_dict[ each ]:
+                ax.plot( [key.x, each.x],
+                         [key.y, each.y],
+                         [key.z, each.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
         ax.text( 0, 1.1, 0, "Y", color = 'red' )
         ax.text( 0, 0, 1.1, "Z", color = 'red' )
-        x = self.coc[0]
-        y = self.coc[1]
-        z = self.coc[2]
-        p = self.p
+        if d:
+            x = copy.coc[0]
+            y = copy.coc[1]
+            z = copy.coc[2]
+            p = copy.p
+            ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
+        for i in copy:
+            ax.plot( [i.x], [i.y], [i.z], copy.style[i.element], linewidth= copy.linewidth[i.element] )
 
-        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
-        for i in self:
-            ax.plot( [i.x], [i.y], [i.z], self.style[i.element], linewidth= self.linewidth[i.element] )
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -2499,7 +2513,7 @@ class Cluster(list):
 
     def plot(self ):
         """
-Plot all the molecule in a 3D frame in the cluster
+Plot Cluster a 3D frame in the cluster
 
 .. code:: python
 
