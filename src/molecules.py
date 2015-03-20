@@ -1682,8 +1682,8 @@ Plot Molecule in a 3D frame
         plt.ylim(-5,5)
         plt.show()
 
-    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1",
-        "ano-2 4 3 2 1" ) ):
+    def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
+        "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2}
