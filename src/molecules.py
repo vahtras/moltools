@@ -269,6 +269,31 @@ class Generator( dict ):
             self[ ( val, "active" ) ]  = False
 
     @staticmethod
+    def get_b3lypqua_dal( ):
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+B3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*QUADRATIC
+.QLOP
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+    @staticmethod
     def get_hfqua_dal( ):
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -1220,32 +1245,45 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
             procs = 4,
             decimal = 5,
-            maxl = 2,
+            maxl = 1,
             pol = 22,
             hyper = 2,
+            method = 'hf',
             env = os.environ,
-            basis = ['ano-1 2 1', 'ano-1 3 2 1'],
+            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-1 5 4 1' ],
             dalexe = None,
-            basdir = '/home/x_ignha/repos/beta/basis',
+            basdir = '/home/x_ignha/repos/dalton/basis',
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
         childed process, get the properties back and put them on all atoms.
 
-        Might take long time.
+        Might take long time for large residues.
         """
 
 #Specific for triolith host, will remove in slurm environment leftover RSP
-#files if they exist
+#files if they exist in tmp dir
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
+#Set allocated temporary directory
+            tmpdir = os.environ['SNIC_TMP']
             for f_ in [f for f in os.listdir(tmpdir) if "RSP" in f]:
                 if os.path.isfile( os.path.join( tmpdir, f_ ) ):
                     os.remove( os.path.join( tmpdir, f_) )
         else:
             tmpdir = os.path.join( tmpdir, str(os.getpid()) )
-        dal = 'hfqua.dal'
-        mol = 'tmp.mol'
-        open( dal, 'w').write( Generator.get_hfqua_dal( ) )
+            if not os.path.isdir( tmpdir ):
+                os.mkdir( tmpdir )
+
+        dal = 'dalton.dal'
+        mol = 'molecule.mol'
+        dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
+        if method == 'hf':
+            open( dal, 'w').write( Generator.get_hfqua_dal( ) )
+        elif method == 'hf':
+            open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
+        else:
+            print "wrong calculation type specified"
+            return
         open( mol, 'w').write( self.get_mol_string( basis = basis) )
 
 #Make sure that the external dalton script copies the .out and .tar.gz
@@ -1286,19 +1324,16 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 dalexe], stdout = subprocess.PIPE )
             out, err = p.communicate()
 
-            tar = "hfqua_tmp.tar.gz"
+            tar = "final.tar.gz"
             of = "DALTON.OUT"
-            #p = subprocess.Popen(['tar',
-            #    'cvfz',
-            #    'AOONEINT','AOPROPER','DALTON.BAS',
-            #    'SIRIFC','RSPVEC','SIRIUS.RST',
-            #    tar
-            #    ],
-            #    stdout = subprocess.PIPE)
-
+            p = subprocess.Popen(['tar',
+                'cvfz',
+                'AOONEINT','AOPROPER','DALTON.BAS',
+                'SIRIFC','RSPVEC','SIRIUS.RST',
+                tar
+                ],
+                stdout = subprocess.PIPE)
         else:
-            if not os.path.isdir( tmpdir):
-                os.mkdir( tmpdir )
 #Run as dalton script
             p = subprocess.Popen([dalton, 
                 '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
@@ -1306,8 +1341,9 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 ], stdout = subprocess.PIPE,
                 )
             out, err = p.communicate()
-            of = "hfqua_tmp.out"
-            tar = "hfqua_tmp.tar.gz"
+            of = "DALTON.OUT"
+            tar = "dalton_molecule.tar.gz"
+            of, tar = map( lambda x: os.path.join( tmpdir, x ), [of, tar ] )
         at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
