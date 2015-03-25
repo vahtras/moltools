@@ -1401,7 +1401,6 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             try:
                 os.remove( tar )
             except OSError:
-                print "DALTON probobly didn't archive "
                 pass
             os.remove( of )
             shutil.rmtree( tmpdir )
