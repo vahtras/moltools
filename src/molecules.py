@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil
+import re, os, itertools, warnings, subprocess, shutil, pickle
 
 from template import Template
 from copy import deepcopy
@@ -857,7 +857,7 @@ y        0.0      float
 z        0.0      float
 element  X        string
 name     1-XXX-X1 string
-pdbname  X1       string
+pdb_name  X1       string
 number   0        int
 AA       True     bool
 ======== ======== ========
@@ -888,6 +888,7 @@ AA       True     bool
 
         self.cluster = None
 
+        self.number = 0
         self._res_id = 0
         self.atom_id = None
 
@@ -909,7 +910,7 @@ AA       True     bool
             self.element = kwargs.get( "element", "X" )
             self.name = kwargs.get( "name", "1-XXX-X1" )
             self.number = kwargs.get( "number", 0 )
-            self.pdbname = kwargs.get( "pdbname", 'X1' )
+            self.pdb_name = kwargs.get( "pdb_name", 'X1' )
             self.order = kwargs.get( "order", 0 )
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
@@ -1027,7 +1028,7 @@ Plot Atom in a 3D frame
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
-            'pdbname':self.pdbname} )
+            'pdb_name':self.pdb_name} )
         a._res_id = self.res_id
         a.atom_id = self.atom_id
         a.Property = self.Property.copy_property()
@@ -1132,7 +1133,7 @@ class Molecule( list ):
                 ('H','P') : 1.1,
                 ('H','S') : 1.3,
                 ('C','C') : 1.66,
-                ('C','N') : 1.52,
+                ('C','N') : 1.60,
                 ('C','O') : 1.5,
                 ('C','P') : 2.0,
                 ('C','S') : 2.0,
@@ -1165,7 +1166,7 @@ class Molecule( list ):
         self.LoProp = False
 
 # For plotting different elements:
-        self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'bo',"P":'ko', "O":'ro',
+        self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'go',"P":'ko', "O":'ro',
                 'S' : 'yo'}
         self.linewidth = {"X":25,"H":25, "N": 30, "C": 30, "O":40, "P" : 40,
                 'S' : 45 }
@@ -1183,6 +1184,18 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+ 
+    def save(self, fname = "molecule.p"):
+        pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
+
+    @staticmethod
+    def load(fname = 'molecule.p'):
+        if not os.path.isfile( fname):
+            print "Error: could not open file %s" %fname
+            return
+        return pickle.load( open(fname, 'rb' ) )
+    
+
 
     def attach_properties(self, 
             model = "TIP3P",
@@ -1336,7 +1349,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         else:
 #Run as dalton script
             p = subprocess.Popen([dalton, 
-                '-N', str(procs), '-D', '-noappend', '-t', tmpdir,
+                '-N', str(procs), '-noarch', '-D', '-noappend', '-t', tmpdir,
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
@@ -1373,6 +1386,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                     maxl = maxl,
                     pol = pol,
                     hyper = hyper )
+        self.LoProp = True
 
 
 #So that we do not pollute current directory with dalton outputs
@@ -1381,10 +1395,18 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
             for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
                 os.remove( f_ )
+            for f_ in [mol, dal]:
+                os.remove( f_ )
         else:
-            os.remove( tar )
+            try:
+                os.remove( tar )
+            except OSError:
+                print "DALTON probobly didn't archive "
+                pass
             os.remove( of )
             shutil.rmtree( tmpdir )
+            for f_ in [mol, dal]:
+                os.remove( f_ )
 
     @classmethod
     def from_string(cls, fil):
@@ -1533,7 +1555,7 @@ Return the dipole moment
 """
     @property
     def p(self):
-        if self.Property:
+        if self.Property or self.LoProp:
             el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
             nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
             dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
@@ -1550,9 +1572,15 @@ Return the sum properties of all properties in molecules
 .. code:: python
     >>> wat
         """
+        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        dip = el_dip + nuc_dip
+        d = (dip + dip_lop).sum(axis=0)
         p = Property()
         for at in self:
             p += at.Property
+        p['dipole'] = d
         return p
 
 #Vector pointing to center of atom position
@@ -1812,7 +1840,7 @@ Read in molecule given .mol file and unit specification.
                         "element" : matched[0][0],
                         "name" :  matched[0], "x" : matched[1],
                         "y" : matched[2], "z" : matched[3], 
-                        "pdbname" : pd }
+                        "pdb_name" : pd }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
         if in_AA:
@@ -2142,6 +2170,9 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         1) inverse Z rotation by t1
         2) positive Y rotation by t2
         3) inverse Z rotation by t3
+
+        Inverse rotation around oxygen centre, will conflict with
+        self.center() method which centers around center-of-mass.
         """
 
         t1, t2, t3 = self.get_euler()
@@ -2167,6 +2198,11 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
         self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
         self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
+
+        if self.h2.x >= 0:
+            tmp = self.h2.r.copy()
+            self.h2.x, self.h2.y, self.h2.z = self.h1.r.copy()
+            self.h1.x, self.h1.y, self.h1.z = tmp
 
     def rotate(self, t1, t2, t3):
         """Rotate all coordinates by t1, t2 and t3
@@ -2463,7 +2499,20 @@ class Cluster(list):
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
+    
+    def save(self, fname = "cluster.p"):
+        pickle.dump( self, open(fname, 'wb' ), protocol = 2 )
 
+    @staticmethod
+    def load(fname = 'cluster.p'):
+        if not os.path.isfile( fname):
+            print "Error: could not open file %s" %fname
+            return
+        return pickle.load( open(fname, 'rb' ) )
+    
+
+
+    
     @staticmethod
     def get_all_molecules_from_file(fil,
             in_AA = False,
@@ -2547,34 +2596,47 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self ):
+    def plot(self, center = True ):
         """
 Plot Cluster a 3D frame in the cluster
 
 .. code:: python
 
-    >>> m = Molecule()
-    >>> m.append( Atom(element = 'H', x = 1, z = 1) )
-    >>> m.append( Atom(element = 'H', x =-1, z = 1) )
-    >>> m.append( Atom(element = 'O', z = 0) )
+    >>> m = Cluster()
+    >>> m.add_atom( Atom(element = 'H', x = 1, z = 1) )
+    >>> m.add_atom( Atom(element = 'H', x =-1, z = 1) )
+    >>> m.add_atom( Atom(element = 'O', z = 0) )
     >>> m.plot()
     
 """
+#Make a copy in order to not change original, and perform plot on it
+        copy = deepcopy( self )
+        if center:
+            copy.translate([0,0,0])
 
-#Plot water molecule in green and  nice xyz axis
+        for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
+            mol.populate_bonds()
+
+#Plot in nice xyz axis
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
+
+#Plot bonds
+        for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
+            for atom in mol:
+                for key in mol.bond_dict[ atom ]:
+                    ax.plot( [key.x, atom.x],
+                             [key.y, atom.y],
+                             [key.z, atom.z], color = 'black' )
+
+
+
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
         ax.text( 0, 1.1, 0, "Y", color = 'red' )
         ax.text( 0, 0, 1.1, "Z", color = 'red' )
-        x = self.coc[0]
-        y = self.coc[1]
-        z = self.coc[2]
-        p = self.p
 
-        ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], '-', linewidth = 3 )
-        for i in self:
+        for i in copy:
             for j in i:
                 ax.plot( [j.x], [j.y], [j.z], j.Molecule.style[j.element], linewidth= j.Molecule.linewidth[j.element] )
         ax.set_zlim3d( -5,5)
@@ -3093,9 +3155,27 @@ Return the sum properties of all molecules in cluster
                 i.to_AU()
             self.AA = False
 
+    def translate(self, r):
+        """
+Translate cluster center-of-mass to position r
 
+.. code:: python
 
-
+    >>> m = Cluster()
+    >>> m.append( Atom(element = 'H', z = 1) )
+    >>> m.append( Atom(element = 'H', z = 0) )
+    >>> print m.com
+    [0, 0, 0.5 ]
+    >>> m.translate( [0, 3, 5] )
+    >>> print m.com
+    [0, 3, 5 ]
+    
+"""
+        vec = r - self.com
+        for at in [at for mol in self for at in mol]:
+            at.x = vec[0] + at.x 
+            at.y = vec[1] + at.y 
+            at.z = vec[2] + at.z 
 
 if __name__ == '__main__':
     from use_generator import *
