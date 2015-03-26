@@ -1255,7 +1255,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
 
     def props_from_qm(self,
             tmpdir = '/tmp',
-            dalpath = '/home/ignat/repos/beta/build_incore/dalton', 
+            dalpath = None,
             procs = 4,
             decimal = 5,
             maxl = 1,
@@ -1312,10 +1312,10 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 os.path.join( tmpdir, 'MOLECULE.INP'), ],
                 stdout = subprocess.PIPE )
             out, err = p.communicate()
-        elif env.has_key( 'DALTON' ):
-            dalton = env['DALTON']
         elif os.path.isfile( dalpath ):
             dalton = dalpath
+        elif env.has_key( 'DALTON' ):
+            dalton = env['DALTON']
         else:
             print "set env variable DALTON to dalton script, \
              or supply the script to props_from_qm directly as  \
