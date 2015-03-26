@@ -21,7 +21,7 @@ charge_dic = {"H1": 1.0 ,"H2":1.0 , "C1":6.0, "C7":6.0, "H3":1.0,
             "H4":1.0, "H6": 1.0, "H8":1.0, 
             "H9":1.0, "H10": 1.0, "H12":1.0, 
             "O5":8.0, "O11": 8.0,
-"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
+            "H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}
 mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
@@ -1113,6 +1113,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 #Special xyz hack for camb3lyp output from akka dalton to find atoms
     pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
 
+    pat_labels_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
 # Reading in dipole
     for i in open( file_ ).readlines():
         if pat_xyz.match(i):
@@ -1123,11 +1124,26 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                     "y" : matched[2], "z" : matched[3] }
             tmpAtom = molecules.Atom( **kwargs )
             atoms.append( tmpAtom )
+
         elif pat_akka_xyz.match(i):
             f = pat_akka_xyz.match(i).groups()
             matched = pat_akka_xyz.match(i).groups()
 #Skip coordinates in out file that are for MM region from QMMM
             kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
+                    "y" : matched[2], "z" : matched[3] }
+            tmpAtom = molecules.Atom( **kwargs )
+            atoms.append( tmpAtom )
+
+        elif pat_labels_xyz.match(i):
+            f = pat_labels_xyz.match(i).groups()
+            matched = pat_labels_xyz.match(i).groups()
+            lab = matched[0]
+            print lab
+            if len(lab.split('-')) == 4:
+                element = "H"
+            else:
+                element = lab.split('-')[2][0]
+            kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
             tmpAtom = molecules.Atom( **kwargs )
             atoms.append( tmpAtom )
@@ -1174,6 +1190,10 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
         nuc_dip[0] += charge_dic[ i.element ] * i.x
         nuc_dip[1] += charge_dic[ i.element ] * i.y
         nuc_dip[2] += charge_dic[ i.element ] * i.z
+    coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
+            sum([ charge_dic[x.element] for x in atoms ]
+    if in_AA:
+        nuc_dip /= a0
 
 # Reading in Alfa and Beta tensor
 
@@ -1223,9 +1243,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                     beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
                 except KeyError:
                     beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
-    if in_AA:
-        nuc_dip /= a0
-    tot_dip = nuc_dip - el_dip
+    tot_dip = (nuc_dip - coc) - (el_dip - coc )
 
     return atoms, nuc_dip - el_dip, alpha , beta
 

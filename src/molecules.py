@@ -1191,8 +1191,7 @@ class Molecule( list ):
     @staticmethod
     def load(fname = 'molecule.p'):
         if not os.path.isfile( fname):
-            print "Error: could not open file %s" %fname
-            return
+            raise IOError
         return pickle.load( open(fname, 'rb' ) )
     
 
@@ -1867,8 +1866,7 @@ Angstrom [ out_AA = True ]
     
 """
         if not os.path.isfile( f ):
-            print "Error: Molecule.from_xyz recieved non-xyz file: %s" %f
-            raise IOError:
+            raise IOError
 
         fil = open(f).readlines()
         m = Molecule( AA = in_AA )
@@ -2505,8 +2503,7 @@ class Cluster(list):
     @staticmethod
     def load(fname = 'cluster.p'):
         if not os.path.isfile( fname):
-            print "Error: could not open file %s" %fname
-            return
+            raise IOError
         return pickle.load( open(fname, 'rb' ) )
     
 
