@@ -1292,7 +1292,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
         if method == 'hf':
             open( dal, 'w').write( Generator.get_hfqua_dal( ) )
-        elif method == 'hf':
+        elif method == 'b3lyp':
             open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
         else:
             print "wrong calculation type specified"
