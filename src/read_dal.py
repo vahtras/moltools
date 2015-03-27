@@ -1108,14 +1108,17 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
     exists = {}
     lab = ["X", "Y", "Z"]
 
+    pat_Q = re.compile(r'Total charge of the molecule')
     pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
     pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
 #Special xyz hack for camb3lyp output from akka dalton to find atoms
     pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
 
     pat_labels_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
-# Reading in dipole
+# Reading in dipole and charge
     for i in open( file_ ).readlines():
+        if pat_Q.search( i ):
+            Q = float(i.split()[-1])
         if pat_xyz.match(i):
             f = pat_xyz.match(i).groups()
             matched = pat_xyz.match(i).groups()
@@ -1138,7 +1141,6 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
             f = pat_labels_xyz.match(i).groups()
             matched = pat_labels_xyz.match(i).groups()
             lab = matched[0]
-            print lab
             if len(lab.split('-')) == 4:
                 element = "H"
             else:
@@ -1186,14 +1188,16 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                         frac = float( i.split()[2].strip(":"))
                 el_dip[2] += frac
 
-    for i in atoms:
-        nuc_dip[0] += charge_dic[ i.element ] * i.x
-        nuc_dip[1] += charge_dic[ i.element ] * i.y
-        nuc_dip[2] += charge_dic[ i.element ] * i.z
+
+#Set center of nuceli charge to 0
     coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
-            sum([ charge_dic[x.element] for x in atoms ]
+            sum([ charge_dic[x.element] for x in atoms ])
+    for i in atoms:
+        nuc_dip += charge_dic[ i.element ] * (i.r - coc )
+
     if in_AA:
-        nuc_dip /= a0
+# Make sure center of charge is in Atomic units to give correct electronic dipole
+        coc /= a0
 
 # Reading in Alfa and Beta tensor
 
@@ -1243,9 +1247,10 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                     beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
                 except KeyError:
                     beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
-    tot_dip = (nuc_dip - coc) - (el_dip - coc )
+    N_el = sum([charge_dic[at.element] for at in atoms]) - Q
+    tot_dip = el_dip - coc * N_el
 
-    return atoms, nuc_dip - el_dip, alpha , beta
+    return atoms, tot_dip, alpha , beta
 
 def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
     """ Same as read_beta_hf but skips coordinates not in allowd_elements
