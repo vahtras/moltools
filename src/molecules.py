@@ -1203,7 +1203,7 @@ class Molecule( list ):
             loprop = True,
             freq = "0.0"):
         """
-Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
+Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for at in self:
@@ -1983,7 +1983,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         h2.x = (center[0] - r_oh * np.cos(d)) 
         h2.y = center[1] 
         h2.z = (center[2] + r_oh* np.sin(d))
-
+        o.order = 1
+        h1.order = 2
+        h2.order = 3
         w = Water( AA = AA)
         w.append( o )
         w.append( h1 )
