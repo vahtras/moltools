@@ -1392,10 +1392,13 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 #Also remove confliction inter-dalton calculation files
 # For triolith specific calculations, remove all files in tmp
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
-                os.remove( f_ )
-            for f_ in [mol, dal]:
-                os.remove( f_ )
+            try:
+                for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
+                    os.remove( f_ )
+                for f_ in [mol, dal]:
+                    os.remove( f_ )
+            except OSError:
+                pass
         else:
             try:
                 os.remove( tar )
@@ -1404,7 +1407,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             os.remove( of )
             shutil.rmtree( tmpdir )
             for f_ in [mol, dal]:
-                os.remove( f_ )
+                try:
+                    os.remove( f_ )
+                except OSError:
+                    pass
 
     @classmethod
     def from_string(cls, fil):
