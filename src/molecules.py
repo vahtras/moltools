@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil
+import re, os, itertools, warnings, subprocess, shutil, logging
 import cPickle as pickle
 
 from template import Template
@@ -1025,7 +1025,8 @@ Plot Atom in a 3D frame
 
     def copy(self):
         return self.copy_atom()
-
+    def copy_self(self):
+        return self.copy_atom()
     def copy_atom(self):
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
@@ -1903,20 +1904,16 @@ Angstrom [ out_AA = True ]
         return m
 
     def to_AU(self):
-        assert self.AA == True
-        for at in self:
-            at.x = at.x / a0
-            at.y = at.y / a0
-            at.z = at.z / a0
-        self.AA = False
+        if self.AA:
+            for at in self:
+                at.to_AU()
+            self.AA = False
 
     def to_AA(self):
-        assert self.AA == False
-        for at in self:
-            at.x *= a0
-            at.y *= a0
-            at.z *= a0
-        self.AA = True
+        if not self.AA:
+            for at in self:
+                at.to_AA()
+            self.AA = True
 
 class Water( Molecule ):
     """
@@ -1945,6 +1942,8 @@ class Water( Molecule ):
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
 
+    def copy_self(self):
+        return self.copy_water()
     def copy_water(self):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
@@ -2501,7 +2500,16 @@ class Cluster(list):
         """ Typical list of molecules """
         self.Property = None
         self.atom_list = []
-        self.AA = False
+
+    @property
+    def AA(self):
+        AA = [at for res in self for at in res ][0].AA
+        for each in [at for res in self for at in res ]:
+            try:
+                assert each.AA == AA
+            except AssertionError:
+                logging.error("All objects in cluster are not of same unit")
+        return AA
 
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
@@ -2533,6 +2541,41 @@ class Cluster(list):
             with open(fil,'r') as f_:
                 pass
      
+    def min_dist_atoms(self, cutoff = 1.5):
+        """Return list of atoms which have an other atom closer than 1.5 AA to them
+        
+.. code:: python
+    
+    >>> c = Cluster()
+    >>> c.add( Water.get_standard())
+    >>> for at in c.min_dist_atoms():
+            print at
+        O1 0.000000 0.000000 0.000000
+        H2 1.430429 0.000000 1.107157
+        H3 -1.430429 0.000000 1.107157
+        """
+        if not self.AA:
+            cutoff /= a0
+        N_ats = reduce( lambda a,x: a + len(x) , [res for res in self], 0 )
+        d_mat = np.full( (N_ats, N_ats ), np.inf )
+
+        ats = [at for res in self for at in res]
+        for i1, at1 in enumerate( ats ):
+            for i2, at2 in enumerate( ats ):
+                if at1 == at2:
+                    continue
+                d_mat [i1, i2] = at1.dist_to_atom( at2 )
+        print np.where( d_mat < cutoff )[0]
+        x, y = np.where( d_mat < cutoff )[0], np.where( d_mat == d_mat.min() )[1]
+        min_ats = []
+
+        for xi, zi in zip( x, y ):
+            min_ats.append( ats[xi] )
+            min_ats.append( ats[zi] )
+
+        return read_dal.unique(min_ats)
+
+
     def min_dist_coo(self):
         dist = np.zeros( (len(self),len(self)) )
         new = np.zeros( len(self) - 1 )
@@ -2601,7 +2644,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, center = True ):
+    def plot(self, copy= True, center = True ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -2614,8 +2657,12 @@ Plot Cluster a 3D frame in the cluster
     >>> m.plot()
     
 """
+
 #Make a copy in order to not change original, and perform plot on it
-        copy = deepcopy( self )
+        if copy:
+            copy = deepcopy( self )
+        else:
+            copy = self
         if center:
             copy.translate([0,0,0])
 
@@ -3077,6 +3124,11 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 mol.LoProp = False
         self.Property = True
 
+    def add(self, item ):
+        if isinstance( mol , Molecule ):
+            self.add_mol( item )
+        else:
+            self.add_atom( item )
     def add_mol(self, mol, in_mm = False, in_qm = False,
             in_qmmm = False, *args, **kwargs):
         if isinstance( mol , Molecule ):
@@ -3111,7 +3163,8 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             i.in_mm = True
     def copy_cluster(self):
         tmp_c = Cluster()
-        [tmp_c.add_mol(wat.copy_water()) for wat in self]
+        for res in self:
+            tmp_c.add(res.copy_self())
         return tmp_c
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
@@ -3138,9 +3191,6 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
     def sum_property(self):
         """
 Return the sum properties of all molecules in cluster
-
-.. code:: python
-    >>> wat
         """
         p = Property()
         for mol in self:
@@ -3152,13 +3202,11 @@ Return the sum properties of all molecules in cluster
         if not self.AA:
             for i in self:
                 i.to_AA()
-            self.AA = True
 
     def to_AU(self):
         if self.AA:
             for i in self:
                 i.to_AU()
-            self.AA = False
 
     def translate(self, r):
         """
