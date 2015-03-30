@@ -8,7 +8,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil, pickle
+import re, os, itertools, warnings, subprocess, shutil
+import cPickle as pickle
 
 from template import Template
 from copy import deepcopy
