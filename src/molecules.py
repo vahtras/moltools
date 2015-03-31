@@ -2500,6 +2500,13 @@ class Cluster(list):
         """ Typical list of molecules """
         self.Property = None
         self.atom_list = []
+        if type(args) == tuple:
+            if len(args) == 1:
+                for item in args[0]:
+                    self.add( item )
+            else:
+                for item in args:
+                    self.add( item )
 
     @property
     def AA(self):
