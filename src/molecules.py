@@ -904,7 +904,7 @@ AA       True     bool
         self.AA = True
 
         if kwargs != {}:
-            self.AA = bool( kwargs.get( "AA", True ) )
+            self.AA = bool( kwargs.get( "AA", False ) )
             self.x = float( kwargs.get( "x", 0.0 ))
             self.y = float( kwargs.get( "y", 0.0 ))
             self.z = float( kwargs.get( "z", 0.0 ))
@@ -916,6 +916,7 @@ AA       True     bool
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
             self.in_qmmm = kwargs.get( "in_qmmm", False )
+            self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
 
@@ -1060,7 +1061,7 @@ Plot Atom in a 3D frame
     def res_id(self):
         if self.Molecule:
             return self.Molecule.res_id
-        return None
+        return self._res_id
 
     def potline(self, max_l=2, pol=22, hyper=1):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
