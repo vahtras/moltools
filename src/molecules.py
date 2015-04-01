@@ -15,6 +15,7 @@ from template import Template
 from copy import deepcopy
 
 import read_dal
+import gaussian
 
 import h5py
 from loprop import *
@@ -1628,6 +1629,7 @@ Translate molecules center-of-mass to position r
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+        return self
 
 
     def translate_coc(self, r):
@@ -1636,6 +1638,7 @@ Translate molecules center-of-mass to position r
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+        return self
 
     @staticmethod
     def atom_map_from_string( fil ):
@@ -1943,6 +1946,8 @@ class Water( Molecule ):
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
 
+    def copy(self):
+        return self.copy_water()
     def copy_self(self):
         return self.copy_water()
     def copy_water(self):
@@ -2022,6 +2027,7 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+        return self
 #Center of oxygen
     @property
     def coo(self):
@@ -2503,11 +2509,33 @@ class Cluster(list):
         self.atom_list = []
         if type(args) == tuple:
             if len(args) == 1:
-                for item in args[0]:
-                    self.add( item )
+                if type(args[0]) == list:
+                    for i in args[0]:
+                        self.add( i )
+                else:
+                    self.add( args[0] )
             else:
                 for item in args:
                     self.add( item )
+
+    def g_list_from_damped(self, 
+            max_l = 1,
+            pol = 22,
+            hyp = 2,
+            rq = 1e-9, rp = 1e-9, AA_cutoff = 1.5):
+        """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
+        where atomic within AA_cutoff between different interacting segments
+        
+        has a damped gaussian """
+        g = gaussian.GaussianQuadrupoleList.from_string( self.get_qmmm_pot_string() )
+        for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
+            ind = reduce( lambda a, x: a + len(x), res.chain[:res.order_nr],0)+atom.order_nr
+            g[ ind ]._R_q = rq
+            g[ ind ]._R_p = rp
+        return g
+                    
+
+
 
     @property
     def AA(self):
@@ -2548,8 +2576,26 @@ class Cluster(list):
         if fil.endswith('.xyz'):
             with open(fil,'r') as f_:
                 pass
+    def min_dist_atoms_seperate_res(self, AA_cutoff = 1.5 ):
+        """Return list of atoms which have an other atom closer than 1.5 AA to them
+        and are not in the same residue
+        
+        """
+        tmp = []
+        ats = self.min_dist_atoms( AA_cutoff = AA_cutoff )
+        for i in range(len(ats)-1):
+            for j in range(  i, len( ats )):
+                if ats[i].res_id == ats[j].res_id:
+                    continue
+                if ats[i].dist_to_atom( ats[j] ) < AA_cutoff:
+                    tmp.append( ats[i] )
+                    tmp.append( ats[j] )
+        return read_dal.unique( tmp )
+
+
+
      
-    def min_dist_atoms(self, cutoff = 1.5):
+    def min_dist_atoms(self, AA_cutoff = 1.5):
         """Return list of atoms which have an other atom closer than 1.5 AA to them
         
 .. code:: python
@@ -2563,7 +2609,7 @@ class Cluster(list):
         H3 -1.430429 0.000000 1.107157
         """
         if not self.AA:
-            cutoff /= a0
+            AA_cutoff /= a0
         N_ats = reduce( lambda a,x: a + len(x) , [res for res in self], 0 )
         d_mat = np.full( (N_ats, N_ats ), np.inf )
 
@@ -2573,8 +2619,7 @@ class Cluster(list):
                 if at1 == at2:
                     continue
                 d_mat [i1, i2] = at1.dist_to_atom( at2 )
-        print np.where( d_mat < cutoff )[0]
-        x, y = np.where( d_mat < cutoff )[0], np.where( d_mat == d_mat.min() )[1]
+        x, y = np.where( d_mat < AA_cutoff )[0], np.where( d_mat < AA_cutoff) [1]
         min_ats = []
 
         for xi, zi in zip( x, y ):
@@ -3200,10 +3245,19 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         """
 Return the sum properties of all molecules in cluster
         """
+        if self.Property:
+            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+            dip = el_dip + nuc_dip
+            dip_tot = (dip + dip_lop).sum(axis=0)
+        else:
+            dip_tot =  np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
         p = Property()
         for mol in self:
             for at in mol:
                 p += at.Property
+        p['dipole'] = dip_tot
         return p
 
     def to_AA(self):
@@ -3237,6 +3291,7 @@ Translate cluster center-of-mass to position r
             at.x = vec[0] + at.x 
             at.y = vec[1] + at.y 
             at.z = vec[2] + at.z 
+        return self
 
 if __name__ == '__main__':
     from use_generator import *
