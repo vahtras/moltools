@@ -57,9 +57,9 @@ H           -0.756950   0.000000   0.585882
 
 
 Atomtypes=2 Charge=0 Nosymm Angstrom
-Charge=8.0 Atoms=1 Basis=ano-1 3 2 1
+Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
 O 0.00000 0.00000 0.00000
-Charge=1.0 Atoms=2 Basis=ano-1 2 1
+Charge=1.0 Atoms=2 Basis=ano-1 2
 H 0.75695 0.00000 0.58588
 H -0.75695 0.00000 0.58588
 """

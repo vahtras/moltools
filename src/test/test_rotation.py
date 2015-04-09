@@ -14,12 +14,14 @@ class WaterTest( unittest.TestCase ):
         self.ut_beat = np.random.random(  (10, ) )
 
         self.g = Generator()
-        self.w = self.g.get_mol( center = np.random.uniform( -10, 10, [3] ), mol = "water" ,)
+        r = np.random.uniform( -10, 10, [3] )
+        self.w = Water.get_standard()
+        self.w.translate_o( r )
 
-        self.t1 = np.random.uniform( 0, np.pi/2 )
-        self.t2 = np.random.uniform( 0, np.pi   )
-        self.t3 = np.random.uniform( 0, np.pi/2 )
-        self.w.rotate( self.t1, self.t2, self.t3 )
+        t1 = np.random.uniform( 0, np.pi )
+        t2 = np.random.uniform( 0, np.pi )
+        t3 = np.random.uniform( 0, np.pi )
+        self.w.rotate( t1, t2, t3 )
 
         assert len( self.w ) == 3
 
@@ -70,8 +72,8 @@ class WaterTest( unittest.TestCase ):
         self.eq( w.com, self.w.com )
 
     def test_rotate_to_random(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
-        w.translate_o( self.w.o.r )
+        w = Water.get_standard( )
+        w.translate( self.w.com )
         t1, t2, t3 = self.w.get_euler()
         w.rotate( t1, t2, t3 )
         self.eq( w.com, self.w.com )
@@ -98,19 +100,22 @@ class WaterTest( unittest.TestCase ):
         pass
 
     def test_rotate_dip(self):
-        w = self.g.get_mol( AA= True, center = [0,0,0], mol = "water" )
+        w = Water.get_standard( )
+        w.translate_o( np.zeros(3) )
 
         for at in w:
             Property.add_prop_from_template( at, Template().get() )
 
-        self.eq( w.p ,[0, 0, 0.3972])
+        self.eq( w.p ,[0, 0, 0.78704747])
 
         w.rotate( np.pi/7, 0, 0 )
-        self.eq( w.p ,[0, 0, 0.3972])
+
+        self.eq( w.p ,[0, 0, 0.78704747])
+
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.rotate( 0, np.pi/2 , 0 )
-        self.eq( w.p ,[-0.3972,  0, 0])
+        self.eq( w.p ,[-0.78704747,  0, 0])
 
         print "After 90 around Y-axis: clock"
         print w.p
@@ -119,9 +124,11 @@ class WaterTest( unittest.TestCase ):
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.inv_rotate()
-        w.rotate( np.pi/2, np.pi/2, np.pi/2 )
-        print w.p
-        self.eq( w.p ,[0, -0.3972, 0])
+        #for at in w:
+        #    Property.add_prop_from_template( at, Template().get() )
+        #w.rotate( np.pi/2, np.pi/2, np.pi/2 )
+        #print w.p
+        #self.eq( w.p ,[0, -0.78704747, 0])
 
         #w.rotate( 0, np.pi/2, 0 )
         #self.eq( w.p ,[0, 0,-0.41021007, ])
