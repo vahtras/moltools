@@ -713,6 +713,16 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
                         a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
 
         return a_new3
+
+    @staticmethod
+    def inv_3( beta, t1, t2, t3):
+        """Will inversely rotate tensor """
+        assert beta.shape == (3,3,3)
+        r1 = Rotator.get_Rz_inv( t1 )
+        r2 = Rotator.get_Ry( t2 )
+        r3 = Rotator.get_Rz_inv( t3 )
+        return reduce(lambda a,x: np.einsum('ia,jb,kc,abc', x, x, x, a), [r1,r2,r3], beta )
+
     @staticmethod
     def transform_3( qm_beta, t1, t2, t3 ):
         b_new1 = np.zeros([3,3,3]) #will be calculated
