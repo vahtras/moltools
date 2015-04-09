@@ -1571,8 +1571,6 @@ Return the dipole moment
    -0.834
 
 """
-    @property
-    def p(self):
         if self.Property or self.LoProp:
             el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
             nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
@@ -2200,31 +2198,20 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         Inverse rotation around oxygen centre, will conflict with
         self.center() method which centers around center-of-mass.
         """
-
         t1, t2, t3 = self.get_euler()
-# Place water molecule with O in origo, and rotate it so hydrogens in xz plane
-        H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
-        TMP = self.o.get_array()
-        H1 -= TMP ; H2 -= TMP; O -= TMP
 
-        H1 = np.dot( Rotator.get_Rz_inv(t3) , H1 )
-        H1 = np.dot( Rotator.get_Ry(t2) , H1 )
-        H1 = np.dot( Rotator.get_Rz_inv(t1) , H1 )
-
-        H2 = np.dot( Rotator.get_Rz_inv(t3) , H2 )
-        H2 = np.dot( Rotator.get_Ry(t2) , H2 )
-        H2 = np.dot( Rotator.get_Rz_inv(t1) , H2 )
-
-        O = np.dot( Rotator.get_Rz_inv(t3) , O )
-        O = np.dot( Rotator.get_Ry(t2) , O )
-        O = np.dot( Rotator.get_Rz_inv(t1) , O )
-#Put back in oxygen original point
-        H1 += TMP ; H2 += TMP; O += TMP
-
-        self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
-        self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
-        self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
-
+        com = self.com.copy()
+#Put back in original point
+        for at in self:
+            at.x, at.y, at.z = at.r - com
+        r1 = Rotator.get_Rz_inv(t1)
+        r2 = Rotator.get_Ry(t2)
+        r3 = Rotator.get_Rz_inv(t3)
+        for at in self:
+            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
+            #at.Property.inv_transform_ut_properties( t1, t2, t3 )
+        for at in self:
+            at.x, at.y, at.z = at.r + com
         if self.h2.x >= 0:
             tmp = self.h2.r.copy()
             self.h2.x, self.h2.y, self.h2.z = self.h1.r.copy()
@@ -2237,33 +2224,19 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         R all in radians
 
         """
-# Place water molecule in origo, and rotate it so hydrogens in xz plane
-        #self.inv_rotate()
-
-        H1 = self.h1.get_array() ; H2 = self.h2.get_array() ; O = self.o.get_array()
-        TMP = self.o.get_array()
-        H1 -= TMP ; H2 -= TMP; O -= TMP
-
-# Rotate with angles t1, t2, t3
-
-        H1 = np.dot( Rotator.get_Rz(t1) , H1 )
-        H1 = np.dot( Rotator.get_Ry_inv(t2) , H1 )
-        H1 = np.dot( Rotator.get_Rz(t3) , H1 )
-
-        H2 = np.dot( Rotator.get_Rz(t1) , H2 )
-        H2 = np.dot( Rotator.get_Ry_inv(t2) , H2 )
-        H2 = np.dot( Rotator.get_Rz(t3) , H2 )
-
-        O = np.dot( Rotator.get_Rz(t1) , O )
-        O = np.dot( Rotator.get_Ry_inv(t2) , O )
-        O = np.dot( Rotator.get_Rz(t3) , O )
-
-#Put back in oxygen original point
-        H1 += TMP ; H2 += TMP; O += TMP
-
-        self.h1.x = H1[0] ;self.h1.y = H1[1] ;self.h1.z = H1[2] 
-        self.h2.x = H2[0] ;self.h2.y = H2[1] ;self.h2.z = H2[2] 
-        self.o.x  =  O[0] ;  self.o.y = O[1] ;  self.o.z = O[2] 
+        com = self.com.copy()
+        orig = np.zeros( (len(self), 3) )
+#Put back in original point
+        for at in self:
+            at.x, at.y, at.z = at.r - com
+        r1 = Rotator.get_Rz(t1)
+        r2 = Rotator.get_Ry_inv(t2)
+        r3 = Rotator.get_Rz(t3)
+        for at in self:
+            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
+            at.Property.transform_ut_properties( t1, t2, t3 )
+        for at in self:
+            at.x, at.y, at.z = at.r + com
 
     def get_xyz_string(self, ):
         st = "%d\n\n" % len(self)
@@ -3156,7 +3129,6 @@ Return a cluster of water molecules given file.
             wat.o.order = 1
             wat.h1.order = 2
             wat.h2.order = 3
-        c.AA = out_AA
         c.set_qm_mm(100)
         return c
 
