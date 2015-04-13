@@ -34,6 +34,24 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def dipole( r, r_n, r_e ):
+    """Return the total dipole moment given vector r,
+    the positive charges at each point, and negative charges at each point
+
+    For 
+    
+    """
+
+    assert isinstance( r, np.ndarray )
+    assert isinstance( r_n, np.ndarray )
+    assert isinstance( r_e, np.ndarray )
+
+#Center of nuclei charge chosen as gauge origin to set nuclei dipole moment to zero
+    coc = np.einsum('ij,i', r, r_n )/ reduce(lambda a,x:a+x,r_n)
+    p = np.einsum('ij,i', r - coc , r_n )
+
+    return p
+
 def get_euler( r1, r2 ):
     """Given two vectors, return 3 euler angles defined as follows
     

@@ -627,6 +627,34 @@ class Rotator(object):
     def __init__(self):
         pass
 
+    class RotatorError( Exception ):
+        def __init__(self):
+            pass
+
+    @staticmethod
+    def b_hrs( b):
+        if b.shape == (10,):
+            b = Rotator.ut_3_square(b)
+        elif b.shape != (3,3,3,):
+            print "supplied wrong beta"
+            raise RotatorError
+
+        zzz = Rotator.rot_avg( b )
+        xzz = Rotator.rot_avg( b, car1=0 )
+        return np.sqrt( zzz + xzz )
+
+    @staticmethod
+    def dr( b ):
+        if b.shape == (10,):
+            b = Rotator.ut_3_square(b)
+        elif b.shape != (3,3,3,):
+            print "supplied wrong beta"
+            raise SystemExit
+
+        zzz = Rotator.rot_avg( b )
+        xzz = Rotator.rot_avg( b, car1=0 )
+        return zzz / xzz
+
     @staticmethod
     def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
         """
