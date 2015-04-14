@@ -1236,7 +1236,10 @@ class Molecule( list ):
             raise IOError
         return pickle.load( open(fname, 'rb' ) )
     
-
+    @property
+    def b_proj(self):
+        b, p = Rotator.ut_3_square(self.sum_property['beta']), self.sum_property['dipole']
+        return np.einsum( 'ijj,i', b, p )/np.linalg.norm( p )
 
     def attach_properties(self, 
             model = "TIP3P",
@@ -2536,12 +2539,13 @@ class Cluster(list):
     def g_list_from_damped(self, 
             max_l = 1,
             pol = 22,
-            hyp = 2,
+            hyp = 1,
             rq = 1e-9, rp = 1e-9, AA_cutoff = 1.5):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
+
         g = gaussian.GaussianQuadrupoleList.from_string( self.get_qmmm_pot_string() )
         for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
             ind = reduce( lambda a, x: a + len(x), res.chain[:res.order_nr],0)+atom.order_nr
@@ -2549,8 +2553,6 @@ class Cluster(list):
             g[ ind ]._R_p = rp
         return g
                     
-
-
 
     @property
     def AA(self):
