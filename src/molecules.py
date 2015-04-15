@@ -1602,14 +1602,11 @@ Return the dipole moment
    -0.834
 
 """
-        if self.Property or self.LoProp:
-            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
-            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-            dip = el_dip + nuc_dip
-            return (dip + dip_lop) .sum(axis=0)
-        else:
-            return np.array([at.r*at.q for at in self]).sum(axis=0)
+        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        dip = el_dip + nuc_dip
+        return (dip + dip_lop) .sum(axis=0)
 
     @property
     def sum_property(self):
@@ -2540,7 +2537,8 @@ class Cluster(list):
             max_l = 1,
             pol = 22,
             hyp = 1,
-            rq = 1e-9, rp = 1e-9, AA_cutoff = 1.5):
+            rq = 1e-9, rp = 1e-9, AA_cutoff = 1.5,
+            nullify = False):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
         
@@ -2551,6 +2549,12 @@ class Cluster(list):
             ind = reduce( lambda a, x: a + len(x), res.chain[:res.order_nr],0)+atom.order_nr
             g[ ind ]._R_q = rq
             g[ ind ]._R_p = rp
+            if nullify:
+                g[ ind ]._q = 0.0
+                g[ ind ]._p0 = np.zeros( (3,) )
+                g[ ind ]._a0 = np.zeros( (3,3,) )
+                g[ ind ]._Q0 = np.zeros( (3,3,) )
+                g[ ind ]._b0 = np.zeros( (3,3,3,) )
         return g
                     
 
@@ -3261,14 +3265,11 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         """
 Return the sum properties of all molecules in cluster
         """
-        if self.Property:
-            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
-            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-            dip = el_dip + nuc_dip
-            dip_tot = (dip + dip_lop).sum(axis=0)
-        else:
-            dip_tot =  np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
+        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        dip = el_dip + nuc_dip
+        dip_tot = (dip + dip_lop).sum(axis=0)
         p = Property()
         for mol in self:
             for at in mol:
