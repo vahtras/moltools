@@ -1743,7 +1743,7 @@ Distance to other molecule, measured by center-of-mass
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
 
-    def plot(self, copy = True, center = True, d = False ):
+    def plot(self, copy = True, center = False, d = False ):
         """
 Plot Molecule in a 3D frame
 
