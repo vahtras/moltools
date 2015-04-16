@@ -1115,7 +1115,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 #Special xyz hack for camb3lyp output from akka dalton to find atoms
     pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
 
-    pat_labels_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+    pat_labels_xyz = re.compile(r'^\s*(\S+-+\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
 # Reading in dipole and charge
     for i in open( file_ ).readlines():
         if pat_Q.search( i ):
@@ -1191,6 +1191,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 
 
 #Set center of nuceli charge to 0
+
     coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
             sum([ charge_dic[x.element] for x in atoms ])
     for i in atoms:
