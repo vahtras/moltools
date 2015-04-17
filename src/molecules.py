@@ -17,6 +17,8 @@ from copy import deepcopy
 import read_dal
 import gaussian
 
+import utilz
+
 import h5py
 from loprop import *
 
@@ -958,6 +960,12 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
+    def move_closer_to_atom(self, atom, final_value):
+        """Given other atom, will move this one so that it is at final value"""
+        vec = self.r - atom.r
+        origin = self.r
+        new = utilz.scale_vec_to_abs( vec, value = final_value )
+        self.x, self.y, self.z = atom.r + new
 
     def plot(self ):
         """
@@ -1226,6 +1234,7 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
  
     def save(self, fname = "molecule.p"):
         pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
@@ -1296,6 +1305,46 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             at.x += com[0]
             at.y += com[0]
             at.z += com[0]
+
+    def props_from_targz(self,
+            f_ = None,
+            tmpdir = None,
+            maxl = 2,
+            pol = 22,
+            hyper = 2,
+            decimal = 5,
+            ):
+        if tmpdir is None:
+            tmpdir = "/tmp"
+        if f_ is None:
+            print "Supply .tar.gz file from dalton quadratic .QLOP calculation"
+            return
+#Using Olavs external scripts
+        try:
+            outpot = MolFrag( tmpdir = tmpdir,
+                    max_l = maxl,
+                    pol = pol,
+                    pf = penalty_function( 2.0 ),
+                    freqs = None,
+                    ).output_potential_file(
+                            maxl = maxl,
+                            pol = pol,
+                            hyper = hyper,
+                            decimal = decimal,
+                            #template_full = False,
+                            #decimal = 5,
+                            )
+        except:
+            print tmpdir
+        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
+        if not len(lines) == len(self):
+            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
+            raise SystemExit
+        for at, prop in zip(self, lines):
+            at.Property = Property.from_propline( prop ,
+                    maxl = maxl,
+                    pol = pol,
+                    hyper = hyper )
 
     def props_from_qm(self,
             tmpdir = '/tmp',
@@ -1880,7 +1929,8 @@ Read in molecule given .mol file and unit specification.
     O
     
 """
-        pat_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+)\s+(-*\d*\.{1}\d+) *$')
+        pat_labels_xyz = re.compile(r'^\s*(\S+-+\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+        pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
         tmp_molecule = Molecule( AA = in_AA )
         for i in open( molfile ).readlines():
             if pat_xyz.search(i):
@@ -1891,6 +1941,18 @@ Read in molecule given .mol file and unit specification.
                         "name" :  matched[0], "x" : matched[1],
                         "y" : matched[2], "z" : matched[3], 
                         "pdb_name" : pd }
+                tmpAtom = Atom( **kwargs )
+                tmp_molecule.append( tmpAtom )
+            elif pat_labels_xyz.match(i):
+                f = pat_labels_xyz.match(i).groups()
+                matched = pat_labels_xyz.match(i).groups()
+                lab = matched[0]
+                if len(lab.split('-')) == 4:
+                    element = "H"
+                else:
+                    element = lab.split('-')[2][0]
+                kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
+                        "y" : matched[2], "z" : matched[3] }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
         if in_AA:
