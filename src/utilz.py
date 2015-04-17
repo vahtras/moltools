@@ -34,6 +34,11 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def scale_vec_to_abs( vec, value = 1.0 ):
+    """Given vector, scale it to final value """
+    assert isinstance( vec, np.ndarray )
+    return vec * value / np.linalg.norm( vec )
+
 def dipole( r, r_n, r_e ):
     """Return the total dipole moment given vector r,
     the positive charges at each point, and negative charges at each point
