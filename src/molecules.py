@@ -32,6 +32,8 @@ el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
         "X" : 1.008, 'P' : 30.974 }
 
+color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O":'red', 'S' : 'yellow'}
+
 def upper_triangular(n, start=0):
     """Recursive generator for triangular looping of Carteesian tensor
 
@@ -1193,7 +1195,7 @@ class Molecule( list ):
                 ('N','S') : 1.5,
                 ('O','O') : 1.5,
                 ('O','P') : 2.0,
-                ('O','S') : 1.6,
+                ('O','S') : 1.75,
                 ('P','P') : 1.5,
                 ('P','S') : 2.0,
                 ('S','S') : 2.1,
@@ -1235,6 +1237,51 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    def plot_2d(self, key = None ):
+        """Plots the 2D projetion of the molecule"""
+        fig, ax = plt.subplots()
+        norm  = self.get_internal_plane()
+
+
+        if key is None:
+            key = lambda x: x.element
+
+        for at in self:
+            x, y = (at.r - np.einsum('i,i', norm, at.r))[:-1]
+            ax.scatter( x, y, color = color_dict[at.element] )
+            ax.text( x, y + 0.1, key( at ) )
+        
+        x = map(lambda x: (x.r - np.einsum('i,i', norm, x.r))[0], self)
+        y = map(lambda x: (x.r - np.einsum('i,i', norm, x.r))[1], self)
+        ax.set_xlim( min(x) - 1.0, max(x) + 1.0 )
+        ax.set_ylim( min(y) - 1.0, max(y) + 1.0 )
+
+        plt.show()
+
+    def get_internal_plane(self):
+        """Returns the normal to the internal plane defined as the plane
+        spanned by the two vectors which are between the two largest inter-atomic
+        distance from each other in the x, y, or z direction"""
+        minx, miny, minz = np.inf, np.inf, np.inf
+        maxx, maxy, maxz = -np.inf, -np.inf, -np.inf
+        prj = [np.array([i, j, k]) for i, j, k in zip([1, 0, 0],[0, 1, 0], [0, 0, 1] ) ]
+        for a1 in self:
+            dx, dy, dz = a1.r
+            if dx < minx: minx = dx
+            if dy < miny: miny = dy
+            if dz < minz: minz = dz
+            if dx > maxx: maxx = dx
+            if dy > maxy: maxy = dy
+            if dz > maxz: maxz = dz
+        i1, i2 = map(lambda x:x[0], sorted( zip( range(3), [maxx-minx, maxy-miny, maxz-minz] ), key = lambda x: x[1])[1:] )
+
+        return np.cross(prj[i1], prj[i2])
+
+    @property
+    def label(self):
+        if self._label is None:
+            self._label = self.element
+        return self.element
  
     def save(self, fname = "molecule.p"):
         pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
