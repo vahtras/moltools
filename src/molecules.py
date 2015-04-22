@@ -1727,6 +1727,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     @property
     def p(self):
         """
+DEPRECATED, is replaced by wrapper for Property object
 Return the dipole moment
 
 .. code:: python
@@ -1743,6 +1744,10 @@ Return the dipole moment
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
         dip = el_dip + nuc_dip
         return (dip + dip_lop) .sum(axis=0)
+
+    @property
+    def p(self):
+        return self.sum_property
 
     @property
     def sum_property(self):
@@ -3408,6 +3413,10 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
     def com(self):
         if len(self) == 0:return np.zeros(3)
         return sum([at.r*at.mass for mol in self for at in mol]) / sum([at.mass for mol in self for at in mol] )
+
+    @property
+    def p(self):
+        return self.sum_property
 
     @property
     def sum_property(self):
