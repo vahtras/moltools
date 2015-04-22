@@ -98,6 +98,22 @@ class Property( dict ):
             tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
         return tmp
 
+    @property
+    def q(self):
+        return self['charge'][0]
+    @property
+    def p(self):
+        return self['dipole']
+    @property
+    def a(self):
+        return self['alpha']
+    @property
+    def b(self):
+        return self['beta']
+    @property
+    def Q(self):
+        return self['quadrupole']
+
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
@@ -962,6 +978,11 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
+    @property
+    def p(self):
+        """Wrapper to access class Property object attached to the atom"""
+        return self.Property
+
     def move_closer_to_atom(self, atom, final_value):
         """Given other atom, will move this one so that it is at final value"""
         vec = self.r - atom.r
@@ -1237,22 +1258,41 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
-    def plot_2d(self, key = None ):
-        """Plots the 2D projetion of the molecule"""
+    def plot_2d(self, key = None, ):
+        """Plots the 2D projetion of the molecule onto the y plane,
+        PLAN: TODO:
+        Later implement internal plane projection on arbitray two-vector plane
+        """
         fig, ax = plt.subplots()
-        norm  = self.get_internal_plane()
+        #norm  = self.get_internal_plane()
 
+        norm = np.array( [0, 0, 1] )
 
         if key is None:
             key = lambda x: x.element
 
         for at in self:
-            x, y = (at.r - np.einsum('i,i', norm, at.r))[:-1]
-            ax.scatter( x, y, color = color_dict[at.element] )
-            ax.text( x, y + 0.1, key( at ) )
+            x, y = (at.r - np.einsum('i,i', norm, at.r)*norm)[:-1]
+            ax.scatter( x, y, color = color_dict[at.element], linewidth=4 )
+            ax.annotate(  key( at ) , (x, y ), (x, y+0.1) )
         
-        x = map(lambda x: (x.r - np.einsum('i,i', norm, x.r))[0], self)
-        y = map(lambda x: (x.r - np.einsum('i,i', norm, x.r))[1], self)
+        x = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[0], self)
+        y = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[1], self)
+
+        #plot the bonds
+#Plot bonds
+        for each in self.bond_dict:
+            for key in self.bond_dict[ each ]:
+                ax.plot( [key.x, each.x],
+                         [key.y, each.y],
+                         color = 'black', linewidth = 0.25 )
+
+        for at in self:
+            pass
+        ax.set_title( 'Projection of molecule on yx-plane' )
+        ax.set_xlabel( 'x-axis' )
+        ax.set_ylabel( 'y-axis' )
+
         ax.set_xlim( min(x) - 1.0, max(x) + 1.0 )
         ax.set_ylim( min(y) - 1.0, max(y) + 1.0 )
 
