@@ -12,7 +12,7 @@ import re, os, itertools, warnings, subprocess, shutil, logging
 import cPickle as pickle
 
 from template import Template
-from copy import deepcopy
+import copy as copymod
 
 import read_dal
 import gaussian
@@ -1280,6 +1280,7 @@ class Molecule( list ):
         """
         fig, ax = plt.subplots()
         #norm  = self.get_internal_plane()
+        self.populate_bonds()
 
         norm = np.array( [0, 0, 1] )
 
@@ -1893,7 +1894,7 @@ Plot Molecule in a 3D frame
 
 #Make a copy in order to not change original, and perform plot on it
         if copy:
-            copy = deepcopy( self )
+            copy = copymod.copy( self )
         else:
             copy = self
 
@@ -2868,7 +2869,7 @@ Plot Cluster a 3D frame in the cluster
 
 #Make a copy in order to not change original, and perform plot on it
         if copy:
-            copy = deepcopy( self )
+            copy = copymod.copy( self )
         else:
             copy = self
         if center:
