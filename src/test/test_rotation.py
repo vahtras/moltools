@@ -106,23 +106,23 @@ class WaterTest( unittest.TestCase ):
         for at in w:
             Property.add_prop_from_template( at, Template().get() )
 
-        self.eq( w.p ,[0, 0, 0.78704747])
+        self.eq( w.p.d ,[0, 0, 0.78704747])
 
         w.rotate( np.pi/7, 0, 0 )
 
-        self.eq( w.p ,[0, 0, 0.78704747])
+        self.eq( w.p.d ,[0, 0, 0.78704747])
 
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.rotate( 0, np.pi/2 , 0 )
-        self.eq( w.p ,[-0.78704747,  0, 0])
+        self.eq( w.p.d ,[-0.78704747,  0, 0])
 
         print "After 90 around Y-axis: clock"
-        print w.p
+        print w.p.d
 
         w.rotate( 0, 0, np.pi/2 )
         print "After 90 around Z-axis: counter-clock"
-        print w.p
+        print w.p.d
         w.inv_rotate()
         #for at in w:
         #    Property.add_prop_from_template( at, Template().get() )

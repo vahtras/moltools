@@ -102,7 +102,7 @@ class Property( dict ):
     def q(self):
         return self['charge'][0]
     @property
-    def p(self):
+    def d(self):
         return self['dipole']
     @property
     def a(self):
@@ -1723,28 +1723,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                         at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
         return dihed
 
-#Dipole moment
-    @property
-    def p(self):
-        """
-DEPRECATED, is replaced by wrapper for Property object
-Return the dipole moment
-
-.. code:: python
-
-   >>> m = Molecule()
-   >>> m.append( Atom(element = 'H', z = 1) )
-   >>> m.append( Atom(element = 'O', z = 0) )
-   >>> print m.p
-   -0.834
-
-"""
-        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
-        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-        dip = el_dip + nuc_dip
-        return (dip + dip_lop) .sum(axis=0)
-
     @property
     def p(self):
         return self.sum_property
@@ -2847,20 +2825,7 @@ class Cluster(list):
         for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
             st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
-    
-    @property
-    def p(self):
-        if self.Property:
-            el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-            nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
-            dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-            dip = el_dip + nuc_dip
-            return (dip + dip_lop) .sum(axis=0)
-
-        return np.array([at.r*at.q for mol in self for at in mol]).sum(axis=0)
-
-
-
+   
 # Specifi
 
     @property
