@@ -1896,7 +1896,7 @@ Plot Molecule in a 3D frame
 
 #Make a copy in order to not change original, and perform plot on it
         if copy:
-            copy = copymod.copy( self )
+            copy = copymod.deepcopy( self )
         else:
             copy = self
 
@@ -2911,7 +2911,7 @@ Plot Cluster a 3D frame in the cluster
 
 #Make a copy in order to not change original, and perform plot on it
         if copy:
-            copy = copymod.copy( self )
+            copy = copymod.deepcopy( self )
         else:
             copy = self
         if center:
