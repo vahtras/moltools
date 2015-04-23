@@ -865,6 +865,21 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
         return tmp_b
 
     @staticmethod
+    def ut2s( vec ):
+        if len( vec ) == 6:
+            return Rotator.ut_2_square( vec )
+        elif len( vec ) == 10:
+            return Rotator.ut_3_square( vec )
+
+    @staticmethod
+    def s2ut( vec ):
+        if vec.shape == (3,3,):
+            return Rotator.square_2_ut( vec )
+        elif vec.shape == (3,3,3,):
+            return Rotator.square_3_ut( vec )
+
+
+    @staticmethod
     def ut_2_square( alpha):
         assert len(alpha) == 6
         tmp_a = np.zeros( (3,3, ))
