@@ -4,6 +4,16 @@
 import numpy as np
 import molecules, os
 
+def pmma_monomer():
+    """Return pmmma monomer building block as defined by SMILES
+    format obtained in avogadro"""
+    builddir = 'build'
+    molfile = 'pmma_monomer.pdb'
+    FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
+    m = molecules.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
+    return m
+
+
 def sulfuric_acid():
     """Return geo opt. 
     molecule with sulfur in origo, one oxygen in xz plane"""
