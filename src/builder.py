@@ -10,7 +10,12 @@ def pmma_monomer():
     builddir = 'build'
     molfile = 'pmma_monomer.pdb'
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
+
     m = polymer.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
+    m._mono_name = "pmma"
+    m._r = 1.46
+    m._angle = 104.5
+    m._dihedral = 180.0
     return m
 
 
