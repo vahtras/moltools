@@ -1268,6 +1268,9 @@ class Molecule( list ):
 
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
+        if args != []:
+            for at in args:
+                self.add_atom( at )
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
@@ -2659,49 +2662,6 @@ Not yet implemented, only needs get_euler and z-matrix to be specific.
             #else:
             #    self.h1 = hyd2
             #    self.h2 = hyd1
-
-class Monomer( Molecule ):
-
-    @staticmethod
-    def from_pdb( f_, in_AA= True, out_AA=False):
-#Create an Atom here and add it to the residue
-        pat = re.compile(r'^HETATM|^ATOM')
-        pat_element = re.compile( r'([A-Z])' )
-        
-        tmp_mono = Monomer( AA = in_AA )
-        for i, line in enumerate(open(f_).readlines()):
-            if not pat.match( line ):continue
-            res_name = line[17:21].strip()
-            try:
-                res_id = int( line[22:26].strip() )
-            except ValueError:
-                pass
-#Initiate values for Atom,
-            chain_id = line[21:22].strip()
-            x = line[30:38].strip()
-            y = line[38:46].strip()
-            z = line[46:54].strip()
-            pdb_name = line[11:16].strip()
-            try:
-                element = pat_element.search( pdb_name ).group(1)
-#This will cause IndexError for TER when no other entries are there
-            except IndexError:
-                element = None
-            except AttributeError:
-                element = None
-            tmp_atom = Atom()
-            tmp_atom.x, tmp_atom.y, tmp_atom.z = map( float, [x, y, z] )
-            tmp_atom.element = element
-            tmp_atom.pdb_name = pdb_name
-            tmp_atom.res_name = res_name
-            tmp_atom._res_id = res_id
-            tmp_atom.label = "%d-%s-%s" %( res_id, res_name, pdb_name )
-            tmp_mono.add_atom( tmp_atom )
-        if in_AA and not out_AA:
-            tmp_mono.to_AU()
-        return tmp_mono
-
-
 
 
 class Cluster(list):
