@@ -1784,6 +1784,13 @@ Center of coordinate
 """
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
+    def translate_by_r( self, r ):
+        """Will translate all atoms by vector r"""
+        for at in self:
+            at.x += r[0]
+            at.y += r[1]
+            at.z += r[2]
+        return self
     def translate(self, r):
         """
 Translate molecules center-of-mass to position r
