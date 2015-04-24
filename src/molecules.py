@@ -3036,15 +3036,7 @@ Plot Cluster a 3D frame in the cluster
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 
-    def get_xyz_string(self, ):
-        st = "%d\n\n" % sum([len(i) for i in self ])
-        for mol in self:
-            for i in mol:
-                st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
-                        i.element, i.x,  i.y , i.z )
-        return st
-
-    def get_xyz_string(self, both= False, qm_region = False, mm_region = False ):
+    def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
         ats = []
         if qm_region:
             st = "%d\n\n" % sum([len(i) for i in self if i.in_qm ])
@@ -3063,6 +3055,13 @@ Plot Cluster a 3D frame in the cluster
                     i.element, i.x,  i.y , i.z )
         return st
 
+    def get_xyz_string(self, ):
+        st = "%d\n\n" % sum([len(i) for i in self ])
+        for mol in self:
+            for i in mol:
+                st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
+                        i.element, i.x,  i.y , i.z )
+        return st
     def order_mm_atoms(self):
         cnt = 1
         for mol in [m for m in self if m.in_mm]:
