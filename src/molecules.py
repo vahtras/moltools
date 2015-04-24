@@ -610,7 +610,7 @@ ZDIPLEN
                     mol = "water")
 
             wat.rotate( t1, t2, t3 )
-            wat.res_id = cnt
+            wat._res_id = cnt
 
             if c.mol_too_close( wat ):
                 continue
@@ -1244,7 +1244,7 @@ class Molecule( list ):
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
-        self.res_id = 0
+        self._res_id = 0
         self._r = None
         self._com = None
         self.cluster = None
@@ -1263,6 +1263,11 @@ class Molecule( list ):
 # before template is loaded
         self.Property = None
 
+#By default, in QM region  
+        self.in_qm = True
+        self.in_mm = False
+        self.in_qmmm = True
+
 #By default, AU 
         self.AA = False
 
@@ -1275,6 +1280,12 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+    @property
+    def res_id(self):
+        if self._res_id is not None:
+            return self._res_id
+        else:
+            return 1
 
     def add_atom(self, atom):
         self.append( atom )
@@ -2277,7 +2288,7 @@ Override list append method, will add up to 3 atoms,
                 raise SystemExit
         else:
 #Initialize water res_id from atomic res_id
-            self.res_id = atom.res_id
+            self._res_id = atom.res_id
 
         if len(self) == 3:
             hyd1, hyd2 = [i for i in self if i.element == "H" ]
@@ -2655,7 +2666,7 @@ Not yet implemented, only needs get_euler and z-matrix to be specific.
                 raise SystemExit
         else:
 #Initialize res_id from atomic res_id
-            self.res_id = atom.res_id
+            self._res_id = atom.res_id
 #Also calculate center now
         if len(self) == 6:
             h1, h2, h3, h4 = [i for i in self if i.element == "H" ]
@@ -3188,7 +3199,7 @@ Return a cluster of water molecules given file.
                         if i.dist_to_atom(j) < 1.1/a0:
                             tmp.append ( j )
                             j.in_water = True
-                tmp.res_id = cnt
+                tmp._res_id = cnt
                 cnt += 1
                 waters.append( tmp )
             waters.sort( key = lambda x: x.dist_to_point( center ))
@@ -3247,7 +3258,7 @@ Return a cluster of water molecules given file.
                         if i.dist_to_atom(j) <= 1.05/a0:
                             j.in_water = True
                             tmp.append( j )
-                tmp.res_id = cnt
+                tmp._res_id = cnt
                 cnt += 1
                 wlist.append( tmp )
 
