@@ -37,13 +37,15 @@ allowed_elements = ( 'H', 'O' )
 def rotate_point_by_two_points(p, p1, p2, theta):
     """Rotate the point p around the line with point at p1 or p2 with 
     direction vector p2-p1"""
-    r1, r2, r3 = get_euler( p2-p1, p-p1)
-    vec = p - p1
-    vec = np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), vec )
-    vec = np.einsum('ab,b', Rz(theta), vec )
-    vec = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), vec )
-    vec += p1
-    return vec
+    origin = p1.copy()
+    p, p1, p2 = map(lambda x:x-origin, [p, p1, p2] )
+    r3, r2, r1 = get_euler( p2-p1, p-p1)
+
+    p = np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), p )
+    p = np.einsum('ab,b', Rz(theta), p )
+    p = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), p )
+    p += origin
+    return p
     
 def Rz( theta ):
     vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
@@ -105,6 +107,9 @@ def get_euler( r1, r2 ):
     t1 = 0
     t2 = 0
     t3 = 0
+
+    outputs vectors in order as they are needed to produce the input from
+    the z and x-axis
 
     """
     r1, r2 = map(lambda x: x.copy(), [r1, r2] )

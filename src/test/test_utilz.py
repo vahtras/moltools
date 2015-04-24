@@ -21,13 +21,22 @@ class RotatorTest( unittest.TestCase ):
         p_out = rotate_point_by_two_points(p, p1, p2, theta)
         np.testing.assert_allclose( p_out, np.array( [-1,1,1] ), atol=1e-10 )
 
-    def test_rotate_point_by_two_points2(self):
+    def test_rotate_point_by_two_points_2(self):
         p = np.array( [ -1, -1, 0] )
         p1 = np.array( [ 0, 0,  1] )
         p2 = np.array( [ 0, 0, -1] )
         theta = np.pi * 3/2
         p_out = rotate_point_by_two_points(p, p1, p2, theta)
         np.testing.assert_allclose( p_out, np.array( [ 1, -1, 0] ), atol=1e-10 )
+
+    def test_rotate_point_by_two_points_3(self):
+        p = np.array( [ 0, 3, 1] )
+        p1 = np.array( [ 3, 3,  0] )
+        p2 = np.array( [ 3, 3,  1] )
+        theta = np.pi * 3/2
+        p_out = rotate_point_by_two_points(p, p1, p2, theta)
+        np.testing.assert_allclose( p_out, np.array( [ 3, 6, 1] ), atol=1e-10 )
+
 
 
 
