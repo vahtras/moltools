@@ -34,6 +34,40 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def rotate_point_by_two_points(p, p1, p2, theta):
+    """Rotate the point p around the line with point at p1 or p2 with 
+    direction vector p2-p1"""
+    r1, r2, r3 = get_euler( p2-p1, p-p1)
+    vec = p - p1
+    vec = np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), vec )
+    vec = np.einsum('ab,b', Rz(theta), vec )
+    vec = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), vec )
+    vec += p1
+    return vec
+    
+def Rz( theta ):
+    vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
+                        [ np.sin(theta), np.cos(theta), 0],
+                        [ 0,    0,  1]])
+    return vec
+def Rz_inv( theta ):
+    vec = np.array(     [[ np.cos(theta), np.sin(theta), 0],
+                        [ -np.sin(theta), np.cos(theta), 0],
+                        [ 0,             0,            1]])
+    return vec
+def Ry( theta ):
+    vec = np.array(    [[ np.cos(theta),0, np.sin(theta)],
+                        [ 0,    1,  0],
+                        [ -np.sin(theta), 0, np.cos(theta)]])
+    return vec
+def Ry_inv( theta ):
+    vec = np.array(    [[ np.cos(theta),0, -np.sin(theta)],
+                        [ 0,    1,  0],
+                        [ np.sin(theta), 0, np.cos(theta)]])
+    return vec
+
+
+
 def scale_vec_to_abs( vec, value = 1.0 ):
     """Given vector, scale it to final value """
     assert isinstance( vec, np.ndarray )
@@ -74,26 +108,6 @@ def get_euler( r1, r2 ):
 
     """
     r1, r2 = map(lambda x: x.copy(), [r1, r2] )
-    def Rz( theta ):
-        vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
-                            [ np.sin(theta), np.cos(theta), 0],
-                            [ 0,    0,  1]])
-        return vec
-    def Rz_inv( theta ):
-        vec = np.array(     [[ np.cos(theta), np.sin(theta), 0],
-                            [ -np.sin(theta), np.cos(theta), 0],
-                            [ 0,             0,            1]])
-        return vec
-    def Ry( theta ):
-        vec = np.array(    [[ np.cos(theta),0, np.sin(theta)],
-                            [ 0,    1,  0],
-                            [ -np.sin(theta), 0, np.cos(theta)]])
-        return vec
-    def Ry_inv( theta ):
-        vec = np.array(    [[ np.cos(theta),0, -np.sin(theta)],
-                            [ 0,    1,  0],
-                            [ np.sin(theta), 0, np.cos(theta)]])
-        return vec
 # First angle
     t1 = np.arctan2( r1[1], r1[0] )
     if t1 < 0:
