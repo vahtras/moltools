@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import molecules, os
+import molecules, os, polymer
 
 def pmma_monomer():
     """Return pmmma monomer building block as defined by SMILES
@@ -10,7 +10,7 @@ def pmma_monomer():
     builddir = 'build'
     molfile = 'pmma_monomer.pdb'
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
+    m = polymer.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
     return m
 
 
