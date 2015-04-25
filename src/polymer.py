@@ -24,6 +24,7 @@ class NewPattern( pdbreader.Pattern ):
         self[ ( 'reg', 'res', 'pp', 'con', 3 ) ] = { "CB1" :["CA"], "CB2" : ["CA"] }
         self[ ( 'reg', 'res', 'tt', 'con', 3 ) ] = { }
         self[ ( 'reg', 'res', 'nn', 'con', 3 ) ] = { "CB1" : ["CA"], "CB2" : ["CA"] }
+        self[ ( 'reg', 'res', 'pp_p', 'con', 3 ) ] = { "CA" : ["C"] }
         self[ ( 'reg', 'res', 'nn_n', 'con', 3 ) ] = { "C" : ["CA"] }
 
 #Concap level 3 to connect
@@ -35,17 +36,20 @@ class NewPattern( pdbreader.Pattern ):
         self[ ( 'reg', 'con', 'nn_n', 'con', 3 ) ] = { "C" : ["CA"] }
 
 #Custom heavy to transform to hydrogen and scale them in distance
+#Residues level 3
+        self[ ( 'reg', 'res', 'pp', 'rep', 3 ) ]  = re.compile(r'CB2$|CB1$')
+        self[ ( 'reg', 'res', 'tt', 'rep', 3 ) ] = re.compile(r'BALLONY')
+        self[ ( 'reg', 'res', 'nn', 'rep', 3 ) ]  = re.compile(r'CB2$|CB1$')
+        self[ ( 'reg', 'res', 'pp_p', 'rep', 3 ) ]  = re.compile(r'CA$')
+        self[ ( 'reg', 'res', 'nn_n', 'rep', 3 ) ]  = re.compile(r'C$')
+
 #Concap level 3
         self[ ( 'reg', 'con', 'p_t', 'rep', 3 ) ]  = re.compile(r'CA$')
         self[ ( 'reg', 'con', 'tt', 'rep', 3 ) ] = re.compile(r'CB1$|CB2$')
         self[ ( 'reg', 'con', 'nn', 'rep', 3 ) ]  = re.compile(r'CB2$|CB1$')
         self[ ( 'reg', 'con', 'nn_n', 'rep', 3 ) ]  = re.compile(r'C$')
 
-#Residues level 3
-        self[ ( 'reg', 'res', 'pp', 'rep', 3 ) ]  = re.compile(r'CB2$|CB1$')
-        self[ ( 'reg', 'res', 'tt', 'rep', 3 ) ] = re.compile(r'BALLONY')
-        self[ ( 'reg', 'res', 'nn', 'rep', 3 ) ]  = re.compile(r'CB2$|CB1$')
-        self[ ( 'reg', 'res', 'nn_n', 'rep', 3 ) ]  = re.compile(r'C$')
+
 
 class Atom( pdbreader.Atom ):
 
