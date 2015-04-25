@@ -104,7 +104,7 @@ def center_and_xz(p1 = np.array([0,0,0]),
     t_v = -p1.copy()
     v2 = p2 - p1
     v3 = p3 - p1
-    r1, r2 ,r3 = get_euler( v2, v3 )
+    r3, r2 ,r1 = get_euler( v2, v3 )
     return t_v, r1, r2, r3
 
 

@@ -2873,7 +2873,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, copy= True, center = True ):
+    def plot(self, copy = False, center = False ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -3447,7 +3447,7 @@ Return the sum properties of all molecules in cluster
 
     def translate(self, r):
         """
-Translate cluster center-of-mass to position r
+Translate everythin in cluster by r
 
 .. code:: python
 
@@ -3458,15 +3458,13 @@ Translate cluster center-of-mass to position r
     [0, 0, 0.5 ]
     >>> m.translate( [0, 3, 5] )
     >>> print m.com
-    [0, 3, 5 ]
+    [0, 3, 5.5 ]
     
 """
-        vec = r - self.com
         for at in [at for mol in self for at in mol]:
-            at.x = vec[0] + at.x 
-            at.y = vec[1] + at.y 
-            at.z = vec[2] + at.z 
-        return self
+            at.x = r[0] + at.x 
+            at.y = r[1] + at.y 
+            at.z = r[2] + at.z 
 
 if __name__ == '__main__':
     from use_generator import *
