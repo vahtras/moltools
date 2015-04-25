@@ -947,7 +947,7 @@ AA       True     bool
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
 #Label is custom name, for water use O1, H2 (positive x ax), H3
-        self.label = ""
+        #self.label = ""
 
         self.x = 0.0
         self.y = 0.0

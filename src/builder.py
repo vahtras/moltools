@@ -4,7 +4,7 @@
 import numpy as np
 import molecules, os, polymer
 
-def pmma_monomer():
+def pmma_monomer( ):
     """Return pmmma monomer building block as defined by SMILES
     format obtained in avogadro"""
     builddir = 'build'
