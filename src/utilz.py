@@ -93,6 +93,22 @@ def dipole( r, r_n, r_e ):
 
     return p
 
+def center_and_xz(p1 = np.array([0,0,0]),
+        p2 = np.array([0,0,1]),
+        p3 = np.array([1,0,0]), ):
+    """Given three points, will return one translation vector
+    and 3 rotation matrices Rz**-1, Ry, and Rz**-1
+    Required to put p1 in origo, with p2 and p3 in the xz plane and
+    p2-p1 as the z axis.
+    """
+    t_v = -p1.copy()
+    v2 = p2 - p1
+    v3 = p3 - p1
+    r1, r2 ,r3 = get_euler( v2, v3 )
+    return t_v, r1, r2, r3
+
+
+
 def get_euler( r1, r2 ):
     """Given two vectors, return 3 euler angles defined as follows
     
