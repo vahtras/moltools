@@ -68,17 +68,23 @@ class Monomer( pdbreader.Residue ):
     monomer type"""
 
 
+
     def __init__(self, *args, **kwargs ):
         super( Monomer, self ).__init__( *args, **kwargs )
         self.c_term = False
         self.n_term = False
         self._label = None
+        self.Cluster = Polymer()
         """Standard connectivities"""
         self._r = 1.0
         self._angle = 104.5
         self._dihedral = 0.0
         self._rot_angle = 0.0
         self.hidden = []
+
+
+    def __str__(self):
+        return "-".join( [str(self.res_id), self.res_name] )
 
     def copy_info(self):
         new = Monomer()
