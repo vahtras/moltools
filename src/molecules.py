@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil, logging
+import re, os, itertools, warnings, subprocess, shutil, logging, string
 import cPickle as pickle
 
 from template import Template
@@ -947,7 +947,7 @@ AA       True     bool
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
 #Label is custom name, for water use O1, H2 (positive x ax), H3
-        #self.label = ""
+        self._label = None
 
         self.x = 0.0
         self.y = 0.0
@@ -965,7 +965,7 @@ AA       True     bool
 
         self.number = 0
         self._res_id = 0
-        self.atom_id = None
+        self._atom_id = None
 
         self.in_water = False
         self.Molecule = Molecule()
@@ -993,6 +993,43 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
+    def pdb_string(self):
+        x, y, z = map( lambda x: string.rjust( str(x).strip(), 8)[:8], self.r )
+        """Return pdb line as specified by the PDB standard"""
+        st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:3s}{6:1s}{7:1s}{8:4s}{9:1s}{10:3s}\
+{11:8s}{12:8s}{13:8s}\n".format( "ATOM", 
+                "",
+                str(self.atom_id),
+                self.pdb_name,
+                "",
+                self.Molecule.res_name,
+                "",
+                self.Molecule.cluster._chain_id,
+                str(self.Molecule.res_id),
+                "",
+                "",
+                x,
+                y,
+                z,
+                )        
+        return st
+
+    @property
+    def atom_id(self):
+        if self._atom_id is not None:
+            return self._atom_id
+        self._atom_id = self.Molecule.index( self )
+        return self._atom_id
+
+
+    @property
+    def label(self):
+        if self._label is not None:
+            return self._label
+        self._label = self.element
+        return self._label
+        
+    
     @property
     def p(self):
         """Wrapper to access class Property object attached to the atom"""
@@ -1244,6 +1281,7 @@ class Molecule( list ):
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
+        self._res_name = None
         self._res_id = 0
         self._r = None
         self._com = None
@@ -1286,6 +1324,13 @@ class Molecule( list ):
             return self._res_id
         else:
             return 1
+
+    @property
+    def res_name(self):
+        if self._res_name is not None:
+            return self._res_name
+        self._res_name = "MOL"
+        return self._res_name
 
     def add_atom(self, atom):
         self.append( atom )
@@ -1973,6 +2018,14 @@ Plot Molecule in a 3D frame
             for i in [all_el for all_el in self if (all_el.element == el) ]:
                 st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
         return st
+
+    def get_pdb_string(self):
+        st = """"""
+        for at in self:
+            st += at.pdb_string()
+        return st
+
+
 
     @property
     def q(self):
@@ -2688,6 +2741,7 @@ class Cluster(list):
 """
     def __init__(self, *args, **kwargs):
         """ Typical list of molecules """
+        self._chain_id = "A"
         self.Property = None
         self.atom_list = []
         if type(args) == tuple:
