@@ -74,6 +74,7 @@ class Monomer( pdbreader.Residue ):
         self.c_term = False
         self.n_term = False
         self._label = None
+        self.is_ready = False
         self.Cluster = Polymer()
         """Standard connectivities"""
         self._r = 1.0
@@ -84,7 +85,13 @@ class Monomer( pdbreader.Residue ):
 
 
     def __str__(self):
-        return "-".join( [str(self.res_id), self.res_name] )
+        st =  "-".join( [str(self.res_id), self.res_name] )
+        if self.concap:
+            st += '-con'
+        elif self.is_ready:
+            st += '-ready'
+
+        return st
 
     def copy_info(self):
         new = Monomer()
@@ -110,6 +117,7 @@ class Monomer( pdbreader.Residue ):
         if residue or r:
             tmp_residue = self.copy_info()
             res_type = "res"
+            tmp_residue.is_ready = True
         elif concap or c:
             tmp_residue = self.copy_info()
             tmp_residue = self.copy_info() 
