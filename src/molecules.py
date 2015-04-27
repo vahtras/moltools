@@ -1207,7 +1207,7 @@ Plot Atom in a 3D frame
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
         a._res_id = self.res_id
-        a.atom_id = self.atom_id
+        a._atom_id = self.atom_id
         a.Property = self.Property.copy_property()
         return a
 
