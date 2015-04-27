@@ -398,6 +398,28 @@ class Monomer( pdbreader.Residue ):
         for at in self + self.hidden:
             at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
 
+
+    def attach_properties(self, 
+            model = "PMMA",
+            method = "B3LYP",
+            basis = "ANOPVDZ",
+            loprop = True,
+            freq = "0.0"):
+        """
+Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
+        """
+        templ = Template().get( *(model, method, basis, loprop, freq) )
+        for mol in self:
+            for at in mol:
+                Property.add_prop_from_template( at, templ )
+            t1, t2, t3 = mol.get_euler()
+            for at in mol:
+                at.Property.transform_ut_properties( t1, t2, t3 )
+            if loprop:
+                mol.LoProp = True
+            else:
+                mol.LoProp = False
+        self.Property = True
     
     def connect_monomer(self, other):
         r_ca = self.last_heavy.r
