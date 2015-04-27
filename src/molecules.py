@@ -996,21 +996,22 @@ AA       True     bool
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( str(x).strip(), 8)[:8], self.r )
         """Return pdb line as specified by the PDB standard"""
-        st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:3s}{6:1s}{7:1s}{8:4s}{9:1s}{10:3s}\
-{11:8s}{12:8s}{13:8s}\n".format( "ATOM", 
-                "",
+        st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:3s}{6:1s}{7:1s}{8:4s}{9:1s}{10:3s}{11:8s}{12:8s}{13:8s}{14:22s}{15:2s}\n".format( "ATOM", 
                 str(self.atom_id),
+                "",
                 self.pdb_name,
                 "",
                 self.Molecule.res_name,
                 "",
-                self.Molecule.cluster._chain_id,
+                self.Molecule.Cluster._chain_id,
                 str(self.Molecule.res_id),
                 "",
                 "",
                 x,
                 y,
                 z,
+                "",
+                string.rjust(self.element,2)
                 )        
         return st
 
@@ -1285,7 +1286,7 @@ class Molecule( list ):
         self._res_id = 0
         self._r = None
         self._com = None
-        self.cluster = None
+        self.Cluster = None
         self.no_hydrogens = True
 
 # This will be set True if attaching LoProp properties
