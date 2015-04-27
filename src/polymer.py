@@ -88,7 +88,7 @@ class Monomer( pdbreader.Residue ):
         new.in_qm_region = self.in_qm_region
         new.in_mm_region = self.in_mm_region
         new._res_id = self._res_id
-        new.res_name = self.res_name
+        new._res_name = self.res_name
         new.Next = self.Next
         new.Prev = self.Prev
         new.chain = self.chain
