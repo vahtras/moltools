@@ -339,6 +339,57 @@ ZDIPLEN
 .DIPLEN
 **END OF DALTON INPUT""" 
 
+    @staticmethod
+    def get_hflin_dal( ):
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+    @staticmethod
+    def get_b3lyplin_dal( ):
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+B3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+
+
+
+
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
@@ -1532,6 +1583,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         Might take long time for large residues.
         """
 
+        if 'lin' in method:
+            hyper = 0
 #Specific for triolith host, will remove in slurm environment leftover RSP
 #files if they exist in tmp dir
         if os.environ.has_key( 'SLURM_JOB_NAME' ):
@@ -1548,10 +1601,14 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         dal = 'dalton.dal'
         mol = 'molecule.mol'
         dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
-        if method == 'hf':
+        if method == 'hfqua':
             open( dal, 'w').write( Generator.get_hfqua_dal( ) )
-        elif method == 'b3lyp':
+        elif method == 'b3lypqua':
             open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
+        elif method == 'hflin':
+            open( dal, 'w').write( Generator.get_hflin_dal( ) )
+        elif method == 'b3lyplin':
+            open( dal, 'w').write( Generator.get_b3lyplin_dal( ) )
         else:
             print "wrong calculation type specified"
             return
@@ -1615,7 +1672,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             of = "DALTON.OUT"
             tar = "dalton_molecule.tar.gz"
             of, tar = map( lambda x: os.path.join( tmpdir, x ), [of, tar ] )
-        at, p, a, b = read_dal.read_beta_hf( of )
+        if 'lin' in method:
+            at, p, a = read_dal.read_alpha( of )
+        else:
+            at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
         try:
