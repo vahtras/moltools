@@ -348,7 +348,7 @@ class Monomer( pdbreader.Residue ):
             tmp_atom.res_name = res_name
             tmp_atom._res_id = res_id
             #tmp_atom.label = "%d-%s-%s" %( res_id, res_name, pdb_name )
-            tmp_mono.res_name = res_name
+            tmp_mono._res_name = res_name
             tmp_mono.chain_id = chain_id
             tmp_mono.add_atom( tmp_atom )
         if in_AA and not out_AA:
@@ -384,6 +384,7 @@ class Monomer( pdbreader.Residue ):
         for at in self + self.hidden:
             at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
 
+    
     def connect_monomer(self, other):
         r_ca = self.last_heavy.r
         e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
@@ -412,6 +413,8 @@ class Polymer( molecules.Cluster ):
         mono.c_term = True
         mono.n_term = True
         mono._res_id = 1
+        mono.Cluster = P
+        mono.Polymer = P
         P.append( mono )
         return P
 
@@ -420,6 +423,8 @@ class Polymer( molecules.Cluster ):
         last = self[-1]
         last.Next = mono
         mono.Prev = last
+        mono.Cluster = self
+        mono.Polymer = self
         last.connect_monomer( mono )
         self.append( mono )
 
