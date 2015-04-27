@@ -1,0 +1,17 @@
+ATOM  0     HC   PMM A1          4.722  -1.496   1.058                       H
+ATOM  1     CA   PMM A1          5.158  -2.283   1.637                       C
+ATOM  2     CB1  PMM A1           4.64  -2.185   3.091                       C
+ATOM  3     CB2  PMM A1          4.619  -3.604   1.044                       C
+ATOM  4     OG1  PMM A1          5.429  -4.151    0.17                       O
+ATOM  5     OG2  PMM A1          3.416  -4.146   1.437                       O
+ATOM  6     CD   PMM A1          2.825  -5.143    0.58                       C
+ATOM  7     C    PMM A1           6.59  -2.395   1.711                       C
+ATOM  8     HN   PMM A1          7.012  -3.189   2.285                       H
+ATOM  9     HB1  PMM A1       3.743072-2.760893.189134                       H
+ATOM  10    HB2  PMM A1       4.435813-1.162313.328306                       H
+ATOM  11    HB3  PMM A1       5.382762-2.565193.760818                       H
+ATOM  12    HD1  PMM A1       3.385787-6.051510.651239                       H
+ATOM  13    HD2  PMM A1       2.836122-4.79471-0.43192                       H
+ATOM  14    HD3  PMM A1       1.815438-5.321980.884561                       H
+ATOM  15    H1   PMM A1          6.957  -1.479   2.123                       H
+ATOM  16    H2   PMM A1          6.887  -2.614   0.706                       H
