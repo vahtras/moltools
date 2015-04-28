@@ -1385,6 +1385,43 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    def inv_rotate(self, t1, t2, t3):
+        """rotate all atoms and properties as
+        1) inverse Z rotation by t1
+        2) positive Y rotation by t2
+        3) inverse Z rotation by t3
+        """
+#Put back in original point
+        r1 = utilz.Rz_inv(t1)
+        r2 = utilz.Ry(t2)
+        r3 = utilz.Rz_inv(t3)
+        for at in self:
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,dj', at.r )
+            #at.Property.inv_transform_ut_properties( t1, t2, t3 )
+
+    def rotate(self, t1, t2, t3):
+        """Rotate all coordinates by t1, t2 and t3
+        first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
+
+        R all in radians
+
+        """
+        com = self.com.copy()
+        orig = np.zeros( (len(self), 3) )
+#Put back in original point
+        for at in self:
+            at.x, at.y, at.z = at.r - com
+        r1 = Rotator.get_Rz(t1)
+        r2 = Rotator.get_Ry_inv(t2)
+        r3 = Rotator.get_Rz(t3)
+        for at in self:
+            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
+            at.Property.transform_ut_properties( t1, t2, t3 )
+        for at in self:
+            at.x, at.y, at.z = at.r + com
+
+
+
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name ):
         """Write out the template with properties for molecule"""
@@ -2541,7 +2578,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
         return theta3, theta2, theta1
 
     def inv_rotate(self):
-        """rotate all atom positions by
+        """rotate all atoms and properties
         1) inverse Z rotation by t1
         2) positive Y rotation by t2
         3) inverse Z rotation by t3
