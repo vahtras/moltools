@@ -1438,7 +1438,7 @@ class Molecule( list ):
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
             st += tmp.format(  "'" + label_func(at) + "'", "'quadrupole'",*at.p.Q )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
-            st += tmp.format( "'" + label_func(at) + "'", "'polar'",*at.p.a )
+            st += tmp.format( "'" + label_func(at) + "'", "'alpha'",*at.p.a )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,12) )))
             st += tmp.format( "'" + label_func(at) +"'", "'beta'", *at.p.b )
 
