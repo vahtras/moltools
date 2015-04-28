@@ -177,6 +177,20 @@ invoking dalton on a supercomputer.
         return p
 
     @staticmethod
+    def from_template( at_string, template ):
+        """Given string, and dictionary template,
+        return all properties found in template.py for this template
+        """
+        props = [ 'charge', 'dipole', 'quadrupole', 'alpha', 'beta' ]
+        p = Property() 
+        for key in template:
+            if key[0] == at_string:
+                for each in props:
+                    p[ each ] = template[ (at_string, each ) ]
+        return p
+
+
+    @staticmethod
     def add_prop_from_template( at, wat_templ ):
 
         """
@@ -1370,6 +1384,29 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+    def template(self, max_l = 0, pol = 1, hyp = 0,
+            label_func = lambda x: x.pdb_name ):
+        """Write out the template with properties for molecule"""
+        if len(label_func.func_code.co_varnames) != 1:
+            print "Unsupported multi key function"
+            raise SystemExit
+        st_label = "_".join( label_func.func_code.co_names )
+        st = ""
+        st += "meta : { 'label' : '%s'}\n" % st_label
+        for at in self:
+            st += "( {0:5s}, {1:8s}) : {2:1.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
+            st += tmp.format( "'" + label_func(at) + "'", "'dipole'",*at.p.d )
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
+            st += tmp.format(  "'" + label_func(at) + "'", "'quadrupole'",*at.p.Q )
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
+            st += tmp.format( "'" + label_func(at) + "'", "'polar'",*at.p.a )
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,12) )))
+            st += tmp.format( "'" + label_func(at) +"'", "'beta'", *at.p.b )
+
+        return st
+
     @property
     def res_id(self):
         if self._res_id is not None:
