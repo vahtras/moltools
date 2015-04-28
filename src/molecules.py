@@ -2816,6 +2816,13 @@ class Cluster(list):
                 for item in args:
                     self.add( item )
 
+    def get_pdb_string(self):
+        st = ""
+        for at in [at for mol in self for at in mol]:
+            st += at.pdb_string()
+        return st
+
+
     def g_list_from_damped(self, 
             max_l = 1,
             pol = 22,
