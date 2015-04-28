@@ -993,7 +993,7 @@ AA       True     bool
         self.element = "X"
 
 #Order in xyz files
-        self.order = None
+        self._order = None
 
 #Name is custom name, for water use O1, H2 (positive x ax), H3
         self.name = None
@@ -1383,6 +1383,17 @@ class Molecule( list ):
             return self._res_name
         self._res_name = "MOL"
         return self._res_name
+    
+    def exclists(self):
+        tmp = []
+        uniq = []
+        for i in itertools.permutations( [at.atom_id for at in self], len(self) ):
+            if i[0] not in uniq:
+                tmp.append(i)
+                uniq.append( i[0] )
+        return tmp
+
+
 
     def add_atom(self, atom):
         self.append( atom )
@@ -2421,16 +2432,6 @@ Override list append method, will add up to 3 atoms,
 
     def __str__(self):
         return "WAT" + str(self.res_id) 
-    
-    def exclists(self):
-        tmp = []
-        uniq = []
-        for i in itertools.permutations( [at.number for at in self], len(self) ):
-            if i[0] not in uniq:
-                tmp.append(i)
-                uniq.append( i[0] )
-        return tmp
-
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.coo - np.array(point))**2))
 
@@ -3080,7 +3081,7 @@ Plot Cluster a 3D frame in the cluster
                 st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
 # Specific output for PEQM calculation in dalton, all molecules exclude itself
-    def get_pe_pot_string( self, max_l = 1, pol = 2, hyp = 0, out_AA = False ):
+    def get_pe_pot_string( self, max_l = 0, pol = 1, hyp = 0, out_AA = False ):
         self.order_mm_atoms()
         st = r'!%s' % (self ) + '\n'
         st += r'@COORDINATES' + '\n'
@@ -3114,12 +3115,10 @@ Plot Cluster a 3D frame in the cluster
         st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
         if pol % 2 == 0:
             for mol in [m for m in self if m.in_mm]:
-                #st += 'ORDER 1 1\n'
-                #st += '%d\n' % len( mol )
                 for at in mol:
                     st += "%s %.5f %.5f %.5f %.5f %.5f %.5f\n" % ( tuple([at.number]) + tuple(at.Property["alpha"])) 
 
-        st += 'EXCLISTS\n%d %d\n' %( sum([len(i) for i in self if i.in_mm ])
+                    st += 'EXCLISTS\n%d %d\n' %( sum([len(i) for i in self if i.in_mm ])
  , len(mol))
         for mol in [m for m in self if m.in_mm]:
             for each in mol.exclists():
