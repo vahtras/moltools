@@ -4,9 +4,15 @@
 
 #Welcome to moltools!
 
-Code intended to aid in the analysis of calculations of water molecules.
+Code intended to aid in the analysis of calculations of molecules.
 
     Right now porting from dalton_tools.git
+
+## Current features:
+
+MM properties for QMMM available for some molecules as templates.
+
+Generation of a polymer from a monomer unit.
 
 ## Installation:
 
@@ -16,7 +22,7 @@ Code intended to aid in the analysis of calculations of water molecules.
 
 `export PYTHONPATH=$(pwd)/moltools:$PYTHONPATH`
 
-Execute the script:
+Execute the following script so that private dependencies are uncommented.
 
 `/src/scripts/make_master_pass_test.sh`
 
@@ -41,14 +47,15 @@ Run:
 ##### Translate water 2 by 2.5 AU in the z-axis
 \>>> `w2.translate_by_r( [0, 0, 2.5] )`
 
-
 ##### Add them together into a Cluster
-
 \>>> `c = Cluster( w1, w2)`
 
-##### Set up which waters are in the QM region and which in the MM region
+##### You can always make a quick visualization of a Molecule / Cluster
+\>>> `c.plot( copy = True, center = True)
 
-\>>> `open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string( AA = False ))`
+##### Print a dalton input file using standard basis sets
+
+\>>> `open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string())`
 
 
 **********
