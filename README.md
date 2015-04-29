@@ -14,7 +14,13 @@ Code intended to aid in the analysis of calculations of water molecules.
 
 `export PYTHONPATH=$(pwd)/moltools:$PYTHONPATH`
 
-> Tip: Add the path to the moltools directory to your initrc file of choice in order to have it automatically load.
+`export PYTHONPATH=$(pwd)/moltools:$PYTHONPATH`
+
+Execute the script:
+
+`/src/scripts/make_master_pass_test.sh`
+
+> Tip: Export the pythonpath variable in your initrc file of choice in order to have it automatically load.
 
 _______
 
@@ -24,16 +30,16 @@ _______
 Run:
 
 * \>>>`ipython`
-* `in [1]: from molecules import Water, Cluster`
+* in [1]: `from molecules import Water, Cluster`
 
 ##### Create a water molecule with oxygen in origo, in atomic units
-\>>> `w1 = Water().get_standard( AA = False )
+\>>>`w1 = Water().get_standard( AA = False )`
 
 ##### Create an additional water molecule 
-\>>> `w2 = Water().get_standard( AA = False )
+\>>> `w2 = Water().get_standard( AA = False )`
 
 ##### Translate water 2 by 2.5 AU in the z-axis
-\>>> `w2.translate_by_r( [0, 0, 2.5] )
+\>>> `w2.translate_by_r( [0, 0, 2.5] )`
 
 
 ##### Add them together into a Cluster
