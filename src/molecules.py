@@ -1654,7 +1654,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             maxl = 1,
             pol = 22,
             hyper = 2,
-            method = 'hf',
+            method = 'hflin',
             env = os.environ,
             basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-1 5 4 1' ],
             dalexe = None,
@@ -1713,8 +1713,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             out, err = p.communicate()
         elif os.path.isfile( dalpath ):
             dalton = dalpath
-        elif env.has_key( 'DALTON' ):
-            dalton = env['DALTON']
         else:
             print "set env variable DALTON to dalton script, \
              or supply the script to props_from_qm directly as  \
@@ -1746,9 +1744,14 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                 ],
                 stdout = subprocess.PIPE)
         else:
+
+        noappend = '-noappend'
+        if 'gnu' in dalton:
+            noappend = ''
+
 #Run as dalton script
             p = subprocess.Popen([dalton, 
-                '-N', str(procs), '-noarch', '-D', '-noappend', '-t', tmpdir,
+                '-N', str(procs), '-noarch', noappend, '-D', '-t', tmpdir,
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
