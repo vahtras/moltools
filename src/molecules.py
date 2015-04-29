@@ -178,14 +178,23 @@ invoking dalton on a supercomputer.
 
     @staticmethod
     def from_template( at_string, template ):
-        """Given string, and dictionary template,
-        return all properties found in template.py for this template
+        """Given string for atomic label, and dictionary template for the
+        molecule,
+        will return all properties found in template.py for this template
         """
-        props = [ 'charge', 'dipole', 'quadrupole', 'alpha', 'beta' ]
+        all_props = [ 'charge', 'dipole', 'quadrupole', 'alpha', 'beta' ]
+
+
+        for p in all_props:
+            if (at_string, p ) not in template:
+                raise RuntimeWarning("'( %s, %s )' not found in provided template" %(at_string,p))
+
+
+
         p = Property() 
         for key in template:
             if key[0] == at_string:
-                for each in props:
+                for each in all_props:
                     p[ each ] = template[ (at_string, each ) ]
         return p
 
