@@ -33,27 +33,27 @@ _______
 
 Run:
 
-* \>>>`ipython`
+* `ipython`
 * in [1]: `from molecules import Water, Cluster`
 
 ##### Create a water molecule with oxygen in origo, in atomic units
-\>>>`w1 = Water().get_standard( AA = False )`
+`in [2]: w1 = Water().get_standard( AA = False )`
 
 ##### Create an additional water molecule 
-\>>> `w2 = Water().get_standard( AA = False )`
+`in [3]: w2 = Water().get_standard( AA = False )`
 
 ##### Translate water 2 by 2.5 AU in the z-axis
-\>>> `w2.translate_by_r( [0, 0, 2.5] )`
+`in [4]: w2.translate_by_r( [0, 0, 2.5] )`
 
 ##### Add them together into a Cluster
-\>>> `c = Cluster( w1, w2)`
+`in [5]: c = Cluster( w1, w2)`
 
 ##### You can always make a quick visualization of a Molecule / Cluster
-\>>> `c.plot( copy = True, center = True)
+`in [6]: c.plot( copy = True, center = True)`
 
 ##### Print a dalton input file using standard basis sets
 
-\>>> `open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string())`
+`in [7]: open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string())`
 
 
 **********
