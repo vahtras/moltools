@@ -1668,6 +1668,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-1 5 4 1' ],
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
+            log = None,
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1675,6 +1676,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 
         Might take long time for large residues.
         """
+        if log:
+            logging.basicConfig( filename=log, level=logging.DEBUG )
 
         if 'lin' in method:
             hyper = 0
@@ -1728,7 +1731,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
              dalpath = <path-to-dalscript> "
             raise SystemExit
 
-
         if dalexe:
 #Run as dalton executable directly in the dir with *.INP files
             os.chdir( tmpdir )
@@ -1762,7 +1764,13 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
+            p.stdout
+            lines_iterator = iter(p.stdout.readline, b"")
+            for line in lines_iterator:
+                logging.debug( line ) 
             out, err = p.communicate()
+
+
             of = "DALTON.OUT"
             tar = "dalton_molecule.tar.gz"
             of, tar = map( lambda x: os.path.join( tmpdir, x ), [of, tar ] )
