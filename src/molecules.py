@@ -1087,7 +1087,6 @@ AA       True     bool
         self._atom_id = self.Molecule.index( self )
         return self._atom_id
 
-
     @property
     def label(self):
         if self._label is not None:
