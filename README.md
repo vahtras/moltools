@@ -16,11 +16,9 @@ Generation of a polymer from a monomer unit.
 
 ## Installation:
 
-`git clone git@github.com:fishstamp82/moltools.git moltools`
+`git clone git@github.com:fishstamp82/moltools.git`
 
-`export PYTHONPATH=$(pwd)/moltools:$PYTHONPATH`
-
-`export PYTHONPATH=$(pwd)/moltools:$PYTHONPATH`
+`export PYTHONPATH=$(pwd)/moltools/src:$PYTHONPATH`
 
 Execute the following script so that private dependencies are uncommented.
 
