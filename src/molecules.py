@@ -1744,12 +1744,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                 ],
                 stdout = subprocess.PIPE)
         else:
-
-        noappend = '-noappend'
-        if 'gnu' in dalton:
-            noappend = ''
-
 #Run as dalton script
+            noappend = '-noappend'
+            if 'gnu' in dalton:
+                noappend = ''
             p = subprocess.Popen([dalton, 
                 '-N', str(procs), '-noarch', noappend, '-D', '-t', tmpdir,
                 dal, mol
