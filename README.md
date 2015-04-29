@@ -34,7 +34,7 @@ _______
 Run:
 
 * `ipython`
-* in [1]: `from molecules import Water, Cluster`
+* `in [1]: from molecules import Water, Cluster`
 
 ##### Create a water molecule with oxygen in origo, in atomic units
 `in [2]: w1 = Water().get_standard( AA = False )`
