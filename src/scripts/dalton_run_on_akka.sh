@@ -21,4 +21,6 @@ sed -i 's/^\(from gaussian*\)/#\1/g' $DIR/*.py
 sed -i 's/^\(import gaussian*\)/#\1/g' $DIR/*.py
 sed -i 's/^\(from matplotlib*\)/#\1/g' $DIR/*.py
 sed -i 's/^\(import matplotlib*\)/#\1/g' $DIR/*.py
+sed -i 's/^\(from mpl_tool*\)/#\1/g' $DIR/*.py
+sed -i 's/^\(import mpl_tool*\)/#\1/g' $DIR/*.py
 
