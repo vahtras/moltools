@@ -1665,7 +1665,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             hyper = 2,
             method = 'hflin',
             env = os.environ,
-            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-1 5 4 1' ],
+            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-2 5 4 1' ],
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
