@@ -5,7 +5,7 @@ The molecules modules serves as an interface to write water molecule input files
 """
 
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 
 import numpy as np
 import re, os, itertools, warnings, subprocess, shutil, logging, string
@@ -19,7 +19,7 @@ import gaussian
 
 import utilz
 
-import h5py
+#import h5py
 from loprop import *
 
 a0 = 0.52917721092
@@ -1656,7 +1656,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                     hyper = hyper )
 
     def props_from_qm(self,
-            tmpdir = '/tmp',
+            tmpdir = None,
             dalpath = None,
             procs = 4,
             decimal = 5,
@@ -1679,6 +1679,13 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         if log:
             logging.basicConfig( filename=log, level=logging.DEBUG )
 
+        if tmpdir is None:
+            print "Warning, must set tmpdir explicitly, since this function removes all files from the dalton generated real tmpdir."
+            print "For security reasons will not run this if not set tmpdir"
+            print "Explicitly by user"
+            return
+
+        remove_files = ['RSP_VEC', 'AOPROPER', 'SIRIFC' ]
         if 'lin' in method:
             hyper = 0
 #Specific for triolith host, will remove in slurm environment leftover RSP
@@ -1773,6 +1780,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 #Need to do this since late dalton scripts appends the tmp with seperate PID
             real_tmp = utilz.find_dir( of, tmpdir )
             of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+            #print out, err, real_tmp
+            #raise SystemExit
 
         if 'lin' in method:
             at, p, a = read_dal.read_alpha( of )
@@ -1810,26 +1819,28 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 #So that we do not pollute current directory with dalton outputs
 #Also remove confliction inter-dalton calculation files
 # For triolith specific calculations, remove all files in tmp
-        if os.environ.has_key( 'SLURM_JOB_NAME' ):
-            try:
-                for f_ in [f for f in os.listdir(tmpdir) if os.path.isfile(f) ]:
-                    os.remove( f_ )
-                for f_ in [mol, dal]:
-                    os.remove( f_ )
-            except OSError:
-                pass
-        else:
-            try:
-                os.remove( tar )
-            except OSError:
-                pass
-            os.remove( of )
-            shutil.rmtree( tmpdir )
+        for f_ in [os.path.join(real_tmp, f) for f in os.listdir(real_tmp) if os.path.isfile( os.path.join( real_tmp, f)) ]:
+            os.remove( f_ )
+
+        try:
+            for f_ in [f for f in os.listdir(real_tmp) if os.path.isfile(f) ]:
+                print os.path.join(real_tmp, f_) 
             for f_ in [mol, dal]:
-                try:
-                    os.remove( f_ )
-                except OSError:
-                    pass
+                print f_
+                os.remove( f_ )
+        except OSError:
+            logging.error('Something wrint in trying to remove files in real_tmp')
+        #try:
+        #    os.remove( tar )
+        #except OSError:
+        #    pass
+        #os.remove( of )
+        #shutil.rmtree( tmpdir )
+        #for f_ in [mol, dal]:
+        #    try:
+        #        os.remove( f_ )
+        #    except OSError:
+        #        pass
 
     @classmethod
     def from_string(cls, fil):
