@@ -1660,7 +1660,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             dalpath = None,
             procs = 4,
             decimal = 5,
-            maxl = 1,
+            maxl = 2,
             pol = 22,
             hyper = 2,
             method = 'hflin',
