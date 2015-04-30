@@ -1178,6 +1178,8 @@ class Residue( molecules.Molecule ):
         new._res_name = self.res_name
         new.AA = self.AA
 
+        new.chain = self.chain
+
         new.in_qm_region = self.in_qm_region
         new.in_mm_region = self.in_mm_region
 
