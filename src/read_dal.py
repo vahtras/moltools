@@ -5,7 +5,7 @@ import numpy as np
 import math as m
 
 #from particles import *
-#from gaussian import *
+from gaussian import *
 
 import molecules 
 from template import Template

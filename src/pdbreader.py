@@ -624,6 +624,7 @@ class Residue( molecules.Molecule ):
         self.Prev = None
         self.Next = None
         self.Bridge = None
+        self._level = None
 
 #properties
         self._label = None
@@ -770,6 +771,7 @@ class Residue( molecules.Molecule ):
             res_type = "bri"
         else:
             return
+        tmp_residue._level = level
 
         p_rep_pp_p = p.get()
         
@@ -1216,6 +1218,7 @@ class Residue( molecules.Molecule ):
         for i in self:
             string += "%s %s %s %s\n" %( i.element, i.x, i.y, i.z )
         return string.rstrip('\n')
+
     def get_mol_string(self, *args, **kwargs):
         return self.get_mol( *args, **kwargs)
 
@@ -1246,7 +1249,7 @@ class Residue( molecules.Molecule ):
                 charge += chargeDict[ resDict[ self.res_name] ]
 #Temporary fix to give level 3 concaps negative and positive even if they are not
 #n or c terminal
-        if level == 3:
+        if self._level == 3:
             charge = 0
             for at in self:
                 if at.pdb_name == "H1":

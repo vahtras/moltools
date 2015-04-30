@@ -5,7 +5,7 @@ The molecules modules serves as an interface to write water molecule input files
 """
 
 from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 
 import numpy as np
 import re, os, itertools, warnings, subprocess, shutil, logging, string
@@ -19,7 +19,7 @@ import gaussian
 
 import utilz
 
-#import h5py
+import h5py
 from loprop import *
 
 a0 = 0.52917721092
