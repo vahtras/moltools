@@ -1756,11 +1756,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                 stdout = subprocess.PIPE)
         else:
 #Run as dalton script
-            noappend = '-noappend'
-            if 'gnu' in dalton:
-                noappend = ''
             p = subprocess.Popen([dalton, 
-                '-N', str(procs), '-noarch', noappend, '-D', '-t', tmpdir,
+                '-N', str(procs), '-noarch', '-D', '-t', tmpdir,
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
@@ -1773,7 +1770,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 
             of = "DALTON.OUT"
             tar = "dalton_molecule.tar.gz"
-            of, tar = map( lambda x: os.path.join( tmpdir, x ), [of, tar ] )
+#Need to do this since late dalton scripts appends the tmp with seperate PID
+            real_tmp = utilz.find_dir( of, tmpdir )
+            of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+
         if 'lin' in method:
             at, p, a = read_dal.read_alpha( of )
         else:
@@ -1781,7 +1781,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 
 #Using Olavs external scripts
         try:
-            outpot = MolFrag( tmpdir = tmpdir,
+            outpot = MolFrag( tmpdir = real_tmp,
                     max_l = maxl,
                     pol = pol,
                     pf = penalty_function( 2.0 ),
@@ -1791,11 +1791,9 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                             pol = pol,
                             hyper = hyper,
                             decimal = decimal,
-                            #template_full = False,
-                            #decimal = 5,
                             )
         except:
-            print tmpdir
+            print real_tmp
 
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         if not len(lines) == len(self):

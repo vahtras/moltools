@@ -538,3 +538,13 @@ def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
     tot_dip = nuc_dip - el_dip
 
     return atoms, nuc_dip - el_dip, alpha , beta
+
+def find_dir(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return root
+
+def find_file(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
