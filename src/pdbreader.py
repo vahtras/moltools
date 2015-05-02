@@ -1176,6 +1176,9 @@ class Residue( molecules.Molecule ):
         new._res_id = self._res_id
         new._res_name = self.res_name
         new.AA = self.AA
+#Keep information if this is concap
+        new.concap = self.concap
+
 
         new.chain = self.chain
 
