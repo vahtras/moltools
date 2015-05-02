@@ -1178,6 +1178,7 @@ class Residue( molecules.Molecule ):
         new.AA = self.AA
 #Keep information if this is concap
         new.concap = self.concap
+        new._level = self._level
 
 
         new.chain = self.chain
@@ -1226,8 +1227,7 @@ class Residue( molecules.Molecule ):
     def get_mol_string(self, *args, **kwargs):
         return self.get_mol( *args, **kwargs)
 
-    def get_mol(self, basis = ['ano-1 2','ano-1 4 3 1', 'ano-2 5 4 1' ],
-            level = 0):
+    def get_mol(self, basis = ['ano-1 2','ano-1 4 3 1', 'ano-2 5 4 1' ] ):
         charge = 0
 
         elem = [x.element for x in self]
