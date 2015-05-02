@@ -991,7 +991,6 @@ class Residue( molecules.Molecule ):
             if self.Next.Next:
                 at_r3 = get_rep_2( self.Next, self.Next.Next, p_rep_nn_n, p_con_nn_n )
             for at in at_t + at_n + at_r1 + at_r2 + at_r3:
-                print at.label
                 tmp_residue.add_atom( at )
 
         elif self.c_term:
