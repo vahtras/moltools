@@ -1487,12 +1487,16 @@ class Molecule( list ):
         for at in self:
             st += "( {0:5s}, {1:8s}) : {2:2.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
-            st += tmp.format( "'" + label_func(at) + "'", "'dipole'",*at.p.d )
+
+            st += tmp.format( "'" + label_func(at) + "'", "'dipole'", *(at.p.d.tolist()) )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
-            st += tmp.format(  "'" + label_func(at) + "'", "'quadrupole'",*at.p.Q )
+
+            st += tmp.format(  "'" + label_func(at) + "'", "'quadrupole'",*at.p.Q.tolist() )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
+
             st += tmp.format( "'" + label_func(at) + "'", "'alpha'",*at.p.a )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,12) )))
+
             st += tmp.format( "'" + label_func(at) +"'", "'beta'", *at.p.b )
 
         return st
