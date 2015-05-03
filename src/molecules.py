@@ -105,29 +105,33 @@ class Property( dict ):
     def d(self):
         return self['dipole']
     @property
+    def Q(self):
+        return self['quadrupole']
+    @property
     def a(self):
         return self['alpha']
     @property
     def b(self):
         return self['beta']
-    @property
-    def Q(self):
-        return self['quadrupole']
 
     @d.setter
     def q(self, val):
         self['charge'] = val
     @d.setter
     def d(self, val):
+        assert val.shape == (3,)
         self['dipole'] = val
     @Q.setter
     def Q(self, val):
+        assert val.shape == (6,)
         self['quadrupole'] = val
     @a.setter
     def a(self, val):
+        assert val.shape == (6,)
         self['alpha'] = val
     @b.setter
     def b(self, val):
+        assert val.shape == (10,)
         self['beta'] = val
 
     @property
@@ -256,7 +260,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
         p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
         p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
-        p.b = utilz.s2ut( np.einsum('gd,he,if,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
+        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
         return p
 
     def transform_ut_properties( self, t1, t2, t3):
@@ -1145,6 +1149,10 @@ AA       True     bool
     def p(self):
         """Wrapper to access class Property object attached to the atom"""
         return self.Property
+    @p.setter
+    def p(self, val):
+        assert isinstance( val, Property )
+        self.Property = val
 
     def move_closer_to_atom(self, atom, final_value):
         """Given other atom, will move this one so that it is at final value"""
@@ -1441,7 +1449,7 @@ class Molecule( list ):
         r2 = utilz.Ry(t2)
         r3 = utilz.Rz_inv(t3)
         for at in self:
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,dj', at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
     def rotate(self, t1, t2, t3):

@@ -104,7 +104,7 @@ def center_and_xz(p1 = np.array([0,0,0]),
     t_v = -p1.copy()
     v2 = p2 - p1
     v3 = p3 - p1
-    r3, r2 ,r1 = get_euler( v2, v3 )
+    r3, r2, r1 = get_euler( v2, v3 )
     return t_v, r1, r2, r3
 
 
@@ -579,6 +579,7 @@ def ut_3_square( beta ):
         tmp_b[ k, i, j] = beta [ index ]
         tmp_b[ k, j, i] = beta [ index ]
     return tmp_b
+
 def ut2s( vec ):
     """Transform upper triangular alpha or beta to square form"""
     if len( vec ) == 6:

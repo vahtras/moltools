@@ -732,14 +732,6 @@ class Residue( molecules.Molecule ):
         for at in self:
             at.x, at.y, at.z = vec + at.r
 
-    def inv_rotate(self, r1, r2):
-        t1, t2, t3 = utilz.get_euler(r1, r2)
-        for at in self:
-            r1 = molecules.Rotator.get_Rz_inv( t3 )
-            r2 = molecules.Rotator.get_Ry( t2 )
-            r3 = molecules.Rotator.get_Rz_inv( t1 )
-            at.x, at.y, at.z = reduce(lambda a, x : np.einsum('ij,j',x,a),[r1,r2,r3], at.r)
-
     def rotate(self, r1, r2, t1, t2, t3):
         self.inv_rotate( r1, r2 )
         for at in self:
