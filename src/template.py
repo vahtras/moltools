@@ -30,6 +30,14 @@ Frequency:  Field :math:`\\omega`    string
 
 """
 
+
+    def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
+            dist = True, freq = "0.0" ):
+        if model.lower() == 'tip4p':
+            model = 'TIP3P'
+        return self[ ( model.upper(), method.upper(), basis.upper(), dist, freq) ]
+
+
     def __init__(self):
 # -------------------------------------------
 #      SPC water model, smallest 2s 1p / 3s 2p 1d basis
@@ -1599,23 +1607,4 @@ Frequency:  Field :math:`\\omega`    string
 ( 'S5', "beta") : [ 6.44559, -1.42742, 9.74178, 4.04586, 3.58628, 3.40695, -7.37171, -10.34923, 1.57297, 3.33969 ],
 }
 
-        self[("PMMA", "B3LYP", "ANO631", True, "0.0")] = \
-                {
-( 'S5', "charge") : [ 0.00000 ],
-( 'S5', "dipole") : [ -0.95102, 0.37432, -1.00532 ],
-( 'S5', "quadrupole") : [ -19.45679, -0.49308, 0.14482, -21.94147, 0.40567, -21.55274 ],
-( 'S5', "alpha") : [ 32.24655, -0.65263, 0.68544, 30.07317, 0.35795, 29.98067 ],
-( 'S5', "beta") : [ 6.44559, -1.42742, 9.74178, 4.04586, 3.58628, 3.40695, -7.37171, -10.34923, 1.57297, 3.33969 ],
-}
 
-
-
-
-
-
-
-    def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
-            dist = True, freq = "0.0" ):
-        if model.lower() == 'tip4p':
-            model = 'TIP3P'
-        return self[ ( model.upper(), method.upper(), basis.upper(), dist, freq) ]
