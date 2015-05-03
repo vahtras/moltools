@@ -549,6 +549,17 @@ def find_file(name, path):
         if name in files:
             return os.path.join(root, name)
 
+# Functions related to transforming between upper triangular and square form
+def upper_triangular(n, start=0):
+    """Recursive generator for triangular looping of Carteesian tensor"""
+    if n > 2:
+        for i in range(start, 3):
+            for j in upper_triangular(n-1, start=i):
+                yield (i,) + j
+    else:
+        for i in range(start, 3):
+            for j in range(i, 3):
+                yield i, j
 def ut_2_square( alpha ):
     assert len(alpha) == 6
     tmp_a = np.zeros( (3,3, ))
@@ -568,10 +579,35 @@ def ut_3_square( beta ):
         tmp_b[ k, i, j] = beta [ index ]
         tmp_b[ k, j, i] = beta [ index ]
     return tmp_b
-
-def ut2s():
+def ut2s( vec ):
     """Transform upper triangular alpha or beta to square form"""
     if len( vec ) == 6:
         return ut_2_square( vec )
     elif len( vec ) == 10:
         return ut_3_square( vec )
+
+
+def square_2_ut(alpha):
+    assert alpha.shape == ( 3,3,)
+    tmp_a = np.zeros( 6 )
+    for index, (i, j ) in enumerate( upper_triangular(2) ):
+        tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
+    return tmp_a
+
+def square_3_ut(beta):
+    assert beta.shape == (3, 3, 3,)
+    tmp_b = np.zeros( 10 )
+    for index, (i, j, k ) in enumerate( upper_triangular(3) ):
+        tmp_b[ index ] = ( \
+                beta[i, j, k] + beta[i, k, j] + \
+                beta[j, i, k] + beta[j, k, i] + \
+                beta[k, i, j] + beta[k, j, i] )/ 6
+    return tmp_b
+
+def s2ut( vec ):
+    if vec.shape == (3,3,):
+        return square_2_ut( vec )
+    elif vec.shape == (3,3,3,):
+        return square_3_ut( vec )
+
+

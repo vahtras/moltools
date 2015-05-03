@@ -52,6 +52,22 @@ class WaterTest( unittest.TestCase ):
         p2["charge"] = 0.7
         self.eq( (p2 - p1)["charge"] , 0.4, decimal = 7 )
 
+    def test_inv_rotate(self):
+        p = Property()
+        p.d = np.array( [ 0, 0, 1] )
+        p.a = np.array( [ 3, 0, 0, 2, 0, 7 ] )
+        p.Q = np.array( [ 3, 0, 0, 2, 0, 7 ] )
+        p.b = np.array( [ 3, 0, 0, 0, 0, 0, 5, 0, 0, 10 ] )
+
+        P = p.inv_rotate( 0, np.pi , 0 )
+
+        np.testing.assert_allclose( P.d, np.array([0, 0, -1]) , atol = 1e-7 )
+        np.testing.assert_allclose( P.a, np.array([3, 0, 0, 2, 0, 7]) , atol = 1e-7 )
+        np.testing.assert_allclose( P.Q, np.array([3, 0, 0, 2, 0, 7]) , atol = 1e-7 )
+        #np.testing.assert_allclose( P.b, np.array([3, 0, 0, 0, 0, 0, 5, 0, 0, 10 ]), atol = 1e-7 )
+
+
+
     def eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
 

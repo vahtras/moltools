@@ -114,6 +114,22 @@ class Property( dict ):
     def Q(self):
         return self['quadrupole']
 
+    @d.setter
+    def q(self, val):
+        self['charge'] = val
+    @d.setter
+    def d(self, val):
+        self['dipole'] = val
+    @Q.setter
+    def Q(self, val):
+        self['quadrupole'] = val
+    @a.setter
+    def a(self, val):
+        self['alpha'] = val
+    @b.setter
+    def b(self, val):
+        self['beta'] = val
+
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
@@ -221,6 +237,21 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         at.Property = p
         at.Molecule.Property = True
 
+    def inv_rotate( self, t1, t2, t3 ):
+        """Rotate all properties by t1, t2, t3
+        t1 negative rotation around Z-axis
+        t2 positiv rotation around Y-axis
+        t3 negative rotation around Z-axis
+        """
+        p = Property()
+        r1 = utilz.Rz_inv(t1)
+        r2 = utilz.Ry(t2)
+        r3 = utilz.Rz_inv(t3)
+        p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
+        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
+        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
+        p.b = utilz.s2ut( np.einsum('gd,he,if,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
+        return p
 
     def transform_ut_properties( self, t1, t2, t3):
         """
@@ -1405,7 +1436,7 @@ class Molecule( list ):
         r3 = utilz.Rz_inv(t3)
         for at in self:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,dj', at.r )
-            #at.Property.inv_transform_ut_properties( t1, t2, t3 )
+            at.p = at.p.inv_rotate( t1, t2, t3 )
 
     def rotate(self, t1, t2, t3):
         """Rotate all coordinates by t1, t2 and t3
