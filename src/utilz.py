@@ -548,3 +548,30 @@ def find_file(name, path):
     for root, dirs, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
+
+def ut_2_square( alpha ):
+    assert len(alpha) == 6
+    tmp_a = np.zeros( (3,3, ))
+    for index, val in enumerate( upper_triangular(2) ) :
+        tmp_a[ val[0], val[1] ] = alpha[ index ]
+        tmp_a[ val[1], val[0] ] = alpha[ index ]
+    return tmp_a
+
+def ut_3_square( beta ):
+    assert len(beta) == 10
+    tmp_b = np.zeros( (3,3,3, ))
+    for index, (i, j, k ) in enumerate( upper_triangular(3) ) :
+        tmp_b[ i, j ,k] = beta[ index ]
+        tmp_b[ i, k ,j] = beta[ index] 
+        tmp_b[ j, i, k] = beta [ index ]
+        tmp_b[ j, k, i] = beta [ index ]
+        tmp_b[ k, i, j] = beta [ index ]
+        tmp_b[ k, j, i] = beta [ index ]
+    return tmp_b
+
+def ut2s():
+    """Transform upper triangular alpha or beta to square form"""
+    if len( vec ) == 6:
+        return ut_2_square( vec )
+    elif len( vec ) == 10:
+        return ut_3_square( vec )
