@@ -1416,6 +1416,9 @@ class Molecule( list ):
 # This will be set True if attaching LoProp properties
         self.LoProp = False
 
+# Used for printing template properties, defines which atoms are centered around zx plane
+        self._origo_z_x = None
+
 # For plotting different elements:
         self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'go',"P":'ko', "O":'ro',
                 'S' : 'yo'}
@@ -1443,6 +1446,20 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+    #@property
+    #def origo_z_x(self):
+    #    if self._origo_z_x is None:
+    #        logging.error('Did not set orientation for molecule in xz plane!')
+    #        raise SystemExit
+    #    return self._origo_z_x
+
+    #def center_zx(self, p1, p2, p3):
+    #    """Given 3 atoms will set p1 as origo, p2 as z axis and p3 in zx-plane"""
+    #    assert isinstance( p1, Atom )
+    #    assert isinstance( p2, Atom )
+    #    assert isinstance( p3, Atom )
+    #    self._origo_z_x = (p1.r.copy,(),())
 
     def inv_rotate(self, t1, t2, t3):
         """rotate all atoms and properties as
@@ -1489,7 +1506,11 @@ class Molecule( list ):
             raise SystemExit
         st_label = "_".join( label_func.func_code.co_names )
         st = "{\n"
-        st += "meta : { 'label' : '%s'}\n" % st_label
+        st += "meta : { 'label' : '%s',}\n" % st_label
+        #st += "'origo' : '%s',\n" % self.origo_z_x[0]
+        #st += "'z' : '%s',\n" % self.origo_z_x[1]
+        #st += "'x' : '%s',\n}" % self.origo_z_x[2]
+
         for at in self:
             st += "( {0:5s}, {1:8s}) : {2:2.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
