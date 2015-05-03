@@ -114,7 +114,7 @@ class Property( dict ):
     def b(self):
         return self['beta']
 
-    @d.setter
+    @q.setter
     def q(self, val):
         self['charge'] = val
     @d.setter
@@ -1485,7 +1485,7 @@ class Molecule( list ):
         st = ""
         st += "meta : { 'label' : '%s'}\n" % st_label
         for at in self:
-            st += "( {0:5s}, {1:8s}) : {2:1.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
+            st += "( {0:5s}, {1:8s}) : {2:2.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
             st += tmp.format( "'" + label_func(at) + "'", "'dipole'",*at.p.d )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
@@ -1588,7 +1588,7 @@ class Molecule( list ):
     def label(self):
         if self._label is None:
             self._label = self.element
-        return self.element
+        return self.element + self.order
  
     def save(self, fname = "molecule.p"):
         pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
@@ -2241,15 +2241,6 @@ Plot Molecule in a 3D frame
         for at in self:
             st += at.pdb_string()
         return st
-
-
-
-    @property
-    def q(self):
-        q = 0
-        for at in self:
-            q += at.Property['charge']
-        return q[0]
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
         """Write gaussian .inp file for geometry optimization"""
