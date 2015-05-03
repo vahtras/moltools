@@ -7,7 +7,7 @@ class WaterTest( unittest.TestCase ):
 
     def setUp(self):
         self.p1 = Property()
-        self.p1['charge'] = np.array( [0.22 ] )
+        self.p1['charge'] = 0.22
         self.p1['dipole'] = np.array( [0.0, 0.0, -0.5 ] )
         self.p1['quadrupole'] = np.arange( 6 )
         self.p1['alpha'] = np.arange( 6, 0, -1 )

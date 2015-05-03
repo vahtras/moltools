@@ -71,7 +71,7 @@ class Property( dict ):
 """
     def __init__(self):
 
-        self["charge"] = np.zeros( 1 )
+        self["charge"] = 0.0
         self["dipole"] = np.zeros( 3 )
         self["quadrupole"] = np.zeros( 6 )
         self["alpha"] =  np.zeros( 6 ) 
@@ -79,7 +79,7 @@ class Property( dict ):
 
     def copy_property(self):
         p = Property()
-        p["charge"] =      self["charge"].copy()
+        p["charge"] =      self["charge"]
         p["dipole"] =      self["dipole"].copy()
         p["quadrupole"] =  self["quadrupole"].copy()
         p["alpha"] =       self["alpha"].copy()
@@ -100,7 +100,9 @@ class Property( dict ):
 
     @property
     def q(self):
-        return self['charge'][0]
+        if isinstance( self['charge'], np.ndarray):
+            self['charge'] = self['charge'][0]
+        return self['charge']
     @property
     def d(self):
         return self['dipole']
@@ -143,7 +145,7 @@ class Property( dict ):
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
-            string += fmt % tuple(self["charge"] )
+            string += fmt % self["charge"]
         if max_l >= 1 :
             string += fmt*3 %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
         if max_l >= 2 :
@@ -181,7 +183,7 @@ invoking dalton on a supercomputer.
         st = map( float, st.split()[4:] )
         p = Property()
 
-        p['charge'][0] = st.pop(0)
+        p['charge'] = st.pop(0)
         if maxl > 0:
             for i in range(3):
                 p['dipole'][i] = st.pop(0)
@@ -245,6 +247,9 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
             if keys[0] == ( at.element + str(at.order) ):
                 p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
+#backwards compatible fix since charge was len 1 ndarray and now scalar
+        if isinstance( p.q, np.ndarray ):
+            p.q = p.q[0]
         at.Molecule.Property = True
 
     def inv_rotate( self, t1, t2, t3 ):
@@ -257,6 +262,7 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         r1 = utilz.Rz_inv(t1)
         r2 = utilz.Ry(t2)
         r3 = utilz.Rz_inv(t3)
+        p.q = self.q
         p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
         p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
         p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
@@ -1482,7 +1488,7 @@ class Molecule( list ):
             print "Unsupported multi key function"
             raise SystemExit
         st_label = "_".join( label_func.func_code.co_names )
-        st = ""
+        st = "{\n"
         st += "meta : { 'label' : '%s'}\n" % st_label
         for at in self:
             st += "( {0:5s}, {1:8s}) : {2:2.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
@@ -1499,6 +1505,7 @@ class Molecule( list ):
 
             st += tmp.format( "'" + label_func(at) +"'", "'beta'", *at.p.b )
 
+        st += '\n}'
         return st
 
     @property
