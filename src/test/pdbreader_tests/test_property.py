@@ -200,8 +200,8 @@ class TestConcapsLevel1( unittest.TestCase ):
         first.mfcc_props()
         second.mfcc_props()
 
-        np.testing.assert_almost_equal( first.get_atom_by_label( "1-PRO-C" ).Property['charge'][0] , 0.8, decimal = 7 )
-        np.testing.assert_almost_equal( second.get_atom_by_label( "2-PRO-N" ).Property['charge'][0] , 0.3, decimal = 7 )
+        np.testing.assert_almost_equal( first.get_atom_by_label( "1-PRO-C" ).Property['charge'] , 0.8, decimal = 7 )
+        np.testing.assert_almost_equal( second.get_atom_by_label( "2-PRO-N" ).Property['charge'] , 0.3, decimal = 7 )
 
 if __name__ == '__main__':
     unittest.main(  )

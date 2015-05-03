@@ -1506,13 +1506,13 @@ class Molecule( list ):
             raise SystemExit
         st_label = "_".join( label_func.func_code.co_names )
         st = "{\n"
-        st += "meta : { 'label' : '%s',}\n" % st_label
+        st += "'meta' : { 'label' : '%s', },\n" % st_label
         #st += "'origo' : '%s',\n" % self.origo_z_x[0]
         #st += "'z' : '%s',\n" % self.origo_z_x[1]
         #st += "'x' : '%s',\n}" % self.origo_z_x[2]
 
         for at in self:
-            st += "( {0:5s}, {1:8s}) : {2:2.5f}\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
+            st += "( {0:5s}, {1:8s}) : {2:2.5f},\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
             tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
 
             st += tmp.format( "'" + label_func(at) + "'", "'dipole'", *(at.p.d.tolist()) )
@@ -1641,16 +1641,20 @@ class Molecule( list ):
             method = "HF",
             basis = "ANOPVDZ",
             loprop = True,
-            freq = "0.0"):
+            freq = "0.0",
+            key = lambda x: x.pdb_name):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
+        if isinstance(self, Water):
+            key = lambda x: x.element + str(x.order)
+
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for at in self:
-            Property.add_prop_from_template( at, templ )
+            at.p = Property.from_template( key(at), templ )
         t1, t2, t3 = self.get_euler()
         for at in self:
-            at.Property.transform_ut_properties( t1, t2, t3 )
+            at.p.transform_ut_properties( t1, t2, t3 )
         if loprop:
             self.LoProp = True
         else:
