@@ -469,6 +469,25 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             else:
                 mol.LoProp = False
         self.Property = True
+
+    def translate_by_r(self, r):
+        """Need to override class.Molecules and also include hidden hydrogens"""
+        super( Monomer, self ).translate_by_r( r )
+        for at in self.hidden:
+            at.x += r[0]
+            at.y += r[1]
+            at.z += r[2]
+
+    def inv_rotate(self, t1, t2, t3):
+        """Need to override class.Molecules and also include hidden hydrogens"""
+        super( Monomer, self ).inv_rotate( t1, t2, t3 )
+        r1 = utilz.Rz_inv(t1)
+        r2 = utilz.Ry(t2)
+        r3 = utilz.Rz_inv(t3)
+        for at in self.hidden:
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+            at.p = at.p.inv_rotate( t1, t2, t3 )
+
     
     def connect_monomer(self, other):
         r_ca = self.last_heavy.r
