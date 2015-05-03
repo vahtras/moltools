@@ -130,6 +130,12 @@ class Property( dict ):
     def b(self, val):
         self['beta'] = val
 
+    @property
+    def b_proj(self):
+        """Beta projected on the dipole moment vector. Works only if property is
+        for Whole molecule / segment"""
+        return np.einsum('ijj,j', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) * self.d / np.linalg.norm( self.d )
+
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
