@@ -547,13 +547,6 @@ class Atom( molecules.Atom ):
     def order_nr(self):
         return self.residue.index( self )
 
-    @property
-    def res_id(self):
-        if self._res_id:
-            return self._res_id
-        else:
-            return self.residue.res_id
-
     def dist_to_atom(self, other):
         r = np.sqrt( (float(self.x) - float(other.x))**2 +(float(self.y) - float(other.y))**2 +(float(self.z) - float(other.z))**2)
         return  r

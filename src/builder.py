@@ -20,6 +20,9 @@ def pmma_monomer( t = 0 ):
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
 
     m = polymer.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
+#Set so that atoms are connected to this molecule
+    for at in m:
+        at.Molecule = m
     m._mono_name = "pmma"
     m._r = 1.46
     m._angle = 104.5
