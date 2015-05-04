@@ -2292,16 +2292,6 @@ Plot Molecule in a 3D frame
         st+= '\n\n\n'
         return st
 
-
-
-    @staticmethod
-    def unique(arr):
-        tmp = []
-        for i in arr:
-            if i not in tmp:
-                tmp.append(i)
-        return tmp
-
     def center(self):
 
         """
@@ -3236,7 +3226,7 @@ Plot Cluster a 3D frame in the cluster
         st = ""
         comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
         comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
-        uni = Molecule.unique([ at.element for mol in self for at in mol if mol.in_qm])
+        uni = utilz.unique([ at.element for mol in self for at in mol if mol.in_qm])
         s_ = ""
         if AA: s_ += "Angstrom"
 
@@ -3252,6 +3242,8 @@ Plot Cluster a 3D frame in the cluster
             for i in [all_el for mol in self for all_el in mol if ((all_el.element == el) and mol.in_qm) ]:
                 st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
+
+
 # Specific output for PEQM calculation in dalton, all molecules exclude itself
     def get_pe_pot_string( self, max_l = 0, pol = 1, hyp = 0, out_AA = False ):
         self.order_mm_atoms()
