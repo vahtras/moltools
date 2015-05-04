@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from numpy.linalg import norm
 
+import utilz
 from use_generator import Generator
 from template import Template
 from molecules import Water, Atom, Property
@@ -68,14 +69,21 @@ class WaterTest( unittest.TestCase ):
         w = self.g.get_mol( center = [0,0,0], mol = "water" )
         w.translate( self.w.com )
         self.eq( w.com, self.w.com )
+
+        origin = w.o.r.copy()
+        w.translate_by_r( -w.o.r )
         w.rotate( np.pi/2 , 0 , np.pi/2 )
+        w.translate_by_r( origin )
         self.eq( w.com, self.w.com )
 
     def test_rotate_to_random(self):
         w = Water.get_standard( )
         w.translate( self.w.com )
         t1, t2, t3 = self.w.get_euler()
+        origin = w.com.copy()
+        w.translate_by_r( -w.com )
         w.rotate( t1, t2, t3 )
+        w.translate_by_r( origin )
         self.eq( w.com, self.w.com )
 
     def test_rotate_inv_Z(self):
@@ -106,7 +114,7 @@ class WaterTest( unittest.TestCase ):
         for at in w:
             Property.add_prop_from_template( at, Template().get() )
 
-        self.eq( w.p.d ,[0, 0, 0.78704747])
+        np.testing.assert_allclose( w.p.d ,[0, 0, 0.78704747], atol = 1e-7)
 
         w.rotate( np.pi/7, 0, 0 )
 
@@ -123,7 +131,8 @@ class WaterTest( unittest.TestCase ):
         w.rotate( 0, 0, np.pi/2 )
         print "After 90 around Z-axis: counter-clock"
         print w.p.d
-        w.inv_rotate()
+        t, r1, r2, r3 = utilz.center_and_xz(w.o.r, w.o.r+(w.h1.r-w.h2.r)/2,w.h1.r )
+        w.inv_rotate(r1, r2, r3)
         #for at in w:
         #    Property.add_prop_from_template( at, Template().get() )
         #w.rotate( np.pi/2, np.pi/2, np.pi/2 )
