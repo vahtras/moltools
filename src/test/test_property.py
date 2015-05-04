@@ -1,7 +1,8 @@
 import unittest, os
 import numpy as np
 
-from molecules import Property
+import utilz
+from molecules import Property, Water
 
 class WaterTest( unittest.TestCase ):
 
@@ -37,6 +38,23 @@ class WaterTest( unittest.TestCase ):
         assert self.p1.potline(max_l = 0, pol = 22, hyper = 1) == \
                 "0.22000 6.00000 5.00000 4.00000 3.00000 2.00000 1.00000 " + \
                 "0.00000 1.00000 2.00000 3.00000 4.00000 5.00000 6.00000 7.00000 8.00000 9.00000 "
+
+
+    def test_property_beta_proj(self):
+        w = Water.get_standard() 
+        w.translate_by_r( np.random.uniform( -10, 10, (3,) ))
+        w.rotate( *np.random.uniform( -10, 10, (3,) ))
+        w[0].p.d = np.random.random( 3 )
+        w[0].p.b = np.random.random( 10 )
+        w[1].p.d = np.random.random( 3 )
+        w[1].p.b = np.random.random( 10 )
+        w[2].p.d = np.random.random( 3 )
+        w[2].p.b = np.random.random( 10 )
+        BP = w.p.b_proj
+        t, r1, r2, r3 = utilz.center_and_xz( w[0].r, w[0].r + (w.h1.r-w.h2.r)/2, w.h1.r )
+        w.translate_by_r( t )
+        w.inv_rotate( r1, r2, r3)
+        np.testing.assert_allclose( BP, w.p.b_proj, atol = 1e-7 )
 
     def test_property_add(self):
         p1 = Property()

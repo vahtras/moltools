@@ -115,7 +115,6 @@ class Property( dict ):
     @property
     def b(self):
         return self['beta']
-
     @q.setter
     def q(self, val):
         self['charge'] = val
@@ -138,9 +137,13 @@ class Property( dict ):
 
     @property
     def b_proj(self):
-        """Beta projected on the dipole moment vector. Works only if property is
-        for Whole molecule / segment"""
-        return np.einsum('ijj,j', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) * self.d / np.linalg.norm( self.d )
+        """
+        Rotationally invariant property
+
+        Beta projected on the dipole moment vector for a whole molecule / segment.
+        Should not be used if only for an atom
+        """
+        return np.einsum('ijj,i', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
 
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
@@ -268,6 +271,25 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
         p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
         return p
+
+    def rotate( self, t1, t2, t3 ):
+        """Rotate all properties by t1, t2, t3
+        t1 positive rotation around Z-axis
+        t2 negative rotation around Y-axis
+        t3 positive rotation around Z-axis
+        """
+        p = Property()
+        r1 = utilz.Rz(t1)
+        r2 = utilz.Ry_inv(t2)
+        r3 = utilz.Rz(t3)
+        p.q = self.q
+        p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
+        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
+        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
+        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
+        return p
+
+
 
     def transform_ut_properties( self, t1, t2, t3):
         """
@@ -1474,29 +1496,18 @@ class Molecule( list ):
         for at in self:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
-
     def rotate(self, t1, t2, t3):
-        """Rotate all coordinates by t1, t2 and t3
-        first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
-
-        R all in radians
-
+        """Rotate atomss and properties by t1, t2, t3
+        t1 positive rotation around Z-axis
+        t2 negative rotation around Y-axis
+        t3 positive rotation around Z-axis
         """
-        com = self.com.copy()
-        orig = np.zeros( (len(self), 3) )
-#Put back in original point
+        r1 = utilz.Rz(t1)
+        r2 = utilz.Ry_inv(t2)
+        r3 = utilz.Rz(t3)
         for at in self:
-            at.x, at.y, at.z = at.r - com
-        r1 = Rotator.get_Rz(t1)
-        r2 = Rotator.get_Ry_inv(t2)
-        r3 = Rotator.get_Rz(t3)
-        for at in self:
-            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
-            at.Property.transform_ut_properties( t1, t2, t3 )
-        for at in self:
-            at.x, at.y, at.z = at.r + com
-
-
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+            at.p = at.p.rotate( t1, t2, t3 )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name ):
@@ -1667,35 +1678,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     def get_euler(self):
         """Will be overwritten by specific molecule classes"""
         return np.zeros(3)
-
-    def rotate(self, t1, t2, t3):
-        """Molecular Rotation function
-
-        Will rotate around center-of-mass by default
-
-        If we have properties, transform them as well
-        """
-# Place water molecule in origo, and rotate it so hydrogens in xz plane
-        #self.inv_rotate()
-
-        com = self.com.copy()
-        orig = np.zeros( (len(self), 3) )
-# Rotate with angles t1, t2, t3
-        for at in self:
-            at.x, at.y, at.z = np.dot( Rotator.get_Rz(t1), at.r )
-            at.x, at.y, at.z = np.dot( Rotator.get_Ry_inv(t2), at.r )
-            at.x, at.y, at.z = np.dot( Rotator.get_Rz(t3), at.r )
-
-        if self.Property:
-            for at in self:
-                at.Property.transform_ut_properties( t1, t2, t3 )
-
-#Put back in original point
-        for ind, at in enumerate(self):
-            at.x += com[0]
-            at.y += com[0]
-            at.z += com[0]
-
     def props_from_targz(self,
             f_ = None,
             tmpdir = None,
@@ -1883,9 +1865,14 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                             decimal = decimal,
                             )
         except:
+            logging.error("Some error in LoProp, check so that the latest source is in PYTHONPATH")
             print real_tmp
 
-        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
+        try:
+            lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
+        except:
+            logging.error("Might be that DALTON was not properly executed. If MPI version, make sure all proper mpi shared objects are in your path.")
+
         if not len(lines) == len(self):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
             raise SystemExit
@@ -2262,7 +2249,7 @@ Plot Molecule in a 3D frame
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
-        uni = Molecule.unique([ at.element for at in self])
+        uni = utilz.unique([ at.element for at in self])
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
@@ -2664,55 +2651,6 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
             else: return False
 
         return theta3, theta2, theta1
-
-    def inv_rotate(self):
-        """rotate all atoms and properties
-        1) inverse Z rotation by t1
-        2) positive Y rotation by t2
-        3) inverse Z rotation by t3
-
-        Inverse rotation around oxygen centre, will conflict with
-        self.center() method which centers around center-of-mass.
-        """
-        t1, t2, t3 = self.get_euler()
-
-        com = self.com.copy()
-#Put back in original point
-        for at in self:
-            at.x, at.y, at.z = at.r - com
-        r1 = Rotator.get_Rz_inv(t1)
-        r2 = Rotator.get_Ry(t2)
-        r3 = Rotator.get_Rz_inv(t3)
-        for at in self:
-            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
-            #at.Property.inv_transform_ut_properties( t1, t2, t3 )
-        for at in self:
-            at.x, at.y, at.z = at.r + com
-        if self.h2.x >= 0:
-            tmp = self.h2.r.copy()
-            self.h2.x, self.h2.y, self.h2.z = self.h1.r.copy()
-            self.h1.x, self.h1.y, self.h1.z = tmp
-
-    def rotate(self, t1, t2, t3):
-        """Rotate all coordinates by t1, t2 and t3
-        first Rz with theta1, then Ry^-1 by theta2, then Rz with theta 3
-
-        R all in radians
-
-        """
-        com = self.com.copy()
-        orig = np.zeros( (len(self), 3) )
-#Put back in original point
-        for at in self:
-            at.x, at.y, at.z = at.r - com
-        r1 = Rotator.get_Rz(t1)
-        r2 = Rotator.get_Ry_inv(t2)
-        r3 = Rotator.get_Rz(t3)
-        for at in self:
-            at.x, at.y, at.z = reduce(lambda a,x:np.einsum('ij,j',x,a),[r1,r2,r3],at.r)
-            at.Property.transform_ut_properties( t1, t2, t3 )
-        for at in self:
-            at.x, at.y, at.z = at.r + com
 
     def get_xyz_string(self, ):
         st = "%d\n\n" % len(self)
