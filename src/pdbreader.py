@@ -1082,8 +1082,8 @@ class Residue( molecules.Molecule ):
                 for R_at in R:
                     if R_at.label == at.label:
                         p += R_at.Property
-                        print "Adding from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
-                        print p['beta'][9]
+                        print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
+                        print p.q
             for C in self.get_relevant_concaps():
                 C.populate_bonds()
                 for hx in C.get_dummy_h():
@@ -1093,10 +1093,10 @@ class Residue( molecules.Molecule ):
                 for C_at in C:
                     if C_at.label == at.label:
                         p -= C_at.Property
-                        print "Subtracting from %s" %C_at.label
-                        print p['beta'][9]
+                        print "Subtracting charge from %s" %C_at.label
+                        print p.q
             print "Finished with %s" %at.label
-            print p['beta'][9]
+            print p.q
             at.Property = p
 
     def add_atom( self, atom):
