@@ -1115,7 +1115,7 @@ AA       True     bool
         self._mass = None
 
     def pdb_string(self):
-        x, y, z = map( lambda x: string.rjust( str(x).strip(), 8)[:8], self.r )
+        x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
         """Return pdb line as specified by the PDB standard"""
         st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:3s}{6:1s}{7:1s}{8:4s}{9:1s}{10:3s}{11:8s}{12:8s}{13:8s}{14:22s}{15:2s}\n".format( "ATOM", 
                 str(self.atom_id),
@@ -1125,7 +1125,7 @@ AA       True     bool
                 self.Molecule.res_name,
                 "",
                 self.Molecule.Cluster._chain_id,
-                str(self.Molecule.res_id),
+                string.rjust( str(self.Molecule.res_id), 4),
                 "",
                 "",
                 x,
