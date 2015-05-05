@@ -1092,9 +1092,9 @@ AA       True     bool
 #Label is custom name, for water use O1, H2 (positive x ax), H3
         self._label = None
 
-        self.x = 0.0
-        self.y = 0.0
-        self.z = 0.0
+        self._x = 0.0
+        self._y = 0.0
+        self._z = 0.0
 
 
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
@@ -1135,6 +1135,25 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+    @property
+    def x(self):
+        return self._x
+    @property
+    def y(self):
+        return self._y
+    @property
+    def z(self):
+        return self._z
+    @x.setter
+    def x(self, val):
+        self._x = val
+    @y.setter
+    def y(self, val):
+        self._y = val
+    @z.setter
+    def z(self, val):
+        self._z = val
 
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
