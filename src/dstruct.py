@@ -70,6 +70,32 @@ class Cell( np.ndarray ):
             return
 
     @staticmethod
+    def from_cluster( cluster , co = 2.0 ):
+        assert isinstance( cluster, molecules.Cluster )
+        if not cluster.AA:
+            co /= a0
+
+        ats = []
+        for at in cluster.atoms:
+            ats.append( at )
+        
+        cell = Cell( my_min = [ min( ats, key = lambda x: x.x ).x,
+                         min( ats, key = lambda x: x.y ).y,
+                         min( ats, key = lambda x: x.z ).z],
+              my_max = [ max( ats, key = lambda x: x.x ).x,
+                         max( ats, key = lambda x: x.y ).y,
+                         max( ats, key = lambda x: x.z ).z],
+              my_cutoff = co,
+              AA = cluster.AA,
+              )
+        for at in cluster.atoms:
+            cell.add(at)
+
+        return cell
+
+
+
+    @staticmethod
     def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
 
         ats = []
@@ -104,6 +130,7 @@ class Cell( np.ndarray ):
 
     def build_molecules(self, current = None, visited = [],
             closeby = [], max_dist = 1.46, AA = False):
+        """Recursively builds molecules from .xyz file format"""
         visited.append( current )
         if not self.AA:
             max_dist /= a0
@@ -124,8 +151,9 @@ class Cell( np.ndarray ):
             self.build_molecules( current = at, closeby = close, visited = visited )
  
     def add_atom( self, atom ):
-        assert type( atom ) == molecules.Atom
+        assert isinstance( atom, molecules.Atom )
         self.add( atom )
+
     def add_molecule( self, mol ):
         assert isinstance( mol, molecules.Molecule )
         for at in mol:

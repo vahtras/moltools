@@ -13,12 +13,13 @@ class GeneratorTestCase( unittest.TestCase ):
         self.g = Generator()
 
     def test_get_hfqua_dal(self):
-        assert "**DALTON" in self.g.get_hfqua_dal()
-        assert ".PARALLELL" in self.g.get_hfqua_dal()
-        assert ".DIPLEN" in self.g.get_hfqua_dal()
-        assert "**WAVE FUNCTION" in self.g.get_hfqua_dal()
-        assert ".HF" in self.g.get_hfqua_dal()
-        assert "**END" in self.g.get_hfqua_dal()
+        string = self.g.get_hfqua_dal()
+        assert "**DALTON" in string
+        assert ".PARALLELL" in string
+        assert ".DIPLEN" in string
+        assert "**WAVE FUNCTION" in string
+        assert ".HF" in string
+        assert "**END" in string
 
     def test_get_mol(self):
         w = self.g.get_mol( center = [0, 1, 1], mol = "water", AA = False )

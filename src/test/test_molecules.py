@@ -75,9 +75,6 @@ H -0.75695 0.00000 0.58588
         self.wat.translate_coc( [1, 2, 3] )
         self.eq( self.wat.coc , [1, 2, 3] )
 
-    def test_transform_dist_quadrupole(self):
-        print self.wat.o.Property["quadrupole"]
-
     def tearDown(self):
         files = [f for f in os.listdir( os.path.dirname( os.path.realpath(__file__) ) ) if f.endswith(".pot") or f == "pna.mol" or f.startswith("5.00-") ]
         for fi in files:

@@ -3103,9 +3103,18 @@ class Cluster(list):
         for i in [all_el for mol in self for all_el in mol if mol.in_qm]:
             st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
         return st
+# Molecules iterator
+    @property
+    def molecules(self):
+        for mol in [mol for mol in self if isinstance(mol,Molecule)]:
+            yield mol
+# Atoms iterator
+    @property
+    def atoms(self):
+        for atom in [at for mol in self for at in mol]:
+            yield atom
    
 # Specifi
-
     @property
     def coc(self):
         if self.Property:
