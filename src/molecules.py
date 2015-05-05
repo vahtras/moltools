@@ -1563,10 +1563,16 @@ class Molecule( list ):
                 uniq.append( i[0] )
         return tmp
 
-
+    def get_xyz_string(self, ):
+        st = "%d\n\n" % len(self)
+        for i in self:
+            st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
+                    i.element, i.x,  i.y , i.z )
+        return st
 
     def add_atom(self, atom):
         self.append( atom )
+
     def plot_2d(self, key = None, ):
         """Plots the 2D projetion of the molecule onto the y plane,
         PLAN: TODO:
