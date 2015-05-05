@@ -1,7 +1,7 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Atom
+from molecules import Cluster, Atom, Water
 from use_generator import Generator
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
@@ -15,6 +15,20 @@ class WaterTest( unittest.TestCase ):
                 in_AA = False,
                 out_AA = False,
                 N_waters = 10)
+
+    def test_dipole(self):
+        w1 = Water.get_standard()
+        w2 = Water.get_standard()
+        w2.o.p.q -= 1.0
+        w2.translate_by_r( np.array([ 3, 3, 3] ) )
+
+        c = Cluster( w1, w2 )
+        d1 = c.p.d.copy()
+        r = np.random.uniform(-10,10, (3,) ) 
+        for i in c:
+            i.translate_by_r( r )
+
+        np.testing.assert_allclose( d1, c.p.d, atol =1e-7 )
 
     def test_size(self):
         assert len( self.c) == 10
