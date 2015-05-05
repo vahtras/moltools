@@ -2159,9 +2159,6 @@ Return center of charge
     [0., 0., 0.11]
 
         """
-
-        if self.Property:
-            pass
         return sum( [at.r * charge_dict[at.element] for at in self])\
                 /sum( map(float,[charge_dict[at.element] for at in self]) )
 
@@ -3098,8 +3095,6 @@ class Cluster(list):
 # Specifi
     @property
     def coc(self):
-        if self.Property:
-            pass
     #obj should be atom
         return sum( [at.r * charge_dict[at.element] for mol in self for at in mol])\
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
