@@ -46,11 +46,11 @@ class GeneratorTestCase( unittest.TestCase ):
         v_ref[2] = -3
         self.almost_eq( v, v_ref, decimal = 14 )
 
-    @mock.patch( "use_generator.open" ,create = True)
-    def test_gen_mols_param(self, mock_open):
-        mock_open.return_value = mock.MagicMock( spec = file )
-        ret = self.g.gen_mols_param()
-        assert ret == 0
+    #@mock.patch( "use_generator.open" ,create = True)
+    #def test_gen_mols_param(self, mock_open):
+    #    mock_open.return_value = mock.MagicMock( spec = file )
+    #    ret = self.g.gen_mols_param()
+    #    assert ret == 0
 
 #Mocking added to ensure that the file tmp.xyz isn't opened writable during tests
 #    @mock.patch( "use_generator.write" ,create = True)
