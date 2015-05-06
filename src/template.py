@@ -86,9 +86,9 @@ Frequency:  Field :math:`\\omega`    string
 #
         self[("SPC", "HF", "ANOPVTZ", True, "0.0")] = \
         {
-("O1","charge"): -0.68568,,
-("H2","charge"): 0.34284, ,
-("H3","charge"): 0.34284, ,
+("O1","charge"): -0.68568,
+("H2","charge"): 0.34284, 
+("H3","charge"): 0.34284, 
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.25981 ],
 ("H2", "dipole"): [  -0.13989, -0.00000, -0.12698 ],
@@ -334,9 +334,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0")] = \
         {
-("O1","charge"): -0.67786,,
-("H2","charge"): 0.33893, ,
-("H3","charge"): 0.33893, ,
+("O1","charge"): -0.67786,
+("H2","charge"): 0.33893, 
+("H3","charge"): 0.33893, 
 
 ("O1", "dipole"): [  0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [  -0.15448, -0.00000, -0.13077 ],
@@ -445,9 +445,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0238927")] = \
 {
-("O1","charge"): -0.678,, 
-("H2","charge"):  0.339, , 
-("H3","charge"):  0.339, , 
+("O1","charge"): -0.678,
+("H2","charge"):  0.339,
+("H3","charge"):  0.339,
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ],
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -485,9 +485,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0428227")] = \
 {
-("O1","charge"):  -0.678,,
-("H2","charge"):  0.339, ,
-("H3","charge"):  0.339, ,
+("O1","charge"):  -0.678,
+("H2","charge"):  0.339, 
+("H3","charge"):  0.339, 
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ], 
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -524,9 +524,9 @@ Frequency:  Field :math:`\\omega`    string
 # At 589 nm
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0773571")] = \
                 {
-("O1","charge"): -0.678,,
-("H2","charge"): 0.339, ,
-("H3","charge"): 0.339, ,
+("O1","charge"): -0.678,
+("H2","charge"): 0.339, 
+("H3","charge"): 0.339, 
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ], 
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -963,9 +963,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOMAX", False, "0.0")] = \
         {
-("O1","charge"):  0.0, ,
-("H2","charge"):  0.0, ,
-("H3","charge"):  0.0, ,
+("O1","charge"):  0.0, 
+("H2","charge"):  0.0, 
+("H3","charge"):  0.0, 
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.77791 ],
 ("H2", "dipole"): [  0.0, 0.0, 0.0, ],
