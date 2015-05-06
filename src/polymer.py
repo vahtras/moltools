@@ -426,9 +426,9 @@ class Monomer( pdbreader.Residue ):
         self.hidden.remove( atom )
 
     def unhide_all(self):
-        for at in self.hidden:
-            self.add_atom( at )
-            self.hidden.remove( at )
+        while len( self.hidden ) > 0:
+            at = self.hidden[0]
+            self.unhide( at )
 
     @property
     def with_hidden(self):

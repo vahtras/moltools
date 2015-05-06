@@ -1149,9 +1149,9 @@ AA       True     bool
         self.in_water = False
         self.Molecule = Molecule()
 
-        self.in_qm = False
-        self.in_mm = False
-        self.in_qmmm = False
+        self._in_qm = False
+        self._in_mm = False
+        self._in_qmmm = False
 #Property set to true if atoms have properties
         self.Property = Property()
         self.AA = True
@@ -1171,6 +1171,12 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+
+    def in_mm(self):
+        return self.Molecule.in_mm
+    def in_qm(self):
+        return self.Molecule.in_qm
 
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
@@ -1486,10 +1492,10 @@ class Molecule( list ):
 # before template is loaded
         self.Property = None
 
-#By default, in QM region  
-        self.in_qm = True
-        self.in_mm = False
-        self.in_qmmm = True
+#By default, in no region
+        self._in_qm = False
+        self._in_mm = False
+        self._in_qmmm = False
 
 #By default, AU 
         self.AA = False
@@ -1503,9 +1509,6 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
-    def __str__(self):
-        return "MOL-%d" %self.res_id
-
     #@property
     #def origo_z_x(self):
     #    if self._origo_z_x is None:
@@ -1689,6 +1692,22 @@ class Molecule( list ):
         i1, i2 = map(lambda x:x[0], sorted( zip( range(3), [maxx-minx, maxy-miny, maxz-minz] ), key = lambda x: x[1])[1:] )
 
         return np.cross(prj[i1], prj[i2])
+
+    def __str__(self):
+        return "MOL-%d" %self.res_id
+
+    @property
+    def in_qm(self):
+        return self._in_qm
+    @property
+    def in_mm(self):
+        return self._in_mm
+    @in_qm.setter
+    def in_qm(self, val):
+        self._in_qm = val
+    @in_mm.setter
+    def in_mm(self, val):
+        self._in_mm = val
 
     @property
     def label(self):
@@ -3270,7 +3289,7 @@ Plot Cluster a 3D frame in the cluster
 
 # Specific output for PEQM calculation in dalton, all molecules exclude itself
     def get_pe_pot_string( self, max_l = 0, pol = 1, hyp = 0, out_AA = False ):
-        max_len = max([len(mol) for mol in self])
+        max_len = max([len(mol) for mol in self if mol.in_mm])
         self.order_mm_atoms()
         st = r'!%s' % (self ) + '\n'
         st += r'@COORDINATES' + '\n'
@@ -3697,6 +3716,12 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         for i, iat in enumerate(at):
             self.append( iat )
             iat.cluster = self
+
+    def reset_qm_mm(self):
+        """Set all atoms to neither qm not mm"""
+        for at in self:
+            at.in_mm = False
+            at.in_qm = False
 
     def set_qm_mm(self, N_qm = 1, N_mm = 0):
         """First set all waters to False for security """
