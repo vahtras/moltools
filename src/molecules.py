@@ -3033,7 +3033,8 @@ class Cluster(list):
             raise IOError
         return pickle.load( open(fname, 'rb' ) )
     
-    def get_dalton_qmmm(self, max_l = 2, pol =2, hyp = 0, qmmm_type = 'peqm'):
+    def get_dalton_qmmm(self, max_l = 2, pol =2, hyp = 0, qmmm_type = 'peqm',
+        basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
         """Generate DALTON.INP, MOLECULE.INP and POTENTIAL.INP for cluster"""
         dal, mol, pot = ['' for i in range(3)]
         if qmmm_type == 'peqm':
@@ -3047,7 +3048,7 @@ class Cluster(list):
                     pol = pol,
                     hyp = hyp,
                     ignore_qmmm = False)
-        mol = self.get_qm_mol_string()
+        mol = self.get_qm_mol_string( basis = basis )
         return dal, mol, pot
 
 
