@@ -1845,7 +1845,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         f_at = lambda x: map(float,x.get_mol_line().split()[1:])
         f_prop = lambda x: map(float,x.split()[1:4])
         for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
-            print at, prop
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,

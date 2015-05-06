@@ -13,7 +13,6 @@ from loprop import MolFrag, penalty_function, shift_function
 import molecules
 import utilz
 import matplotlib.pyplot as plt
-#import molecules 
 
 import numpy as np
 
