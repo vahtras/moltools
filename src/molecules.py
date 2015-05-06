@@ -100,8 +100,6 @@ class Property( dict ):
 
     @property
     def q(self):
-        if isinstance( self['charge'], np.ndarray):
-            self['charge'] = self['charge'][0]
         return self['charge']
     @property
     def d(self):
@@ -251,8 +249,6 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
                 p[keys[1]] = np.array( wat_templ[ keys ] )
         at.Property = p
 #backwards compatible fix since charge was len 1 ndarray and now scalar
-        if isinstance( p.q, np.ndarray ):
-            p.q = p.q[0]
         at.Molecule.Property = True
 
     def inv_rotate( self, t1, t2, t3 ):
@@ -381,6 +377,46 @@ class Generator( dict ):
 # Set by default all parameters to False
         for val in ["r", "tau", "theta", "rho1", "rho2", "rho3", ]:
             self[ ( val, "active" ) ]  = False
+
+    @staticmethod
+    def get_pe_b3lyp_dal( co = 1.0, AA = True, max_l = 2, sites = 3):
+        r_order = max_l + 1
+        if AA:
+            aa = "AA"
+        else:
+            aa = "AU"
+            co /= a0
+        st = """**DALTON INPUT
+.RUN WAVE FUNCTION
+.DIRECT
+.PARALLELL
+.PEQM
+*PEQM
+.BORDER
+REDIST -%d %.1f %s %d
+**WAVE FUNCTION
+.DFT
+B3LYP
+**END OF DALTON INPUT""" % (max_l+1, co, aa, sites)
+        return st
+
+    @staticmethod
+    def get_qmmm_b3lyp_dal( damp = False):
+        if damp:
+            damp = "\n.DAMP"
+        else:
+            damp = ""
+        st = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+*QMMM
+.QMMM%s
+**WAVE FUNCTION
+.DFT
+B3LYP
+**END OF DALTON INPUT""" % damp
+        return st
 
     @staticmethod
     def get_b3lypqua_dal( ):
@@ -1171,8 +1207,6 @@ AA       True     bool
             return self._label
         self._label = self.element
         return self._label
-        
-    
     @property
     def p(self):
         """Wrapper to access class Property object attached to the atom"""
@@ -1334,8 +1368,9 @@ Plot Atom in a 3D frame
 
     def potline(self, max_l=2, pol=22, hyper=1):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
-                str(self.res_id), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
+                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
 
+#Atom string method
     def __str__(self):
         return "%s %f %f %f" %(self.name, self.x, self.y, self.z)
 
@@ -1468,6 +1503,8 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+    def __str__(self):
+        return "MOL-%d" %self.res_id
 
     #@property
     #def origo_z_x(self):
@@ -1540,6 +1577,10 @@ class Molecule( list ):
         st += '\n}'
         return st
 
+    def reorder(self):
+        for at in self:
+            at.order = self.index(at)
+
     @property
     def res_id(self):
         if self._res_id is not None:
@@ -1554,13 +1595,29 @@ class Molecule( list ):
         self._res_name = "MOL"
         return self._res_name
     
-    def exclists(self):
-        tmp = []
-        uniq = []
-        for i in itertools.permutations( [at.atom_id for at in self], len(self) ):
-            if i[0] not in uniq:
-                tmp.append(i)
-                uniq.append( i[0] )
+    def exclists(self, max_len = None):
+        """Gives the exclusion string for each atom/bond in molecule for dalton PE
+        file
+
+        max_len is needed if other molecules are involved which have more atoms than this.
+        Set max_len to the length of largest MM-region residue so that zeros
+        is appended to the smaller segments
+
+        for a water molecule:
+            water.exclists()
+            [(2, 3), (1, 3), (1, 2)]
+
+            water.exclists(max_len = 4)
+            [(2, 3, 0), (1, 3, 0), (1, 2, 0)]
+        
+        """
+        if max_len is None:
+            max_len = len(self)
+        tmp = [tuple([j]+[i.cluster_order for i in self if i.cluster_order != j ]) for j in map(lambda x:x.cluster_order,self)]
+        diff = max_len - len(self)
+        for app in range(diff):
+            for ind, each in enumerate(tmp):
+                tmp[ind] = each + (0,)
         return tmp
 
     def get_xyz_string(self, ):
@@ -2582,6 +2639,7 @@ Override list append method, will add up to 3 atoms,
                 hyd1.name = "H2"
                 hyd2.name = "H3"
 
+#Water string method
     def __str__(self):
         return "WAT" + str(self.res_id) 
     def dist_to_point( self , point ):
@@ -2962,6 +3020,7 @@ class Cluster(list):
                 logging.error("All objects in cluster are not of same unit")
         return AA
 
+#Cluster string method
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
     
@@ -2974,6 +3033,22 @@ class Cluster(list):
             raise IOError
         return pickle.load( open(fname, 'rb' ) )
     
+    def get_dalton_qmmm(self, max_l = 2, pol =2, hyp = 0, qmmm_type = 'peqm'):
+        """Generate DALTON.INP, MOLECULE.INP and POTENTIAL.INP for cluster"""
+        dal, mol, pot = ['' for i in range(3)]
+        if qmmm_type == 'peqm':
+            dal = Generator.get_pe_b3lyp_dal(max_l = max_l, AA = self.AA)
+            pot = self.get_pe_pot_string(max_l = max_l,
+                    pol = pol,
+                    hyp = hyp)
+        elif qmmm_type == 'qmmm':
+            dal = Generator.get_qmmm_b3lyp_dal()
+            pot = self.get_qmmm_pot_string(max_l = max_l,
+                    pol = pol,
+                    hyp = hyp,
+                    ignore_qmmm = False)
+        mol = self.get_qm_mol_string()
+        return dal, mol, pot
 
 
     
@@ -3194,52 +3269,55 @@ Plot Cluster a 3D frame in the cluster
 
 # Specific output for PEQM calculation in dalton, all molecules exclude itself
     def get_pe_pot_string( self, max_l = 0, pol = 1, hyp = 0, out_AA = False ):
+        max_len = max([len(mol) for mol in self])
         self.order_mm_atoms()
         st = r'!%s' % (self ) + '\n'
         st += r'@COORDINATES' + '\n'
         st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
-        if out_AA:
+        if self.AA:
             st += "AA\n"
         else:
             st += "AU\n"
         #st += '%d\n' %len(mol)
         for mol in [m for m in self if m.in_mm]:
             for at in mol:
-                st += "%s %.5f %.5f %.5f\n" % (at.number, \
+                st += "%s %.5f %.5f %.5f\n" % (at.element, \
                         at.x, at.y, at.z )
 
         st += r'@MULTIPOLES'  + '\n'
-        if max_l >= 0:
-            st += 'ORDER 0\n'
-            st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
-            for mol in [m for m in self if m.in_mm]:
-                for at in mol:
-                    st += "%s %.5f\n" % (tuple( [at.number] ) + tuple( at.Property["charge"] )  )
+        st += 'ORDER 0\n'
+        st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+        for mol in [m for m in self if m.in_mm]:
+            for at in mol:
+                st += "%d %.5f\n" % (at.cluster_order, at.p.q )
+
         if max_l >= 1:
             st += 'ORDER 1\n'
             st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
             for mol in [m for m in self if m.in_mm]:
                 for at in mol:
-                    st += "%s %.5f %.5f %.5f\n" % ( tuple([at.number]) + tuple(at.Property["dipole"])) 
-
-        st += r'@POLARIZABILITIES' + '\n'
-        st += 'ORDER 1 1\n'
-        st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
-        if pol % 2 == 0:
+                    st += ("{0:1d} %s\n" %("".join(["{%d:.5f} "%i for i in range(1,4)]))).format( *tuple([at.cluster_order] + at.Property["dipole"].tolist() ))
+        if max_l >= 2:
+            st += 'ORDER 2\n'
+            st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
             for mol in [m for m in self if m.in_mm]:
                 for at in mol:
-                    st += "%s %.5f %.5f %.5f %.5f %.5f %.5f\n" % ( tuple([at.number]) + tuple(at.Property["alpha"])) 
+                    st += ("{0:1d} %s\n" %("".join(["{%d:.5f} "%i for i in range(1,7)]))).format( *tuple([at.cluster_order] + at.Property["quadrupole"].tolist() ))
 
-                    st += 'EXCLISTS\n%d %d\n' %( sum([len(i) for i in self if i.in_mm ])
- , len(mol))
+        if pol > 1:
+            st += r'@POLARIZABILITIES' + '\n'
+            st += 'ORDER 1 1\n'
+            st += '%d\n' % sum([len(i) for i in self if i.in_mm ])
+            if pol % 2 == 0:
+                for mol in [m for m in self if m.in_mm]:
+                    for at in mol:
+                        st += ("{0:1d} %s\n" %("".join(["{%d:.5f} "%i for i in range(1,7)]))).format( *tuple([at.cluster_order] + at.Property["alpha"].tolist() ))
+
+        st += 'EXCLISTS\n%d %d\n' %( sum([len(i) for i in self if i.in_mm ])
+     , len(mol))
         for mol in [m for m in self if m.in_mm]:
-            for each in mol.exclists():
-                ls = ""
-                for ind in each:
-                    ls += "%s " %ind
-                ls += '\n'
-                st += ls
-
+            for each in mol.exclists( max_len = max_len ):
+                st += ("%s\n"%("".join(["{%d:1d} "%i for i in range(max_len)]))).format( *each )
         return st
 # This is the old *QMMM input style in dalton, also valid for PointDipoleList
     def get_qmmm_pot_string( self, max_l = 1,
@@ -3249,6 +3327,9 @@ Plot Cluster a 3D frame in the cluster
             dummy_pd = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
+
+#make sure that each unique residue is in seperate residue in POT output
+        self.order_mm_mols()
 
 # We need to check that it is not in LoProp mode
         if dummy_pd:
@@ -3260,14 +3341,14 @@ Plot Cluster a 3D frame in the cluster
             st = "AU\n"
 # Old qmmm format requires integer at end to properly read charges
         if hyp == 0:
-            hyp = 1
+            hyp_int = 1
         if ignore_qmmm:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self ]), 
-                    max_l, pol, hyp )
+                    max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
-                    max_l, pol, hyp )
+                    max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
         return st
 
@@ -3299,10 +3380,14 @@ Plot Cluster a 3D frame in the cluster
         return st
     def order_mm_atoms(self):
         cnt = 1
-        for mol in [m for m in self if m.in_mm]:
-            for at in mol:
-                at.number = str(cnt)
-                cnt += 1
+        for a in [at for m in self for at in m if m.in_mm]:
+            a.cluster_order = cnt
+            cnt += 1
+    def order_mm_mols(self):
+        cnt = 1
+        for mol in self:
+            mol.cluster_order = cnt
+            cnt += 1
 
     def update_water_props(self, model = "TIP3P",
             method = "HF", basis = "ANOPVDZ", dist = True,
