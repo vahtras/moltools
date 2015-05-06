@@ -20,12 +20,12 @@ Frequency:  Field :math:`\\omega`    string
 .. code:: python
 
     >>> temp = Template().get()
-    >>> print temp[ ("O1", "charge") ]
+    >>> print temp ("O1", "charge") 
     0.0
 
     >>> temp = Template().get( model = "TIP3P", method = "HF",
             basis = "ANOPVDZ", dist = True, freq = "0.0"  )
-    >>> print temp[ ("O1", "charge") ]
+    >>> print temp ("O1", "charge") 
     -0.678
 
 """
@@ -44,9 +44,9 @@ Frequency:  Field :math:`\\omega`    string
 # -------------------------------------------
         self[("SPC", "HF", "ANOPVDZ", True, "0.0")] = \
         {
-("O1","charge") : [ -0.67452 ],
-("H2","charge") : [ 0.33726 ],
-("H3","charge") : [ 0.33726 ],
+("O1","charge") :  -0.67452 ,
+("H2","charge") :  0.33726 ,
+("H3","charge") :  0.33726 ,
 ("O1","dipole") : [ -0.000, 0.000, 0.29939 ],
 ("H2","dipole") : [ -0.14323, -0.000, -0.12901 ],
 ("H3","dipole") : [ 0.14323, 0.000, -0.12901 ],
@@ -63,9 +63,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("SPC", "HF", "ANOPVDZ", False , "0.0")] = \
         {
-("O1","charge") : [ -0.],
-("H2","charge") : [ 0.],
-("H3","charge") : [ 0.],
+("O1","charge") :  -0.,
+("H2","charge") :  0.,
+("H3","charge") :  0.,
 ("O1","dipole") : [ -0.000, 0.000, 0.77730, ],
 ("H2","dipole") : [ -0.0, 0., 0., ],
 ("H3","dipole") : [ -0.0, 0., 0., ],
@@ -86,9 +86,9 @@ Frequency:  Field :math:`\\omega`    string
 #
         self[("SPC", "HF", "ANOPVTZ", True, "0.0")] = \
         {
-("O1","charge"): [-0.68568,],
-("H2","charge"): [0.34284, ],
-("H3","charge"): [0.34284, ],
+("O1","charge"): -0.68568,,
+("H2","charge"): 0.34284, ,
+("H3","charge"): 0.34284, ,
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.25981 ],
 ("H2", "dipole"): [  -0.13989, -0.00000, -0.12698 ],
@@ -108,9 +108,9 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("SPC", "HF", "ANOPVTZ", False, "0.0")] = \
         {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.75396 ],
 ("H2", "dipole"): [  0.0, 0., 0., ],
@@ -134,9 +134,9 @@ Frequency:  Field :math:`\\omega`    string
 # -------------------------------------------
         self[("SPC", "HF", "ANOTHIRD", True, "0.0")] = \
         {
-("O1","charge"): [ -0.68763 ],
-("H2","charge"): [ 0.34381 ],
-("H3","charge"): [ 0.34381 ],
+("O1","charge"):  -0.68763 ,
+("H2","charge"):  0.34381 ,
+("H3","charge"):  0.34381 ,
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.26233 ],
 ("H2", "dipole"): [  -0.14082, -0.00000, -0.12827 ],
@@ -156,9 +156,9 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("SPC", "HF", "ANOTHIRD", False, "0.0")] = \
         {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [  -0.00000, 0.00000, 0.75603 ],
 ("H2", "dipole"): [  0.0, 0., 0., ],
@@ -181,9 +181,9 @@ Frequency:  Field :math:`\\omega`    string
 # -------------------------------------------
         self[("SPC", "HF", "ANOMAX", True, "0.0")] = \
         {
-("O1","charge"): [ -0.68620 ],
-("H2","charge"): [ 0.34310 ],
-("H3","charge"): [ 0.34310 ],
+("O1","charge"):  -0.68620 ,
+("H2","charge"):  0.34310 ,
+("H3","charge"):  0.34310 ,
 
 ("O1", "dipole"): [  0.00000, -0.00000, 0.27769 ],
 ("H2", "dipole"): [  -0.13785, -0.00000, -0.13443 ],
@@ -203,9 +203,9 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("SPC", "HF", "ANOMAX", False, "0.0")] = \
         {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.75750 ],
 ("H2", "dipole"): [  0.0, 0., 0., ],
@@ -229,9 +229,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("SPC", "B3LYP", "ANOPVDZ", True, "0.0")] = \
         {
 
-("O1","charge"): [ -0.67039 ],
-("H2","charge"): [ 0.33519 ],
-("H3","charge"): [ 0.33519 ],
+("O1","charge"):  -0.67039 ,
+("H2","charge"):  0.33519 ,
+("H3","charge"):  0.33519 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.28060 ],
 ("H2", "dipole"): [ -0.15709, -0.00000, -0.14091 ],
@@ -252,9 +252,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("SPC", "B3LYP", "ANOPVDZ", False, "0.0")] = \
         {
-("O1","charge"): [ -0.00000 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  -0.00000 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ -0.00000, 0.00000, 0.73022 ],
 ("H2", "dipole"): [ 0.0, 0., 0., ],
@@ -289,9 +289,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "HF", "ANOTINY", True, "0.0")] = \
         {
-("O1", "charge") : [ -0.647 ],
-("H1", "charge") : [ 0.324 ],
-("H2", "charge") : [ 0.324 ],
+("O1", "charge") :  -0.647 ,
+("H1", "charge") :  0.324 ,
+("H2", "charge") :  0.324 ,
 
 ("O1", "dipole") : [ -0.000, -0.000, 0.364 ],
 ("H1", "dipole") : [ -0.162, 0.000, -0.108 ],
@@ -309,9 +309,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOTINY", False, "0.0")] = \
         {
-("O1", "charge") : [ 0.0 ],
-("H1", "charge") : [ 0.0 ],
-("H2", "charge") : [ 0.0 ],
+("O1", "charge") :  0.0 ,
+("H1", "charge") :  0.0 ,
+("H2", "charge") :  0.0 ,
 
 ("O1", "dipole") : [ -0.000, -0.000, 0.86494 ],
 ("H1", "dipole") : [ 0.0, 0.000, 0.0 ],
@@ -334,9 +334,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0")] = \
         {
-("O1","charge"): [-0.67786,],
-("H2","charge"): [0.33893, ],
-("H3","charge"): [0.33893, ],
+("O1","charge"): -0.67786,,
+("H2","charge"): 0.33893, ,
+("H3","charge"): 0.33893, ,
 
 ("O1", "dipole"): [  0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [  -0.15448, -0.00000, -0.13077 ],
@@ -357,9 +357,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.0")] = \
                 {
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.78706 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -384,9 +384,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "HF", "ANOAUG", True, "0.0")] = \
         {
-( 'O1', "charge") : [ -0.68786 ],
-( 'H2', "charge") : [ 0.34393 ],
-( 'H3', "charge") : [ 0.34393 ],
+( 'O1', "charge") :  -0.68786 ,
+( 'H2', "charge") :  0.34393 ,
+( 'H3', "charge") :  0.34393 ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.26027 ],
 ( 'H2', "dipole") : [ -0.14810, 0.00000, -0.12319 ],
 ( 'H3', "dipole") : [ 0.14810, 0.00000, -0.12319 ],
@@ -403,7 +403,7 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOAUG", False, "0.0")] = \
         {
-( 'O1', "charge") : [ -0.00000 ],
+( 'O1', "charge") :  -0.00000 ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.77545 ],
 ( 'O1', "quadrupole") : [ -3.73103, -0.00000, 0.00000, -5.69216, 0.00000, -4.61235 ],
 ( 'O1', "alpha") : [ 9.11976, 0.00000, -0.00000, 7.81467, -0.00000, 8.41665 ],
@@ -414,9 +414,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "CAMB3LYP", "ANOAUG", True, "0.0")] = \
         {
-( 'O1', "charge") : [ -0.683 ],
-( 'H2', "charge") : [ 0.341 ],
-( 'H3', "charge") : [ 0.341 ],
+( 'O1', "charge") :  -0.683 ,
+( 'H2', "charge") :  0.341 ,
+( 'H3', "charge") :  0.341 ,
 ( 'O1', "dipole") : [ -0.000, 0.000, 0.254 ],
 ( 'H2', "dipole") : [ -0.162, 0.000, -0.132 ],
 ( 'H3', "dipole") : [ 0.162, 0.000, -0.132 ],
@@ -432,7 +432,7 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("TIP3P", "CAMB3LYP", "ANOAUG", False, "0.0")] = \
         {
-( 'O1', "charge") : [ -0.000 ],
+( 'O1', "charge") :  -0.000 ,
 ( 'O1', "dipole") : [ -0.000, 0.000, 0.746 ],
 ( 'O1', "quadrupole") : [ -3.853, -0.000, 0.000, -5.933, 0.000, -4.815 ],
 ( 'O1', "alpha") : [ 9.931, 0.000, -0.000, 9.464, -0.000, 9.719 ],
@@ -445,9 +445,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0238927")] = \
 {
-("O1","charge"):[ -0.678,], 
-("H2","charge"):[  0.339, ], 
-("H3","charge"):[  0.339, ], 
+("O1","charge"): -0.678,, 
+("H2","charge"):  0.339, , 
+("H3","charge"):  0.339, , 
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ],
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -464,9 +464,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.0238927")] = \
                 {
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ 0.00000,  0.00000,  0.78706,   ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -485,9 +485,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0428227")] = \
 {
-("O1","charge"):  [-0.678,],
-("H2","charge"):  [0.339, ],
-("H3","charge"):  [0.339, ],
+("O1","charge"):  -0.678,,
+("H2","charge"):  0.339, ,
+("H3","charge"):  0.339, ,
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ], 
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -505,9 +505,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.0428227")] = \
                 {
 
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ 0.00000,  0.00000,  0.78706,   ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -524,9 +524,9 @@ Frequency:  Field :math:`\\omega`    string
 # At 589 nm
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.0773571")] = \
                 {
-("O1","charge"): [-0.678,],
-("H2","charge"): [0.339, ],
-("H3","charge"): [0.339, ],
+("O1","charge"): -0.678,,
+("H2","charge"): 0.339, ,
+("H3","charge"): 0.339, ,
 
 ("O1", "dipole"): [  0.000,    -0.000,     0.298, ], 
 ("H2", "dipole"): [ -0.154,     0.000,    -0.131, ],
@@ -543,9 +543,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.0773571")] = \
                 {
 
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ 0.00000,  0.00000,  0.78706,   ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -567,9 +567,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.1")] = \
                 {
 
-("O1","charge"): [ -0.67786 ],
-("H2","charge"): [ 0.33893 ],
-("H3","charge"): [ 0.33893 ],
+("O1","charge"):  -0.67786 ,
+("H2","charge"):  0.33893 ,
+("H3","charge"):  0.33893 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [ -0.15448, -0.00000, -0.13077 ],
@@ -582,9 +582,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.1")] = \
                 {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.78706 ],
 ("H2", "dipole"): [ 0.00000, -0.00000, 0.0     ],
@@ -600,9 +600,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.2")] = \
                 {
-("O1","charge"): [ -0.67786 ],
-("H2","charge"): [ 0.33893 ],
-("H3","charge"): [ 0.33893 ],
+("O1","charge"):  -0.67786 ,
+("H2","charge"):  0.33893 ,
+("H3","charge"):  0.33893 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [ -0.15448, -0.00000, -0.13077 ],
@@ -616,9 +616,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.2")] = \
                 {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.78706 ],
 ("H2", "dipole"): [ 0.00000, -0.00000, 0.0     ],
@@ -633,9 +633,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.25")] = \
                 {
-("O1","charge"): [ -0.67786 ],
-("H2","charge"): [ 0.33893 ],
-("H3","charge"): [ 0.33893 ],
+("O1","charge"):  -0.67786 ,
+("H2","charge"):  0.33893 ,
+("H3","charge"):  0.33893 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [ -0.15448, -0.00000, -0.13077 ],
@@ -648,9 +648,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.25")] = \
                 {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.78706 ],
 ("H2", "dipole"): [ 0.00000, -0.00000, 0.0     ],
@@ -666,9 +666,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", True, "0.3")] = \
                 {
-("O1","charge"): [ -0.67786 ],
-("H2","charge"): [ 0.33893 ],
-("H3","charge"): [ 0.33893 ],
+("O1","charge"):  -0.67786 ,
+("H2","charge"):  0.33893 ,
+("H3","charge"):  0.33893 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.29809 ],
 ("H2", "dipole"): [ -0.15448, -0.00000, -0.13077 ],
@@ -681,9 +681,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVDZ", False, "0.3")] = \
                 {
-("O1","charge"): [ 0.0 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  0.0 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.78706 ],
 ("H2", "dipole"): [ 0.00000, -0.00000, 0.0     ],
@@ -700,9 +700,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOTHIRD", False, "0.0")] = \
         {
-("O1","charge"): [ 0.00 ],
-("H2","charge"): [ 0.00 ],
-("H3","charge"): [ 0.00 ],
+("O1","charge"):  0.00 ,
+("H2","charge"):  0.00 ,
+("H3","charge"):  0.00 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.77675 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -722,9 +722,9 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("TIP3P", "HF", "ANOTHIRD", True, "0.0")] = \
         {
-("O1","charge"): [ -0.69133 ],
-("H2","charge"): [ 0.34567 ],
-("H3","charge"): [ 0.34567 ],
+("O1","charge"):  -0.69133 ,
+("H2","charge"):  0.34567 ,
+("H3","charge"):  0.34567 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.27049 ],
 ("H2", "dipole"): [ -0.15003, 0.00000, -0.12958 ],
@@ -750,9 +750,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVTZ", True, "0.0")] = \
         {
-("O1","charge"): [ -0.68924 ],
-("H2","charge"): [ 0.34462 ],
-("H3","charge"): [ 0.34462 ],
+("O1","charge"):  -0.68924 ,
+("H2","charge"):  0.34462 ,
+("H3","charge"):  0.34462 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.26854 ],
 ("H2", "dipole"): [ -0.14909, 0.00000, -0.12848 ],
@@ -773,9 +773,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVTZ", False, "0.0")] = \
                 {
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ -0.00000,  0.00000,  0.77468 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -801,9 +801,9 @@ Frequency:  Field :math:`\\omega`    string
 # HF PART
         self[("TIP3P", "HF", "ANO631", True, "0.0")] = \
                 {
-( 'O1', "charge") : [ -0.66388 ],
-( 'H2', "charge") : [ 0.33194 ],
-( 'H3', "charge") : [ 0.33194 ],
+( 'O1', "charge") :  -0.66388 ,
+( 'H2', "charge") :  0.33194 ,
+( 'H3', "charge") :  0.33194 ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.34510 ],
 ( 'H2', "dipole") : [ -0.16058, 0.00000, -0.11299 ],
 ( 'H3', "dipole") : [ 0.16058, 0.00000, -0.11299 ],
@@ -820,9 +820,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANO631", False, "0.0")] = \
                 {
-( 'O1', "charge") : [ 0. ],
-( 'H2', "charge") : [ 0. ],
-( 'H3', "charge") : [ 0. ],
+( 'O1', "charge") :  0. ,
+( 'H2', "charge") :  0. ,
+( 'H3', "charge") :  0. ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.85413 ],
 ( 'H2', "dipole") : [ 0., 0., 0.,],
 ( 'H3', "dipole") : [ 0., 0., 0.,],
@@ -842,9 +842,9 @@ Frequency:  Field :math:`\\omega`    string
  
         self[("TIP3P", "B3LYP", "ANO631", True, "0.0")] = \
                 {
-( 'O1', "charge") : [ -0.66229 ],
-( 'H2', "charge") : [ 0.33114 ],
-( 'H3', "charge") : [ 0.33114 ],
+( 'O1', "charge") :  -0.66229 ,
+( 'H2', "charge") :  0.33114 ,
+( 'H3', "charge") :  0.33114 ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.34276 ],
 ( 'H2', "dipole") : [ -0.16617, 0.00000, -0.11629 ],
 ( 'H3', "dipole") : [ 0.16617, 0.00000, -0.11629 ],
@@ -862,9 +862,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "B3LYP", "ANO631", False, "0.0")] = \
                 {
-( 'O1', "charge") : [ 0. ],
-( 'H2', "charge") : [ 0. ],
-( 'H3', "charge") : [ 0. ],
+( 'O1', "charge") :  0. ,
+( 'H2', "charge") :  0. ,
+( 'H3', "charge") :  0. ,
 ( 'O1', "dipole") : [ 0.00000, 0.00000, 0.84344 ],
 ( 'H2', "dipole") : [ 0., 0., 0.,],
 ( 'H3', "dipole") : [ 0., 0., 0.,],
@@ -891,9 +891,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P_WORST", "HF", "ANOPVDZ", False, "0.0")] = \
                 {
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ -0.00187, -0.00000, 0.79514 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -914,9 +914,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P_WORST", "HF", "ANOPVDZ", True, "0.0")] = \
                 {
-("O1","charge"): [-0.67678],
-("H2","charge"): [ 0.33677],
-("H3","charge"): [ 0.34001],
+("O1","charge"): -0.67678,
+("H2","charge"):  0.33677,
+("H3","charge"):  0.34001,
 
 ("O1", "dipole"): [ -0.00749, 0.00000, 0.29811 ],
 ("H2", "dipole"): [ -0.15043, 0.00000, -0.13415 ],
@@ -940,9 +940,9 @@ Frequency:  Field :math:`\\omega`    string
 ##########
         self[("TIP3P", "HF", "ANOMAX", True, "0.0")] = \
         {
-("O1","charge"): [ -0.68973 ],
-("H2","charge"): [ 0.34487 ],
-("H3","charge"): [ 0.34487 ],
+("O1","charge"):  -0.68973 ,
+("H2","charge"):  0.34487 ,
+("H3","charge"):  0.34487 ,
 
 ("O1", "dipole"): [  -0.00000, 0.00000, 0.28805 ],
 ("H2", "dipole"): [  -0.14672, -0.00000, -0.13689 ],
@@ -963,9 +963,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOMAX", False, "0.0")] = \
         {
-("O1","charge"): [ 0.0, ],
-("H2","charge"): [ 0.0, ],
-("H3","charge"): [ 0.0, ],
+("O1","charge"):  0.0, ,
+("H2","charge"):  0.0, ,
+("H3","charge"):  0.0, ,
 
 ("O1", "dipole"): [  0.00000, 0.00000, 0.77791 ],
 ("H2", "dipole"): [  0.0, 0.0, 0.0, ],
@@ -990,9 +990,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVTZ", True, "0.0238927")] = \
 {
-("O1","charge"): [-0.689],
-("H2","charge"): [0.345], 
-("H3","charge"): [0.345], 
+("O1","charge"): -0.689,
+("H2","charge"): 0.345, 
+("H3","charge"): 0.345, 
 
 ("O1", "dipole"):   [-0.000,0.000,0.269], 
 ("H2", "dipole"):  [-0.149,-0.000,-0.128],
@@ -1008,9 +1008,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVTZ", False, "0.0238927")] = \
                 {
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ -0.00000,  0.00000,  0.77468 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -1027,9 +1027,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "HF", "ANOPVTZ", True, "0.0428227")] = \
 {
-("O1","charge"):[-0.689],
-("H2","charge"):[0.345], 
-("H3","charge"):[0.345], 
+("O1","charge"):-0.689,
+("H2","charge"):0.345, 
+("H3","charge"):0.345, 
 
 ("O1", "dipole"):  [-0.000,0.000,0.269], 
 ("H2", "dipole"): [-0.149,-0.000,-0.128],
@@ -1047,9 +1047,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "HF", "ANOPVTZ", False, "0.0428227")] = \
                 {
 
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ -0.00000,  0.00000,  0.77468 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -1065,9 +1065,9 @@ Frequency:  Field :math:`\\omega`    string
                 }
         self[("TIP3P", "HF", "ANOPVTZ", True, "0.0773571")] = \
                 {
-("O1","charge"): [-0.689],
-("H2","charge"): [0.345], 
-("H3","charge"): [0.345], 
+("O1","charge"): -0.689,
+("H2","charge"): 0.345, 
+("H3","charge"): 0.345, 
 
 ("O1", "dipole"):   [-0.000,0.000,0.269], 
 ("H2", "dipole"):  [-0.149,-0.000,-0.128],
@@ -1085,9 +1085,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "HF", "ANOPVTZ", False, "0.0773571")] = \
                 {
 
-("O1","charge"): [0.],
-("H2","charge"): [0.],
-("H3","charge"): [0.],
+("O1","charge"): 0.,
+("H2","charge"): 0.,
+("H3","charge"): 0.,
 
 ("O1", "dipole"): [ -0.00000,  0.00000,  0.77468 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -1108,9 +1108,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "B3LYP", "ANOPVDZ", True, "0.0")] = \
         {
 
-("O1","charge"): [ -0.67622 ],
-("H2","charge"): [ 0.33811 ],
-("H3","charge"): [ 0.33811 ],
+("O1","charge"):  -0.67622 ,
+("H2","charge"):  0.33811 ,
+("H3","charge"):  0.33811 ,
 
 ("O1", "dipole"): [ -0.00000, -0.00000, 0.28165 ],
 ("H2", "dipole"): [ -0.16619, -0.00000, -0.14213 ],
@@ -1131,9 +1131,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "B3LYP", "ANOPVDZ", False, "0.0")] = \
         {
-("O1","charge"): [ -0.00000 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  -0.00000 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.74607 ],
 ("H2", "dipole"): [ 0.0, 0., 0., ],
@@ -1158,9 +1158,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "B3LYP", "ANOMAX", True, "0.0")] = \
         {
 
-("O1","charge"): [ -0.68417 ],
-("H2","charge"): [ 0.34209 ],
-("H3","charge"): [ 0.34209 ],
+("O1","charge"):  -0.68417 ,
+("H2","charge"):  0.34209 ,
+("H3","charge"):  0.34209 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.26575 ],
 ("H2", "dipole"): [ -0.15840, -0.00000, -0.14783 ],
@@ -1181,9 +1181,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "B3LYP", "ANOMAX", False, "0.0")] = \
         {
-("O1","charge"): [ -0.00000 ],
-("H2","charge"): [ 0.0 ],
-("H3","charge"): [ 0.0 ],
+("O1","charge"):  -0.00000 ,
+("H2","charge"):  0.0 ,
+("H3","charge"):  0.0 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.72757 ],
 ("H2", "dipole"): [ 0., 0., 0., ],
@@ -1214,9 +1214,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "CAMB3LYP", "ANOPVDZ", False, "0.0")] = \
         {
 
-("O1","charge"): [ 0.00 ],
-("H2","charge"): [ 0.00 ],
-("H3","charge"): [ 0.00 ],
+("O1","charge"):  0.00 ,
+("H2","charge"):  0.00 ,
+("H3","charge"):  0.00 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.76134 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -1237,9 +1237,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "CAMB3LYP", "ANOPVDZ", True, "0.0")] = \
                 {
-("O1","charge"): [ -0.67772 ],
-("H2","charge"): [ 0.33886 ],
-("H3","charge"): [ 0.33886 ],
+("O1","charge"):  -0.67772 ,
+("H2","charge"):  0.33886 ,
+("H3","charge"):  0.33886 ,
 
 ("O1", "dipole"): [ 0.00000, -0.00000, 0.28860 ],
 ("H2", "dipole"): [ -0.16423, -0.00000, -0.13881 ],
@@ -1273,9 +1273,9 @@ Frequency:  Field :math:`\\omega`    string
         self[("TIP3P", "CAMB3LYP", "ANOPVTZ", False, "0.0")] = \
         {
 
-("O1","charge"): [ 0.00 ],
-("H2","charge"): [ 0.00 ],
-("H3","charge"): [ 0.00 ],
+("O1","charge"):  0.00 ,
+("H2","charge"):  0.00 ,
+("H3","charge"):  0.00 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.74366 ],
 ("H2", "dipole"): [ 0.0,   0.0,   0.0,    ],
@@ -1296,9 +1296,9 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("TIP3P", "CAMB3LYP", "ANOPVTZ", True, "0.0")] = \
         {
-("O1","charge"): [ -0.68444 ],
-("H2","charge"): [ 0.34222 ],
-("H3","charge"): [ 0.34222 ],
+("O1","charge"):  -0.68444 ,
+("H2","charge"):  0.34222 ,
+("H3","charge"):  0.34222 ,
 
 ("O1", "dipole"): [ 0.00000, 0.00000, 0.26119 ],
 ("H2", "dipole"): [ -0.16322, 0.00000, -0.13766 ],
@@ -1321,22 +1321,22 @@ Frequency:  Field :math:`\\omega`    string
 # Paranitro at 6-31+G* Basis, 2s H, 4s3p1d O
         self[("PNA", "HF", "ANO631", True, "0.0")] = \
                 {
-( 'N1', "charge") : [ 0.65444 ],
-( 'N2', "charge") : [ -0.50087 ],
-( 'C3', "charge") : [ -0.03722 ],
-( 'C4', "charge") : [ -0.04367 ],
-( 'C5', "charge") : [ -0.20541 ],
-( 'C6', "charge") : [ 0.23493 ],
-( 'C7', "charge") : [ -0.20541 ],
-( 'C8', "charge") : [ -0.04367 ],
-( 'H9', "charge") : [ 0.16161 ],
-( 'H10', "charge") : [ 0.12276 ],
-( 'H11', "charge") : [ 0.25699 ],
-( 'H12', "charge") : [ 0.25699 ],
-( 'H13', "charge") : [ 0.12276 ],
-( 'H14', "charge") : [ 0.16161 ],
-( 'O15', "charge") : [ -0.46791 ],
-( 'O16', "charge") : [ -0.46792 ],
+( 'N1', "charge") :  0.65444 ,
+( 'N2', "charge") :  -0.50087 ,
+( 'C3', "charge") :  -0.03722 ,
+( 'C4', "charge") :  -0.04367 ,
+( 'C5', "charge") :  -0.20541 ,
+( 'C6', "charge") :  0.23493 ,
+( 'C7', "charge") :  -0.20541 ,
+( 'C8', "charge") :  -0.04367 ,
+( 'H9', "charge") :  0.16161 ,
+( 'H10', "charge") :  0.12276 ,
+( 'H11', "charge") :  0.25699 ,
+( 'H12', "charge") :  0.25699 ,
+( 'H13', "charge") :  0.12276 ,
+( 'H14', "charge") :  0.16161 ,
+( 'O15', "charge") :  -0.46791 ,
+( 'O16', "charge") :  -0.46792 ,
 ( 'N1', "dipole") : [ -0.00063, 0.00654, 0.22999 ],
 ( 'N2', "dipole") : [ -0.00005, 0.00051, 0.19828 ],
 ( 'C3', "dipole") : [ 0.00023, -0.00243, -0.10677 ],
@@ -1405,7 +1405,7 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("PNA", "HF", "ANO631", False, "0.0")] = \
                 {
-( 'C3', "charge") : [ -0.00000 ],
+( 'C3', "charge") :  -0.00000 ,
 ( 'C3', "dipole") : [ 0.00774, -0.08127, -3.15541 ],
 ( 'C3', "quadrupole") : [ -28.74832, 1.65888, -0.03357, -45.89917, 0.34992, -31.48155 ],
 ( 'C3', "alpha") : [ 94.19542, 4.33812, -0.19303, 49.35263, 2.01773, 134.51120 ],
@@ -1416,22 +1416,22 @@ Frequency:  Field :math:`\\omega`    string
 # Paranitro at ANOMAX, 5s4p3d H, 5s4p3d2f O, 7 6 4 3 S
         self[("PNA", "HF", "ANOMAX", True, "0.0")] = \
                 {
-( 'N1', "charge") : [ 0.67684 ],
-( 'N2', "charge") : [ -0.51506 ],
-( 'C3', "charge") : [ -0.03783 ],
-( 'C4', "charge") : [ -0.04816 ],
-( 'C5', "charge") : [ -0.21314 ],
-( 'C6', "charge") : [ 0.24046 ],
-( 'C7', "charge") : [ -0.21314 ],
-( 'C8', "charge") : [ -0.04816 ],
-( 'H9', "charge") : [ 0.16625 ],
-( 'H10', "charge") : [ 0.12629 ],
-( 'H11', "charge") : [ 0.26245 ],
-( 'H12', "charge") : [ 0.26245 ],
-( 'H13', "charge") : [ 0.12629 ],
-( 'H14', "charge") : [ 0.16625 ],
-( 'O15', "charge") : [ -0.47588 ],
-( 'O16', "charge") : [ -0.47589 ],
+( 'N1', "charge") :  0.67684 ,
+( 'N2', "charge") :  -0.51506 ,
+( 'C3', "charge") :  -0.03783 ,
+( 'C4', "charge") :  -0.04816 ,
+( 'C5', "charge") :  -0.21314 ,
+( 'C6', "charge") :  0.24046 ,
+( 'C7', "charge") :  -0.21314 ,
+( 'C8', "charge") :  -0.04816 ,
+( 'H9', "charge") :  0.16625 ,
+( 'H10', "charge") :  0.12629 ,
+( 'H11', "charge") :  0.26245 ,
+( 'H12', "charge") :  0.26245 ,
+( 'H13', "charge") :  0.12629 ,
+( 'H14', "charge") :  0.16625 ,
+( 'O15', "charge") :  -0.47588 ,
+( 'O16', "charge") :  -0.47589 ,
 ( 'N1', "dipole") : [ -0.00065, 0.00676, 0.23582 ],
 ( 'N2', "dipole") : [ -0.00007, 0.00074, 0.21691 ],
 ( 'C3', "dipole") : [ 0.00022, -0.00231, -0.10101 ],
@@ -1499,7 +1499,7 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("PNA", "HF", "ANOMAX", False, "0.0")] = \
                 {
-( 'C3', "charge") : [ -0.00000 ],
+( 'C3', "charge") :  -0.00000 ,
 ( 'C3', "dipole") : [ 0.00750, -0.07874, -3.06787 ],
 ( 'C3', "quadrupole") : [ -29.10404, 1.57529, -0.03103, -45.39075, 0.32335, -32.04731 ],
 ( 'C3', "alpha") : [ 99.50257, 4.30612, -0.19596, 55.00027, 2.04819, 141.22515 ],
@@ -1511,13 +1511,13 @@ Frequency:  Field :math:`\\omega`    string
 # Sulfur at ANOMAX, 5s4p3d H, 5s4p3d2f O, 7 6 4 3 S
         self[("SULFACID", "HF", "ANOMAX", True, "0.0")] = \
                 {
-( 'O1', "charge") : [ -0.69023 ],
-( 'O2', "charge") : [ -0.88433 ],
-( 'O3', "charge") : [ -0.84863 ],
-( 'O4', "charge") : [ -0.70849 ],
-( 'S5', "charge") : [ 2.38084 ],
-( 'H6', "charge") : [ 0.37518 ],
-( 'H7', "charge") : [ 0.37565 ],
+( 'O1', "charge") :  -0.69023 ,
+( 'O2', "charge") :  -0.88433 ,
+( 'O3', "charge") :  -0.84863 ,
+( 'O4', "charge") :  -0.70849 ,
+( 'S5', "charge") :  2.38084 ,
+( 'H6', "charge") :  0.37518 ,
+( 'H7', "charge") :  0.37565 ,
 ( 'O1', "dipole") : [ -0.21659, -0.02003, -0.09954 ],
 ( 'O2', "dipole") : [ 0.03493, -0.01601, 0.02440 ],
 ( 'O3', "dipole") : [ -0.00068, -0.01229, -0.00415 ],
@@ -1549,7 +1549,7 @@ Frequency:  Field :math:`\\omega`    string
 }
         self[("SULFACID", "HF", "ANOMAX", False, "0.0")] = \
                 {
-( 'S5', "charge") : [ 0.000 ],
+( 'S5', "charge") :  0.000 ,
 ( 'S5', "dipole") : [ -0.926, 0.361, -1.046 ],
 ( 'S5', "quadrupole") : [ -19.342, -0.497, 0.040, -21.859, 0.356, -21.342 ],
 ( 'S5', "alpha") : [ 34.405, -0.570, 0.808, 33.734, 0.415, 33.050 ],
@@ -1561,13 +1561,13 @@ Frequency:  Field :math:`\\omega`    string
 # Sulfur at ANO631, 2s H, 4s 3p 1d O, 5s 4p 1d S
         self[("SULFACID", "HF", "ANO631", True, "0.0")] = \
                 {
-( 'O1', "charge") : [ -0.66248 ],
-( 'O2', "charge") : [ -0.85161 ],
-( 'O3', "charge") : [ -0.81368 ],
-( 'O4', "charge") : [ -0.68032 ],
-( 'S5', "charge") : [ 2.26987 ],
-( 'H6', "charge") : [ 0.36955 ],
-( 'H7', "charge") : [ 0.36867 ],
+( 'O1', "charge") :  -0.66248 ,
+( 'O2', "charge") :  -0.85161 ,
+( 'O3', "charge") :  -0.81368 ,
+( 'O4', "charge") :  -0.68032 ,
+( 'S5', "charge") :  2.26987 ,
+( 'H6', "charge") :  0.36955 ,
+( 'H7', "charge") :  0.36867 ,
 ( 'O1', "dipole") : [ -0.24138, 0.00133, -0.08855 ],
 ( 'O2', "dipole") : [ 0.08946, -0.01199, -0.00881 ],
 ( 'O3', "dipole") : [ -0.06218, -0.00973, -0.03164 ],
@@ -1600,7 +1600,7 @@ Frequency:  Field :math:`\\omega`    string
 
         self[("SULFACID", "HF", "ANO631", False, "0.0")] = \
                 {
-( 'S5', "charge") : [ 0.00000 ],
+( 'S5', "charge") :  0.00000 ,
 ( 'S5', "dipole") : [ -0.95102, 0.37432, -1.00532 ],
 ( 'S5', "quadrupole") : [ -19.45679, -0.49308, 0.14482, -21.94147, 0.40567, -21.55274 ],
 ( 'S5', "alpha") : [ 32.24655, -0.65263, 0.68544, 30.07317, 0.35795, 29.98067 ],
