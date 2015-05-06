@@ -3259,6 +3259,8 @@ Plot Cluster a 3D frame in the cluster
         else:
             st = "AU\n"
 # Old qmmm format requires integer at end to properly read charges
+        if hyp == 0:
+            hyp = 1
         if ignore_qmmm:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self ]), 
                     max_l, pol, hyp )
