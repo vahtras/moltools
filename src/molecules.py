@@ -603,124 +603,6 @@ ZDIPLEN
             self[ (val, 'max') ] = opts[val][ "max" ]
             self[ (val, 'points') ] = opts[val][ "points" ]
 
-    def get_mol( self, 
-            center = [0,0,0], 
-            mol = "water", 
-            model = "tip3p",
-            AA = False ):
-        """return molecule in center, all molecules have different definition
-        of euler angles
-
-        for water place O in origo
-        for methanol place C=O bond in origo
-        
-        """
-
-        if mol == "water":
-#Geometrical parameters, dependent om model
-            if model == "tip3p":
-                r_oh = self[ ("water", "tip3p", "r_oh", "AA") ]
-                a_hoh = self[ ("water", "tip3p", "a_hoh","degree") ]
-
-            if model == "spc":
-                r_oh = self[ ("water", "spc", "r_oh", "AA") ]
-                a_hoh = self[ ("water", "spc", "a_hoh","degree") ]
-
-            if not AA:
-                r_oh = r_oh / a0
-
-            d = (90 - a_hoh/2 ) * np.pi / 180
-
-
-            xo = center[0]
-            yo = center[1]
-            zo = center[2] 
-
-            xh1 = (center[0] + r_oh * np.cos(d))
-            yh1 =  center[1] 
-            zh1 = (center[2] + r_oh* np.sin(d))
-
-            xh2 = (center[0] - r_oh * np.cos(d)) 
-            yh2 = center[1] 
-            zh2 = (center[2] + r_oh* np.sin(d))
-
-            h1 = Atom( **{ "AA" : AA,
-                "x" : xh1,
-                "y" : yh1,
-                "z" : zh1,
-                "element" : "H"} )
-            h2 = Atom( **{ "AA" : AA,
-                "x" : xh2,
-                "y" : yh2,
-                "z" : zh2,
-                "element" : "H"} )
-            o = Atom( **{ "AA" : AA,
-                "x" : xo,
-                "y" : yo,
-                "z" : zo,
-                "element" : "O"} )
-
-            w = Water( AA = AA)
-            w.append( o )
-            w.append( h1 )
-            w.append( h2 )
-            
-            return w
-
-        elif mol == "methanol":
-
-            r_co = self[ ("methanol", "gas_opt", "r_co", "AA" )]
-            r_oh = self[ ("methanol", "gas_opt", "r_oh", "AA" )]
-            r_ch = self[ ("methanol", "gas_opt", "r_ch", "AA" )]
-
-            a_coh = self[ ("methanol", "gas_opt", "a_coh", "degree" ) ]
-            #a_hch = self[ ("methanol","gas_opt",  "a_hch", "degree" ) ]
-            a_hco = self[ ("methanol", "gas_opt", "a_hco", "degree" ) ]
-
-            a_coh *= np.pi / 180
-            a_hco *= np.pi / 180
-
-            d_hcoh_4 = self[ ("methanol","gas_opt",  "d_hcoh", "h4", "degree" ) ]
-            d_hcoh_4 *= np.pi / 180
-            d_hcoh_5 = self[ ("methanol","gas_opt",  "d_hcoh", "h5", "degree" ) ]
-            d_hcoh_5 *= np.pi / 180
-            d_hcoh_6 = self[ ("methanol","gas_opt",  "d_hcoh", "h6", "degree" ) ]
-            d_hcoh_6 *= np.pi / 180
-
-            if not AA:
-                r_co, r_oh, r_ch = r_co/a0, r_oh/a0, r_ch/a0
-
-            c1 = Atom( **{"x":0, "y":0, "z":-r_co/2, "AA": AA, "element":"C" } )
-            o2 = Atom( **{"x":0, "y":0, "z": r_co/2, "AA": AA, "element":"O" } )
-
-            h3 = Atom( **{"x":r_oh*np.cos( a_coh-np.pi/2),
-                "y":0,
-                "z":r_oh*np.sin( a_coh-np.pi/2) + r_co/2,
-                "AA": AA, "element":"H" } )
-
-            h4 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_4 ),
-                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_4 ),
-                "z": r_ch*np.cos( a_hco) - r_co/2 ,
-                "AA": AA, "element":"H" } )
-            h5 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_5 ),
-                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_5 ),
-                "z": r_ch*np.cos( a_hco) - r_co/2 ,
-                "AA": AA, "element":"H" } )
-            h6 = Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_6 ),
-                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_6 ),
-                "z": r_ch*np.cos( a_hco) - r_co/2 ,
-                "AA": AA, "element":"H" } )
-
-            m = Methanol()
-            m.append(c1)
-            m.append(o2)
-            m.append(h3)
-            m.append(h4)
-            m.append(h5)
-            m.append(h6)
-
-            return m
-
     def polar_to_cartesian(self, r, tau, theta):
         x, y, z = r* np.sin( theta )*np.cos( tau ) \
                , r* np.sin(  theta )*np.sin( tau )  \
@@ -1172,6 +1054,8 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
+    def get_mol_line(self):
+        return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( self.label, self.x, self.y, self.z ) 
 
     def in_mm(self):
         return self.Molecule.in_mm
@@ -1958,7 +1842,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         if not len(lines) == len(self):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
             raise SystemExit
-        for at, prop in zip(self, lines):
+        f_at = lambda x: map(float,x.get_mol_line().split()[1:])
+        f_prop = lambda x: map(float,x.split()[1:4])
+        for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
+            print at, prop
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
@@ -2335,7 +2222,7 @@ Plot Molecule in a 3D frame
                     len( [all_el for all_el in self if (all_el.element == el)] ),
                     basis[ el_to_rowind[el] ])
             for i in [all_el for all_el in self if (all_el.element == el) ]:
-                st += "%s %.5f %.5f %.5f\n" %(i.element, i.x, i.y, i.z ) 
+                st += i.get_mol_line()
         return st
 
     def get_pdb_string(self):
