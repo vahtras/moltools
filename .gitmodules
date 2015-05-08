@@ -1,6 +1,6 @@
 [submodule "src/loprop"]
 	path = src/loprop
-	url = https://github.com:vahtras/loprop.git
+	url = git@github.com:vahtras/loprop.git
 [submodule "src/pd"]
 	path = src/pd
-	url = https://github.com:vahtras/pd.git
+	url = git@github.com:vahtras/pd.git
