@@ -8,6 +8,7 @@ moltools is a package of scripts and modules I use daily in my research as a Ph.
 Contents:
 
 .. toctree::
+   :maxdepth: 3
 
    requirements.rst
    install.rst
