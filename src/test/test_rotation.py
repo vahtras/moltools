@@ -36,7 +36,7 @@ class WaterTest( unittest.TestCase ):
 
 
     def test_translation(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = Water.get_standard()
         w.translate( self.w.o.r )
         self.eq( w.com , self.w.o.r )
 
@@ -51,7 +51,7 @@ class WaterTest( unittest.TestCase ):
 
 
     def test_center_water(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = Water.get_standard()
 
 #Move the water to random place
         w.translate( np.random.uniform(-100,100, [3]  ))
@@ -62,11 +62,9 @@ class WaterTest( unittest.TestCase ):
 
         self.eq( w.com, [0,0,0], decimal = 7 )
 
-    def test_get_euler(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
 
     def test_rotate_around_z(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = Water.get_standard()
         w.translate( self.w.com )
         self.eq( w.com, self.w.com )
 
@@ -87,7 +85,7 @@ class WaterTest( unittest.TestCase ):
         self.eq( w.com, self.w.com )
 
     def test_rotate_inv_Z(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = Water.get_standard()
 
         self.eq( w.h1.y, 0 )
         self.eq( w.h2.y, 0 )
@@ -143,7 +141,7 @@ class WaterTest( unittest.TestCase ):
         #self.eq( w.p ,[0, 0,-0.41021007, ])
 
     def test_y_rotation(self):
-        w = self.g.get_mol( center = [0,0,0], mol = "water" )
+        w = Water.get_standard( )
 #rotate around y axis by 90 degree, assert
 
         w.translate( self.w.o.r )

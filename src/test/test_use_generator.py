@@ -22,12 +22,9 @@ class GeneratorTestCase( unittest.TestCase ):
         assert "**END" in string
 
     def test_get_mol(self):
-        w = self.g.get_mol( center = [0, 1, 1], mol = "water", AA = False )
-        m = self.g.get_mol( center = [0, 1, 1], mol = "methanol",model = "gas_opt", AA = False )
+        w = Water.get_standard() 
         self.assertIsInstance( w, Molecule )
-        self.assertIsInstance( m, Molecule )
         self.assertNotIsInstance( w, Methanol )
-        self.assertNotIsInstance( m, Water )
 
     def test_vary_parameters(self):
 #Could modify in future this test todo

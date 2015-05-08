@@ -8,7 +8,7 @@ from read_dal import o_filter, read_beta_hf
 from molecules import *
 import pandas as pd
 
-from gaussian import *
+from pd.gaussian import *
 
 a0 = 0.52917721092
 

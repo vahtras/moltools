@@ -7,7 +7,7 @@ from template import Template
 
 class MoleculesTestCase( unittest.TestCase ):
     def setUp(self):
-        wat = Generator().get_mol( AA = False )
+        wat = Water.get_standard()
         t1, t2, t3 = wat.get_euler()
         kw_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
             True, "0.0"))
@@ -25,8 +25,9 @@ class MoleculesTestCase( unittest.TestCase ):
 #        assert ret == 0
 
     def test_dist_to_mol(self):
-        wat1 = Generator().get_mol( [0,0,0] )
-        wat2 = Generator().get_mol( [0,0,1] )
+        wat1, wat2 = Water.get_standard(), Water.get_standard()
+        wat1.translate( [0,0,0] )
+        wat2.translate( [0,0,1] )
         self.eq(  np.linalg.norm( wat1.dist_to_mol( wat2 )) , 1, decimal = 7 )
 
         wat1.translate( [0, 0, 0] )
@@ -58,10 +59,10 @@ H           -0.756950   0.000000   0.585882
 
 Atomtypes=2 Charge=0 Nosymm Angstrom
 Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
-O 0.00000 0.00000 0.00000
+O                 0.00000   0.00000   0.00000
 Charge=1.0 Atoms=2 Basis=ano-1 2
-H 0.75695 0.00000 0.58588
-H -0.75695 0.00000 0.58588
+H                 0.75695   0.00000   0.58588
+H                -0.75695   0.00000   0.58588
 """
         self.wat.to_AA()
         assert self.wat.get_mol_string() == st 

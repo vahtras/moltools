@@ -68,7 +68,7 @@ class WaterTest( unittest.TestCase ):
 
     def test_add_mol(self):
         a = len(self.c)
-        w = Generator().get_mol() 
+        w = Water.get_standard()
         self.assertNotIn( w, self.c ) 
         self.c.add_mol( w )
         self.assertEqual( len( self.c ), (a + 1) )

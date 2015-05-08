@@ -6,9 +6,9 @@ from mayavi import mlab
 from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy
 
-from daltools import one, mol, dens, prop, lr
-from daltools.util import full, blocked, subblocked, timing
-from loprop import MolFrag, penalty_function, shift_function
+#from daltools import one, mol, dens, prop, lr
+#from daltools.util import full, blocked, subblocked, timing
+from loprop.loprop import MolFrag, penalty_function, shift_function
 
 import molecules
 import utilz

@@ -12,7 +12,7 @@ import numpy as np
 import math as m
 
 #from particles import *
-from gaussian import *
+from pd.gaussian import *
 
 #import molecules 
 #from template import Template

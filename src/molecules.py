@@ -15,12 +15,12 @@ from template import Template
 import copy as copymod
 
 import read_dal
-import gaussian
+from pd import gaussian
 
 import utilz
 
 import h5py
-from loprop import *
+from loprop.loprop import *
 
 a0 = 0.52917721092
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
