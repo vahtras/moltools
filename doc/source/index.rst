@@ -1,22 +1,16 @@
-.. moltools documentation master file, created by
-   sphinx-quickstart on Fri May  8 17:26:09 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome to Moltools documentation!
+==============================
 
-Welcome to moltools's documentation!
-====================================
+moltools is a package of scripts and modules I use daily in my research as a Ph.D. student to ease setting up and analyzing calculations performed with DALTON.
+
+
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   requirements.rst
+   install.rst
+   modules.rst
+   testing.rst
+   bugs.rst
