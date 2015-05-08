@@ -1,0 +1,6 @@
+[submodule "src/loprop"]
+	path = src/loprop
+	url = gh:vahtras/loprop.git
+[submodule "src/pd"]
+	path = src/pd
+	url = gh:vahtras/pd.git
