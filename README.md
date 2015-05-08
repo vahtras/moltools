@@ -4,53 +4,48 @@
 
 #Welcome to moltools!
 
-	Code intended to aid in the analysis of calculations of molecules.
-
-	Right now porting from dalton_tools.git
+	Code purpose: Wrap DALTON LoProp calculation into convinient functions callable by the Molecule instance using IPython or python scripts.
 
 ## Current features:
 
-	MM properties for QMMM available for some molecules as templates.
+	Features include obtaining LoProp properties for solvent molecules/ligands or for proteins and polymers that are covalently bonded via the MFCC procedure.
 
-	MM properties for molecules and proteins calculatable directly from script* or interactive python. Also works for High-performance computers (tested on triolith and hpc in Umeå).
+	By integrating with the particles module, applequist equations are directly solvable for a system of classical molecules using damped charges/ dipole-moments directly from QM-obtainable properties.
 
-	Generation of a polymer from a monomer unit.
-
-	*Needs vahtras/loprop.git to be in PYTHONPATH
+	For localized Beta, this requires the latest development source of DALTON installed.
 
 ## Installation:
 
-`git clone git@github.com:fishstamp82/moltools.git`
+`git clone --recursive git@github.com:fishstamp82/moltools.git`
 
 `export PYTHONPATH=$(pwd)/moltools/src:$PYTHONPATH`
-
-Execute the following script under the scripts subdir so that private dependencies are uncommented.
-
-`src/scripts/make_master_pass_test.sh`
-
-For Linköping HPC, execute:
-
-`src/scripts/dalton_run_on_triolith.sh`
-
-For Umeå HPC, execute:
-
-`src/scripts/dalton_run_on_akka.sh`
 
 > Tip: Export the pythonpath variable in your initrc file of choice in order to have it automatically load.
 
 
-## Quick-start:
+Execute the following script if you want to run DALTON computations in parallel using HPC clusters.
+
+For the Linköping HPC triolith, execute:
+
+`src/scripts/dalton_run_on_triolith.sh`
+
+For Umeå HPC akka, execute:
+
+`src/scripts/dalton_run_on_akka.sh`
+
+
+## A quick-start:
 
 Run:
 
 * `ipython`
 * `in [1]: from molecules import Water, Cluster`
 
-##### Create a water molecule with oxygen in origo, in atomic units
-`in [2]: w1 = Water().get_standard( AA = False )`
+##### Create a water molecule with oxygen in origo, in atomic units by default
+`in [2]: w1 = Water().get_standard()`
 
 ##### Create an additional water molecule (atomic units by default)
-`in [3]: w2 = Water()
+`in [3]: w2 = Water()`
 
 ##### Translate water 2 by 2.5 AU in the z-axis
 `in [4]: w2.translate_by_r( [0, 0, 2.5] )`
@@ -67,12 +62,13 @@ Run:
 
 ##### Attach some properties to the waters (The rotation of properties will be taken care of )
 
-`in [8]: c.attach_properties( model = 'tip3p', method = 'HF', basis ='ANOPVDZ' )
+`in [8]: c.attach_properties( model = 'tip3p', method = 'HF', basis ='ANOPVDZ' )`
 
-##### visualize atomic/ molecular/ cluster properties via the .Property keyword
+##### output the atomic/ molecular/ cluster propertiy via the .Property keyword, or via the quick-wrapper .p (.d for dipole, .a alpha .etc )
 
-`in [9]: c.p
+`in [9]: print c.p.a`
+[]
 
-**********
+******
 
 ######Visit [the documentation](http://dalton-tools.readthedocs.org/en/latest) for the API and more tutorials on the source code.
