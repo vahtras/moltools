@@ -1698,6 +1698,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
+            keep_outfile = False,
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1866,6 +1867,9 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                 os.remove( f_ )
         except OSError:
             logging.error('Something wrint in trying to remove files in real_tmp')
+        if not keep_outfile:
+            for fil in [f for f in os.listdir(os.getcwd()) if "dalton_molecule" in f]:
+                os.remove( os.path.join( os.getcwd(), fil ) )
         #try:
         #    os.remove( tar )
         #except OSError:
@@ -3625,6 +3629,41 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         for res in self:
             tmp_c.add(res.copy_self())
         return tmp_c
+
+    def props_from_qm(self,
+            tmpdir = None,
+            dalpath = None,
+            procs = 4,
+            decimal = 5,
+            maxl = 2,
+            pol = 22,
+            hyper = 2,
+            method = 'hflin',
+            env = os.environ,
+            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-2 5 4 1' ],
+            dalexe = None,
+            basdir = '/home/x_ignha/repos/dalton/basis',
+            log = None,
+            keep_outfile = False,
+            ):
+        """Put properties on all 'ligands' and 'solvents' in cluster"""
+        for mol in [m for m in self if isinstance(m, Molecule) and m.in_mm]:
+            mol.props_from_qm( tmpdir = tmpdir,
+                    dalpath = dalpath,
+                    procs = procs,
+                    decimal = decimal,
+                    maxl = maxl, 
+                    pol = pol,
+                    hyper = hyper,
+                    method = method,
+                    env = env,
+                    basis = basis,
+                    dalexe = dalexe,
+                    basdir = basdir,
+                    log = log,
+                    keep_outfile = False,
+                    )
+
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
         """Write gaussian .inp file for geometry optimization"""
