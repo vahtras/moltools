@@ -3,25 +3,20 @@ Requirements
 
 For bug-free performance, and full compatability, the latest source of the core dependencies are recommended.
 
-The only hard-requirement is that python is the 2.7 version.
+- python 2.7.9
 
 - numpy 1.9.1
 
-- scipy 0.15.1
-
-- matplotlib 1.4.3
+- matplotlib 1.4.2
 
 - python-nose 1.3.4
 
 Optional dependencies include:
 
-- mpl_toolkits
+- grace 5.1.23
 
-- h5py 2.5.0
+- DALTON 2013
 
-- mayavi2 http://mayavi.sourceforge.net/
+.. warning::
 
-- DALTON any stable version for Alpha properties. http://www.daltonprogram.org/www/download.html
-
-- DALTON (Development version, master branch commit 51601c2 and forward is fine) for Beta properties. 
-
+   For **use_calculator** and **read_dal**, at the moment (17 Dec 2014) some requirements are closed-source.
