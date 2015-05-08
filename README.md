@@ -45,7 +45,7 @@ Run:
 `in [2]: w1 = Water().get_standard()`
 
 ##### Create an additional water molecule (atomic units by default)
-`in [3]: w2 = Water()`
+`in [3]: w2 = Water.get_standard()`
 
 ##### Translate water 2 by 2.5 AU in the z-axis
 `in [4]: w2.translate_by_r( [0, 0, 2.5] )`
@@ -54,21 +54,37 @@ Run:
 `in [5]: c = Cluster( w1, w2 )`
 
 ##### You can always make a quick visualization of a Molecule / Cluster
-`in [6]: c.plot( copy = True, center = True)`
-
-##### Print a dalton input file using standard basis sets
-
-`in [7]: open( "two_waters_input.mol", 'w').write( c.get_qm_mol_string())`
+`in [6]: c.plot()`
 
 ##### Attach some properties to the waters (The rotation of properties will be taken care of )
 
+`#See template.py for all available templates`
 `in [8]: c.attach_properties( model = 'tip3p', method = 'HF', basis ='ANOPVDZ' )`
 
-##### output the atomic/ molecular/ cluster propertiy via the .Property keyword, or via the quick-wrapper .p (.d for dipole, .a alpha .etc )
+##### Output the atomic/ molecular/ cluster propertiy via the .Property keyword, or via the quick-wrapper .p (.d for dipole, .a alpha .etc )
 
 `in [9]: print c.p.a`
-[]
+[ 15.02184   0.        0.       11.48016   0.       13.72182]
+
+##### Calculate each waters properties from ab-initio using DALTON, and put those properties on each atom using LoProp in one step:
+
+`In [10]:for wat in c:
+			 wat.props_from_qm( tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
+
+##### If the dalton version is the development master branch, localized hyperpolarizabilities are obtainable:
+
+`In [11]:for wat in c:
+			 wat.props_from_qm( method = 'b3lypqua', tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
 
 ******
 
-######Visit [the documentation](http://dalton-tools.readthedocs.org/en/latest) for the API and more tutorials on the source code.
+
+## Extra features:
+
+	These include uncommenting "#from mayavi import mlab" in src/pdbreader.py and an installation of mayavi2.
+	This enables plotting of the beta tensor around molecules and clusters.
+
+
+######Visit [the documentation](http://moltools.readthedocs.org/en/latest) for the API and more tutorials on the source code. Work in progress and most stuff are outdated.
+
+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle
 
-from mayavi import mlab
+#from mayavi import mlab
 
 from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy

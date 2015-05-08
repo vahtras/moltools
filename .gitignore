@@ -3,12 +3,13 @@
 *.mol
 *.out
 
+*.out.*
+*.gz.*
 
 # For remotes after mergeconflicts
 *.orig
 pickle_para
 templates
-*gz
 
 .gitconfig
 .coverage
