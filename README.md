@@ -4,15 +4,20 @@
 
 #Welcome to moltools!
 
-	Code purpose: Wrap DALTON LoProp calculation into convinient functions callable by the Molecule instance using IPython or python scripts.
+	Code purpose: Wrap DALTON LoProp calculation into convinient functions
+	callable by the Molecule instance using IPython or python scripts.
 
 ## Current features:
 
-	Features include obtaining LoProp properties for solvent molecules/ligands or for proteins and polymers that are covalently bonded via the MFCC procedure.
+	Features include obtaining LoProp properties for solvent molecules/ligands 
+	or for proteins and polymers that are covalently bonded via the MFCC procedure.
 
-	By integrating with the particles module, applequist equations are directly solvable for a system of classical molecules using damped charges/ dipole-moments directly from QM-obtainable properties.
+	By integrating with the particles module, applequist equations are directly 
+	solvable for a system of classical molecules using damped 
+	charges/dipole-moments 	directly from QM-obtainable properties.
 
-	For localized Beta, this requires the latest development source of DALTON installed.
+	For localized Beta, this requires the latest development source of 
+	DALTON installed.
 
 ## Installation:
 
@@ -81,7 +86,8 @@ Run:
 
 ## Extra features:
 
-	These include uncommenting "#from mayavi import mlab" in src/pdbreader.py and an installation of mayavi2.
+	These include uncommenting "#from mayavi import mlab" in 
+	src/pdbreader.py and an installation of mayavi2.
 	This enables plotting of the beta tensor around molecules and clusters.
 
 
