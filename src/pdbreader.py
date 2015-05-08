@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle
 
-#from mayavi import mlab
+from mayavi import mlab
 
 from mpl_toolkits.mplot3d import Axes3D
 from copy import deepcopy
@@ -667,42 +667,32 @@ class Residue( molecules.Molecule ):
         else:
             return self.res_id
 
-    def plot_maya( self, at1 = None, at2 = None, at3 = None, copy = True):
-        """Wrapper function to plot quivers of beta around residue
+    def plot_maya( self, p1, p2, p3, copy = True ):
+        """Wrapper function to plot quivers of beta 
+
+        For Residue
         
         at1 is the first atom to center around
         at2 is the atom which will lie in the z axis together with at1
         at3 will be projected to lie in the zx-axis
         """
         
-        if at1 == None or at2 == None or at3 == None:
-            at1, at2, at3 = self[:3]
         if copy:
             copy = self.copy()
         else:
             copy = self
         copy.populate_bonds()
-        print at1.label, at2.label, at3.label
-        t1, t2, t3 = utilz.get_euler( at2.r - at1.r, at3.r - at1.r )
-
-#Beta section
-        b = molecules.Rotator.ut_3_square( copy.sum_property['beta'] )
-        print b[2,2,2]
-        b = molecules.Rotator.inv_3( b, t3, t2, t1 )
-        print b[2,2,2]
+        v, t1, t2, t3 = utilz.center_and_xz( p1, p2, p3 )
 
 # plotting section
-        copy.center( at1 )
-        copy.inv_rotate( at2.r-at1.r, at3.r-at1.r )
+        copy.translate_by_r( v )
+        copy.inv_rotate( t1, t2, t3 )
 
-        x, y, z = utilz.E_at_sphere()
-        x2, y2, z2 = utilz.E_at_sphere(r_points=5)
-        bv = utilz.b_at_sphere( b, x, y, z )
-        bv2 = utilz.b_at_sphere( b, x2, y2, z2 )
+        x, y, z = utilz.E_at_sphere(r_points=5)
+        bv = utilz.b_at_sphere( utilz.ut2s(copy.p.b) , x, y, z )
 
         mlab.figure(figure=None, bgcolor=(1,1,1), fgcolor=None, engine=None, size=(400, 350))
-        #m = mlab.quiver3d( x, y, z, bv[...,0], bv[...,1], bv[...,2],)
-        mlab.quiver3d( x2, y2, z2, bv2[...,0], bv2[...,1], bv2[...,2],
+        mlab.quiver3d( x, y, z, bv[...,0], bv[...,1], bv[...,2],
                 colormap = 'BrBG' )
 
 #Plot bonds
@@ -1309,13 +1299,11 @@ class Chain( molecules.Cluster ):
         for at in [at for mol in self for at in mol]:
             at.x, at.y, at.z = vec + at.r
 
-    def plot_maya( self, at1, at2, at3, copy = True ):
+    def plot_maya( self, p1, p2, p3, copy = True ):
         """Wrapper function to plot quivers of beta around whole chain
-
-        
-        at1 is the first atom to center around
-        at2 is the atom which will lie in the z axis 
-        at3 will be projected to the x-axis
+        p1 is the first point to put in origo to center around
+        p2 is the point which will lie in the z axis 
+        p3 will be projected to the x-axis
         """
         
         if copy:
@@ -1326,16 +1314,15 @@ class Chain( molecules.Cluster ):
         for mol in [mol for mol in copy if isinstance( mol, molecules.Molecule) ]:
             mol.populate_bonds()
 
-        t1, t2, t3 = utilz.get_euler( at2.r - at1.r, at3.r - at1.r )
+        v, t1, t2, t3 = utilz.center_and_xz( p1, p2, p3 )
 
 #Beta section
-        b = molecules.Rotator.ut_3_square( copy.sum_property['beta'] )
-        b = molecules.Rotator.inv_3( b, t3, t2, t1 )
+        b = utilz.ut2s( copy.p.b )
 
 # plotting section
-        copy.center( at1 )
-        for mol in copy:
-            mol.inv_rotate( at2.r-at1.r, at3.r-at1.r )
+        for r in copy:
+            r.translate_by_r( v )
+            r.inv_rotate( t1, t2, t3 )
 
         x, y, z = utilz.E_at_sphere(r_max = 50, r_points = 10)
         bv = utilz.b_at_sphere( b, x, y, z )
@@ -1357,8 +1344,6 @@ class Chain( molecules.Cluster ):
                         color = color_dict[ at.element ],
                         resolution = 50,
                         scale_factor = scale_factor_dict[ at.element] )
-
-
 
     def __str__(self):
         """docstring for __str__"""
