@@ -64,22 +64,21 @@ Run:
 ##### Attach some properties to the waters (The rotation of properties will be taken care of )
 
 `#See template.py for all available templates`
+
 `in [8]: c.attach_properties( model = 'tip3p', method = 'HF', basis ='ANOPVDZ' )`
 
 ##### Output the atomic/ molecular/ cluster propertiy via the .Property keyword, or via the quick-wrapper .p (.d for dipole, .a alpha .etc )
 
 `in [9]: print c.p.a`
-[ 15.02184   0.        0.       11.48016   0.       13.72182]
+`[ 15.02184   0.        0.       11.48016   0.       13.72182]`
 
 ##### Calculate each waters properties from ab-initio using DALTON, and put those properties on each atom using LoProp in one step:
 
-`In [10]:for wat in c:
-			 wat.props_from_qm( tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
+`In [10]: c.props_from_qm( tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
 
 ##### If the dalton version is the development master branch, localized hyperpolarizabilities are obtainable:
 
-`In [11]:for wat in c:
-			 wat.props_from_qm( method = 'b3lypqua', tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
+`In [11]: c.props_from_qm( method = 'b3lypqua', tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
 
 ******
 
