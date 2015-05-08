@@ -22,6 +22,8 @@ import os
 
 # -- General configuration ------------------------------------------------
 
+sys.path.insert(0, os.path.abspath('../../src'))
+sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../..'))
 
 # If your documentation needs a minimal Sphinx version, state it here.
