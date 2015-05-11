@@ -1,6 +1,8 @@
-[![Documentation Status](https://readthedocs.org/projects/moltools/badge/?version=latest)](https://readthedocs.org/projects/moltools/?badge=latest)
-..	[![Build Status](https://travis-ci.org/fishstamp82/dalton_tools.svg?branch=master)](https://travis-ci.org/fishstamp82/dalton_tools)
-..	[![Coverage Status](https://img.shields.io/coveralls/fishstamp82/dalton_tools.svg)](https://coveralls.io/r/fishstamp82/dalton_tools?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/moltools/badge/?version=docs)](https://readthedocs.org/projects/moltools/?badge=docs)
+..	comment
+[![Build Status](https://travis-ci.org/fishstamp82/dalton_tools.svg?branch=master)](https://travis-ci.org/fishstamp82/dalton_tools)
+..	comment
+[![Coverage Status](https://img.shields.io/coveralls/fishstamp82/dalton_tools.svg)](https://coveralls.io/r/fishstamp82/dalton_tools?branch=master)
 
 #Welcome to moltools!
 
