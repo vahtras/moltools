@@ -7,7 +7,7 @@ python:
 install:
   pip install coveralls matplotlib numpy cython h5py
 script: 
-  nosetests --cover-erase --with-coverage --cover-package=molecules,dic,read_dal,template,use_calculator,use_generator,ut,xms,graph
+  nosetests --cover-erase --with-coverage --cover-package=molecules,read_dal,template,ut
 
 after_success:
   coveralls
