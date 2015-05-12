@@ -1054,6 +1054,9 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
 
+    @property
+    def com(self):
+        return self.r
     def get_mol_line(self):
         return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( self.label, self.x, self.y, self.z ) 
 
@@ -3629,6 +3632,24 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         for res in self:
             tmp_c.add(res.copy_self())
         return tmp_c
+
+    @classmethod
+    def from_pot_string( cls, pot, in_AA = False, out_AA = False ):
+        c = cls()
+        lines = pot.split('\n' )
+
+        pat_N = re.compile( '@COORDINATES\n\s*(\d+)' )
+        pat_xyz = re.compile(r'^\s*([A-Z])+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
+        for lin in lines:
+            if pat_xyz.match(lin):
+                x, y, z  = map(float, pat_xyz.match(lin).groups()[1:])
+                c.add_atom( Atom( x = x, y = y, z = z, AA = in_AA ) )
+        if in_AA and not out_AA:
+            c.to_AU()
+        elif out_AA and not in_AA:
+            c.to_AA()
+        return c
+
 
     def props_from_qm(self,
             tmpdir = None,

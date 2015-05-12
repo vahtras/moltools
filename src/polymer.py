@@ -421,6 +421,7 @@ class Monomer( pdbreader.Residue ):
     def hide(self, atom):
         self.hidden.append( atom )
         self.remove( atom )
+
     def unhide(self, atom):
         self.append( atom )
         self.hidden.remove( atom )
