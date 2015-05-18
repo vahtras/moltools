@@ -34,6 +34,17 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+
+def convex_hull_volume( pts):
+    from scipy.spatial import Delaunay, ConvexHull
+    def tetrahedron_volume(a, b, c, d):
+        return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
+    ch = ConvexHull(pts)
+    dt = Delaunay(pts[ch.vertices])
+    tets = dt.points[dt.simplices]
+    return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1],
+        tets[:, 2], tets[:, 3]))
+
 def rotate_point_by_two_points(p, p1, p2, theta):
     """Rotate the point p around the line with point at p1 or p2 with 
     direction vector p2-p1"""

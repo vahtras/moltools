@@ -2875,7 +2875,8 @@ class Cluster(list):
 **Molecule container which groups molecules into quantum mechanics, molecular mechanics, and qm/mm regions for easy in generating input files for QM/MM.**
 """
     def __init__(self, *args, **kwargs):
-        """ Typical list of molecules """
+        """ Can be a list of molecules or a list of clusters"""
+
         self._chain_id = "A"
         self.Property = None
         self.atom_list = []
@@ -2896,6 +2897,25 @@ class Cluster(list):
             st += at.pdb_string()
         return st
 
+    @property
+    def density(self):
+        """Return the density in SI units kg/m^3"""
+        N_A = 6.02214129e+23
+
+#g/mol
+        M = sum( [at.mass for mol in self for at in mol] )
+#AU**3 or AA**3
+        v = utilz.convex_hull_volume( np.array([at.r for mol in self for at in mol]))
+        if not self.AA:
+            v /= a0**3
+#g mol**-1 -> g
+        m = M / N_A
+#AA**-3 -> m**-3
+        v *= 1e-30
+#g -> kg
+        m *= 1e-3
+#kg m**-3 = g cm**-3
+        return m/v
 
     def g_list_from_damped(self, 
             max_l = 1,
