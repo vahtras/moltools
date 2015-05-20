@@ -8,6 +8,7 @@ first_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO1.p' )
 second_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO2.p' )
 first_con_file = os.path.join(os.path.dirname(__file__), 'A-PRO1-con.p')
 
+@unittest.skip('Skip due to being too slow')
 class TestConcapsLevel1( unittest.TestCase ):
 
     def setUp(self):

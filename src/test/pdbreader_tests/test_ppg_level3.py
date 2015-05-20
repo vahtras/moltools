@@ -4,6 +4,7 @@ import unittest, os
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 
+@unittest.skip('Skip due to being too slow')
 class TestConcapsLevel1( unittest.TestCase ):
     def setUp(self):
         """ Default arguments used for program 
