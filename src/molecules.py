@@ -1262,6 +1262,7 @@ Plot Atom in a 3D frame
 
     def __sub__(self, other ):
         return self.r - other.r
+
     def __add__(self, other ):
         return self.r + other.r
 
@@ -1318,6 +1319,7 @@ class Molecule( list ):
 """
 
     def __init__(self , *args, **kwargs):
+        super(Molecule,self).__init__()
 #Bond dict defined in angstromg, if molecule is in AU will be different later
         self.bonding_cutoff = { ('H','H') : 0.8,
                 ('H','C') : 1.101,
@@ -1390,6 +1392,24 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+
+# Slicing the molecule givees back a molecule, but only accessing one index gives atom
+    def __add__(self, other):
+        return Molecule(list.__add__(self, other))
+
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i, j))
+                
+    def __getitem__(self, item):
+        if isinstance( item, slice ):
+            result = list.__getitem__(self, item)
+            try:
+                return Molecule(result)
+            except TypeError:
+                return result
+        else:
+            return super(Molecule,self).__getitem__( item )
+                
     #@property
     #def origo_z_x(self):
     #    if self._origo_z_x is None:
@@ -2411,6 +2431,21 @@ class Water( Molecule ):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
         return w
+                
+#Must override the parent Molecule to return proper class type water
+    def __getitem__(self, item):
+        if isinstance( item, slice ):
+            result = list.__getitem__(self, item)
+            try:
+                return Molecule(result)
+            except TypeError:
+                return result
+        else:
+            return super(Molecule,self).__getitem__( item )
+
+
+
+
     @staticmethod
     def get_standard( AA = False,
             model = 'tip3p',
@@ -2892,9 +2927,6 @@ class Cluster(list):
                 for item in args:
                     self.add( item )
 
-    def __add__(self, other):
-        return Cluster(list.__add__(self, other))
-
     def connect_atoms_to_molecules(self):
         for res in [mol for mol in self if isinstance(mol,Molecule) ]:
             for at in res:
@@ -2964,9 +2996,10 @@ class Cluster(list):
         return g
 
 # Slicing the cluster givees back a cluster, but only accessing one index gives molecule
+    def __add__(self, other):
+        return Cluster(list.__add__(self, other))
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
-                
     def __getitem__(self, item):
         if isinstance( item, slice ):
             result = list.__getitem__(self, item)
