@@ -1022,7 +1022,7 @@ AA       True     bool
 
         self._q = None
 
-        self.cluster = None
+        self.Cluster = None
 
         self.number = 0
         self._res_id = 0
@@ -2897,6 +2897,14 @@ class Cluster(list):
                 for item in args:
                     self.add( item )
 
+    def connect_atoms_to_molecules(self):
+        for res in [mol for mol in self if isinstance(mol,Molecule) ]:
+            for at in res:
+                at.Molecule = res
+    def connect_molecules_to_cluster(self):
+        for res in [mol for mol in self if isinstance(mol,Molecule) ]:
+            res.Cluster = self
+
     def get_pdb_string(self):
         st = ""
         for at in [at for mol in self for at in mol]:
@@ -2936,7 +2944,7 @@ class Cluster(list):
 
         g = gaussian.GaussianQuadrupoleList.from_string( self.get_qmmm_pot_string() )
         for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
-            ind = reduce( lambda a, x: a + len(x), res.chain[:res.order_nr],0)+atom.order_nr
+            ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
             g[ ind ]._R_q = rq
             g[ ind ]._R_p = rp
             if nullify:
@@ -3622,19 +3630,19 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             mol.in_qm = in_qm
             mol.in_qmmm = in_qmmm
             super( Cluster, self ).append( mol, *args, **kwargs )
-            mol.cluster = self
+            mol.Cluster = self
         elif type( mol ) == list:
             for each in mol:
                 each.in_mm = in_mm
                 each.in_qm = in_qm
                 each.in_qmmm = in_qmmm
                 super( Cluster, self ).append( each, *args, **kwargs )
-                each.cluster = each
+                each.Cluster = each
 
     def add_atom(self, *at):
         for i, iat in enumerate(at):
             self.append( iat )
-            iat.cluster = self
+            iat.Cluster = self
 
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""

@@ -604,7 +604,7 @@ class Residue( molecules.Molecule ):
 
     def __init__(self, *args, **kwargs):
         super( Residue, self ).__init__( *args, **kwargs )
-        self.chain = None
+        self.Chain = None
         self.c_term = False
         self.n_term = False
         self.concap = False
@@ -630,7 +630,6 @@ class Residue( molecules.Molecule ):
 
                                 #'S' : 'yo'}
         self.color = { "X": 'black' ,"H":'white', "N":'blue',"C":'green',"P":'black', "O":'red', 'S' : 'yellow'}
-
 
     @property
     def N(self):
@@ -662,8 +661,8 @@ class Residue( molecules.Molecule ):
 
     @property
     def order_nr(self):
-        if self.cluster:
-            return self.cluster.index( self )
+        if self.Cluster:
+            return self.Cluster.index( self )
         else:
             return self.res_id
 
@@ -1035,7 +1034,7 @@ class Residue( molecules.Molecule ):
         return False
 
     def __str__(self):
-        base = "-".join( [self.chain.chain_id,self.res_name + str(self.res_id)] )
+        base = "-".join( [self.Chain.chain_id,self.res_name + str(self.res_id)] )
         if self.concap:
             base += '-con'
         return base
@@ -1155,7 +1154,7 @@ class Residue( molecules.Molecule ):
         new._level = self._level
 
 
-        new.chain = self.chain
+        new.Chain = self.Chain
 
         new.in_qm_region = self.in_qm_region
         new.in_mm_region = self.in_mm_region
@@ -1180,7 +1179,7 @@ class Residue( molecules.Molecule ):
         new.Next = self.Next
         new.Prev = self.Prev
         new.Bridge = self.Bridge
-        new.chain = self.chain
+        new.Chain = self.Chain
         return  new
 
 
@@ -1501,7 +1500,7 @@ class System( list ):
 
                 tmp_residue.c_term = True
                 tmp_chain.add_residue ( tmp_residue )
-                tmp_residue.chain = tmp_chain
+                tmp_residue.Chain = tmp_chain
                 tmp_residue = Residue(AA = in_AA)
                 tmp = []
                 firstEntry = True
@@ -1530,7 +1529,7 @@ class System( list ):
 # If tracking arrays last element is not the same as current, means we have new residue
             if tmp[-1] != res_id :
                 tmp_chain.add_residue( tmp_residue )
-                tmp_residue.chain = tmp_chain
+                tmp_residue.Chain = tmp_chain
                 tmp_residue = Residue( AA = in_AA)
                 tmp.append( res_id )
 
