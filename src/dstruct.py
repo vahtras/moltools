@@ -267,13 +267,13 @@ Return the x, y, and z index for cell for this item,
     >>> print c.get_index( a1 )
     (0, 0, 0,)
 """
-        assert self.my_xmin <= item[0] <= self.my_xmax
-        assert self.my_ymin <= item[1] <= self.my_ymax
-        assert self.my_zmin <= item[2] <= self.my_zmax
+        assert self.my_xmin <= item.x <= self.my_xmax
+        assert self.my_ymin <= item.y <= self.my_ymax
+        assert self.my_zmin <= item.z <= self.my_zmax
 
-        tmp_xmin = item[0] - self.my_xmin
-        tmp_ymin = item[1] - self.my_ymin
-        tmp_zmin = item[2] - self.my_zmin
+        tmp_xmin = item.x - self.my_xmin
+        tmp_ymin = item.y - self.my_ymin
+        tmp_zmin = item.z - self.my_zmin
 
         x_ind = int( np.floor( tmp_xmin /  self.my_cutoff))
         y_ind = int( np.floor( tmp_ymin /  self.my_cutoff))

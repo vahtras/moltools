@@ -1147,13 +1147,6 @@ Plot Atom in a 3D frame
         return 1
     def __iter__(self):
         yield self
-    def __getitem__(self, ind):
-        if ind ==0 :
-            return self.x
-        elif ind ==1 :
-            return self.y
-        elif ind ==2 :
-            return self.z
 
     def scale_angle(self, scale = 1.0):
         """scales only angle
@@ -1396,6 +1389,7 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
     #@property
     #def origo_z_x(self):
     #    if self._origo_z_x is None:
@@ -2883,6 +2877,7 @@ class Cluster(list):
     def __init__(self, *args, **kwargs):
         """ Can be a list of molecules or a list of clusters"""
 
+        super(Cluster, self).__init__()
         self._chain_id = "A"
         self.Property = None
         self.atom_list = []
@@ -2896,6 +2891,9 @@ class Cluster(list):
             else:
                 for item in args:
                     self.add( item )
+
+    def __add__(self, other):
+        return Cluster(list.__add__(self, other))
 
     def connect_atoms_to_molecules(self):
         for res in [mol for mol in self if isinstance(mol,Molecule) ]:
@@ -2935,14 +2933,24 @@ class Cluster(list):
             max_l = 1,
             pol = 22,
             hyp = 1,
-            rq = 1e-9, rp = 1e-9, AA_cutoff = 1.5,
-            nullify = False):
+            rq = 1e-9,
+            rp = 1e-9,
+            AA_cutoff = 1.5,
+            nullify = False,
+            model = 'Thole'
+            ):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
+        from pd.gaussian import GaussianQuadrupoleList
+        from pd.thole import TholeList
 
-        g = gaussian.GaussianQuadrupoleList.from_string( self.get_qmmm_pot_string() )
+        opts = { 'Thole' : TholeList, 'Gaussian' :GaussianQuadrupoleList,
+                't' : TholeList, 'g' :GaussianQuadrupoleList,
+                }
+
+        g = opts[model].from_string( self.get_qmmm_pot_string() )
         for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
             ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
             g[ ind ]._R_q = rq
@@ -2954,7 +2962,20 @@ class Cluster(list):
                 g[ ind ]._Q0 = np.zeros( (3,3,) )
                 g[ ind ]._b0 = np.zeros( (3,3,3,) )
         return g
-                    
+
+# Slicing the cluster givees back a cluster, but only accessing one index gives molecule
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i, j))
+                
+    def __getitem__(self, item):
+        if isinstance( item, slice ):
+            result = list.__getitem__(self, item)
+            try:
+                return Cluster(result)
+            except TypeError:
+                return result
+        else:
+            return super(Cluster,self).__getitem__( item )
 
     @property
     def AA(self):
