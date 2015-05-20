@@ -622,4 +622,50 @@ def s2ut( vec ):
     elif vec.shape == (3,3,3,):
         return square_3_ut( vec )
 
+def b_hrs_intensity( b):
+    if b.shape == (10,):
+        b = ut2s(b)
+    elif b.shape != (3,3,3,):
+        print "supplied wrong beta"
+        raise RotatorError
 
+    zzz = rot_avg( b )
+    xzz = rot_avg( b, car1=0 )
+    return np.sqrt( zzz + xzz )
+
+def b_hrs_dep_ratio( b):
+    if b.shape == (10,):
+        b = ut2s(b)
+    elif b.shape != (3,3,3,):
+        print "supplied wrong beta"
+        raise RotatorError
+
+    zzz = rot_avg( b )
+    xzz = rot_avg( b, car1=0 )
+    return zzz/xzz
+
+def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
+    """
+    Requires euler.h5 binary file containing rotational angle products
+    Define it as in current script directory + euler.h5
+    """
+    b_new = np.zeros( (3,3,3,) )
+    """given beta in molecular frame, convert to exp. reference"""
+    vec = h5py.File( os.path.join(os.path.dirname( os.path.realpath( __file__ )), 'euler.h5' ), 'r')['data'].value
+    for X in range(3):
+        if X != car1:
+            continue
+        for Y in range(3):
+            if Y != car2:
+                continue
+            for Z in range(3):
+                if Z != car3:
+                    continue
+                for x1 in range(3):
+                    for y1 in range(3):
+                        for z1 in range(3):
+                            for x2 in range(3):
+                                for y2 in range(3):
+                                    for z2 in range(3):
+                                        b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
+    return b_new[ car1, car2, car3 ]
