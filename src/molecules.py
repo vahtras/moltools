@@ -2237,7 +2237,13 @@ Plot Molecule in a 3D frame
             st += at.pdb_string()
         return st
 
+    def copy_self(self):
+        return self.copy()
+    def copy(self):
+        return copy.deepcopy(self)
+
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
+
         """Write gaussian .inp file for geometry optimization"""
         st = r"%" + "Nprocshared=%d\n" %procs
         st += r"%" + "Mem=20MW\n"
@@ -3650,7 +3656,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
     def copy_cluster(self):
         tmp_c = Cluster()
         for res in self:
-            tmp_c.add(res.copy_self())
+            tmp_c.add( res.copy_self() )
         return tmp_c
 
     @classmethod

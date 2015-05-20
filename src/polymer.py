@@ -1,5 +1,6 @@
 import pdbreader
 import molecules, re, copy
+import copy as copy
 import numpy as np
 import utilz
 
@@ -92,6 +93,9 @@ class Monomer( pdbreader.Residue ):
             st += '-ready'
 
         return st
+
+    def copy_self(self):
+        return copy.deepcopy(self)
 
     def copy_info(self):
         new = Monomer()
