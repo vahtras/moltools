@@ -2982,6 +2982,8 @@ class Cluster(list):
                 't' : TholeList, 'g' :GaussianQuadrupoleList,
                 }
 
+        aa = self.AA
+        self.to_AU()
         g = opts[model].from_string( self.get_qmmm_pot_string() )
         for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
             ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
@@ -2993,6 +2995,8 @@ class Cluster(list):
                 g[ ind ]._a0 = np.zeros( (3,3,) )
                 g[ ind ]._Q0 = np.zeros( (3,3,) )
                 g[ ind ]._b0 = np.zeros( (3,3,3,) )
+        if aa:
+            self.to_AA()
         return g
 
 # Slicing the cluster givees back a cluster, but only accessing one index gives molecule
