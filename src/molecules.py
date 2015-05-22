@@ -1260,14 +1260,8 @@ Plot Atom in a 3D frame
     def __str__(self):
         return "%s %f %f %f" %(self.name, self.x, self.y, self.z)
 
-    def __sub__(self, other ):
-        return self.r - other.r
-
-    def __add__(self, other ):
-        return self.r + other.r
-
-    def get_array(self):
-        return np.array( self.r ).copy()
+    def __add__(self, other):
+        return Molecule( self, other )
 
     def dist_to_atom(self, other):
 
@@ -1319,9 +1313,11 @@ class Molecule( list ):
 """
 
     def __init__(self , *args, **kwargs):
-        super(Molecule,self).__init__()
+        super( Molecule, self).__init__()
 #Bond dict defined in angstromg, if molecule is in AU will be different later
-        self.bonding_cutoff = { ('H','H') : 0.8,
+        self.bonding_cutoff = { 
+                ('X','X') : 1.0,
+                ('H','H') : 0.8,
                 ('H','C') : 1.101,
                 ('H','N') : 1.1,
                 ('H','O') : 1.1,
@@ -1384,18 +1380,30 @@ class Molecule( list ):
 
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
-        if args != []:
-            for at in args:
-                self.add_atom( at )
+
+        if type(args) == tuple:
+            if len(args) == 1:
+                if type(args[0]) == list:
+                    for i in args[0]:
+                        self.add_atom( i )
+                else:
+                    self.add_atom( args[0] )
+            else:
+                for at in args:
+                    self.add_atom( at )
+
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    def t(self, *args):
+        """Wrapper function for self.translate_by_r"""
+        return self.translate_by_r( *args )
 
 # Slicing the molecule givees back a molecule, but only accessing one index gives atom
     def __add__(self, other):
-        return Molecule(list.__add__(self, other))
+        return Molecule( list.__add__( self, other))
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
@@ -2069,7 +2077,13 @@ Center of coordinate
 """
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
-    def translate_by_r( self, r ):
+    def translate_by_r( self, *args ):
+        if type(args[0]) == int:
+            r = np.array( args )
+            assert len(r) == 3 
+        elif type( args[0] ) == list:
+            r = np.array( args[0] )
+            assert len(r) == 3 
         """Will translate all atoms by vector r"""
         for at in self:
             at.x += r[0]
