@@ -1682,7 +1682,9 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         if f_ is None:
             print "Supply .tar.gz file from dalton quadratic .QLOP calculation"
             return
+        import tarfile
 #Using Olavs external scripts
+        tarfile.open( f_, 'r:gz' ).extractall( tmpdir )
         try:
             outpot = MolFrag( tmpdir = tmpdir,
                     max_l = maxl,
@@ -1694,8 +1696,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                             pol = pol,
                             hyper = hyper,
                             decimal = decimal,
-                            #template_full = False,
-                            #decimal = 5,
                             )
         except:
             print tmpdir
@@ -1718,7 +1718,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             pol = 22,
             hyper = 2,
             method = 'hflin',
-            env = os.environ,
             basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-2 5 4 1' ],
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
@@ -1870,6 +1869,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             raise SystemExit
         f_at = lambda x: map(float,x.get_mol_line().split()[1:])
         f_prop = lambda x: map(float,x.split()[1:4])
+        assert len( f_at ) == len( f_prop )
         for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
