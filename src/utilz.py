@@ -627,7 +627,7 @@ def b_hrs_intensity( b):
         b = ut2s(b)
     elif b.shape != (3,3,3,):
         print "supplied wrong beta"
-        raise RotatorError
+        raise SystemExit
 
     zzz = rot_avg( b )
     xzz = rot_avg( b, car1=0 )
@@ -638,7 +638,7 @@ def b_hrs_dep_ratio( b):
         b = ut2s(b)
     elif b.shape != (3,3,3,):
         print "supplied wrong beta"
-        raise RotatorError
+        raise SystemExit
 
     zzz = rot_avg( b )
     xzz = rot_avg( b, car1=0 )
