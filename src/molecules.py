@@ -1538,6 +1538,8 @@ class Molecule( list ):
             st += "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(\
                     i.element, i.x,  i.y , i.z )
         return st
+    def append(self, atom ):
+        super( Molecule, self).append( atom )
 
     def add_atom(self, atom):
         self.append( atom )
