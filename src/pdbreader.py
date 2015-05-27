@@ -2048,7 +2048,9 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
             element = element,
             pdb_name = pdb_name,
             res_id = res_id,
-            chain_id = chain_id ))
+            chain_id = chain_id,
+            AA = in_AA
+            ))
 
         res_ids.append( res_id )
         chain_ids.append( chain_id )
@@ -2060,11 +2062,11 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
     res_ids = utilz.unique( res_ids )
     chain_ids = utilz.unique( chain_ids )
 
-    residues = []
-    for res_id in res_ids:
-        residues.append( NewResidue([a for a in atoms if a.res_id == res_id]) )
+    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
 
-    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)]) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
+    if in_AA and not out_AA:
+        for each in res:
+            each.to_AU()
 
     return res
 
