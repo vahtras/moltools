@@ -1308,6 +1308,7 @@ class Residue( molecules.Molecule ):
 class NewChain( molecules.Cluster):
     """Will behaive like Cluster and rely everything on getters and setters to avoid bugs in overwriting properties"""
     def __init__(self, *args, **kwargs):
+        self._snapshot = None
         super( NewChain, self).__init__( *args, **kwargs )
         
 
@@ -2029,6 +2030,7 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
     atoms = []
     res_ids = []
     chain_ids = []
+    chain_dict = {}
     for i, line in enumerate( text ):
         res_name = text[i][17:21].strip()
         res_id = int( text[i][22:26].strip() )
@@ -2050,6 +2052,11 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
 
         res_ids.append( res_id )
         chain_ids.append( chain_id )
+        if chain_id in chain_dict:
+            chain_dict[chain_id].append( res_id )
+        else:
+            chain_dict[chain_id] = []
+
     res_ids = utilz.unique( res_ids )
     chain_ids = utilz.unique( chain_ids )
 
@@ -2057,7 +2064,7 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
     for res_id in res_ids:
         residues.append( NewResidue([a for a in atoms if a.res_id == res_id]) )
 
-    res = ([ NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)]) for c in chain_ids for r in res_ids])
+    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)]) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
 
     return res
 
