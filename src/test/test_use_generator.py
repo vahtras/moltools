@@ -1,7 +1,8 @@
 import unittest, mock, os
 import numpy as np
 
-from molecules import Generator, Water, Molecule, Methanol
+from molecules import Water, Molecule, Methanol
+from generator import Generator
 
 
 FILE_XYZ =os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), "tmp.xyz" )
