@@ -8,6 +8,25 @@ class RotatorTest( unittest.TestCase ):
     def setUp(self):
         pass
 
+
+    def test_splitter(self):
+        a = ['A', 'B', 'B', 'C', 'C', 'C' ]
+        u = splitter( a )
+        assert len(u) == 3
+        assert len(u[0]) == 1
+        assert len(u[1]) == 2
+        assert len(u[2]) == 3
+
+    def test_unique(self):
+        a = ['A', 'B', 'C', 'C', 'C' ]
+        u = unique( a )
+        assert len( u ) == 3
+
+        a = [ {'A': 1}, {'A' : 1}, {'A' : 44}, {'A' : 'dogg'}, {'A': 5} ]
+        u = unique( a, lambda x: x['A'] )
+        assert len( u ) == 4
+
+
     def test_center_and_xz_1(self):
         p1 = np.array( [5, 5, 5] )
         p2 = np.array( [5, 5, 6] )

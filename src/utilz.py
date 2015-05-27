@@ -198,6 +198,40 @@ def polar_to_cartesian( r, tau, theta):
            , r* np.cos(  theta ) 
     return x , y , z
 
+def splitter(arr, key = lambda x: x):
+    """Given a list of items, return lists of different items based on key
+
+    example simple
+    -------
+    >>> a = ['A', 'B', 'B' ]
+    >>> splitter( a )
+    [['A'], ['B', 'B']]
+
+
+    For more advanced use, use lambdas
+
+    example advanced
+    -------
+    >>> a = [ {'A': 1 }, {'A': 2}, {'A': 5} ]
+    >>> splitter( a, lambda x: x['A'] < 3 )
+    [[{'A': 1}, {'A': 2} ], [{'A': 5}]]
+
+
+    """
+    tmp = []
+    have = []
+    for i in arr:
+        inew = key( i )
+        if inew in have:
+            for each in tmp:
+                if key(each[0]) == inew:
+                    each.append( i )
+        else:
+            have.append( inew )
+            tmp.append( [] )
+            tmp[-1].append( i )
+    return tmp
+
 def unique(arr, key = lambda x: x, get_original = False ):
     tmp = []
     have = []
