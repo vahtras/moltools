@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 from pdbreader import *
-import unittest
+import unittest, pytest
+from nose.tools import timed
+import time
 
 FILE = os.path.join(os.path.dirname(__file__), 'collagen.pdb')
 
-@unittest.skip('Skip due to being too slow')
+#@unittest.skip('Skip due to being too slow')
 class TestConcapsLevel1( unittest.TestCase ):
+
+
     def setUp(self):
         """ Default arguments used for program 
         equivalent of argparser in pdbreader """
@@ -18,7 +22,9 @@ class TestConcapsLevel1( unittest.TestCase ):
                 res.gather_ready( c = True, level = 1 )
                 res.gather_ready( r = True, level = 1 )
 
+    @timed(0.1)
     def test_prolines_concaps_level1( self, ):
+        #time.sleep(2)
         """ At level 1 all concaps have 6 atoms"""
         for chain in self.ch:
             for res in chain:
@@ -27,6 +33,7 @@ class TestConcapsLevel1( unittest.TestCase ):
                         continue
                     assert len( res.con ) == 6
 
+    @timed(0.1)
     def test_concaps_level1( self, ):
         """ At level 1 all concaps have 6 atoms"""
         for chain in self.ch:
@@ -36,6 +43,7 @@ class TestConcapsLevel1( unittest.TestCase ):
                         continue
                     assert len( res.con ) == 6
 
+    @timed(0.1)
     def test_collagen_level_1( self, ):
         """ At level 1, assert how many atoms each concap and ready residue has.
         
