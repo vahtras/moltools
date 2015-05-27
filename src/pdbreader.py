@@ -22,10 +22,10 @@ resDict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
         'GLN':'Q','CYS':'C','CH6': 'X1' ,'GLY':'G','PRO':'P','ARG':'R','HIS':'H',
         'LYS':'K','ASP':'D','GLU':'E','SEC':'U','PYL':'U', 'HIP':'Z',
         'HIE':'H','CYX':'C','HSE':'H','HID':'H','HSD':'H','HSP':'H2',"TIP3": 'T3',
-        'HIP':'H2','HYP':'PX' }
+        'HIP':'H2','HYP':'PX', 'MOL' : 'X', 'SOL' : 'W1' }
 chargeDict = {'ARG':1, "LYS" : 1, "ASP":-1, "GLU":-1,
             'R':1 , 'K':1 ,'H':0, 'H2':1 , 'E':-1 , 'D':-1, 'X2': 1}
-custom_dict = { "CRO2" : "X2" }
+custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
 proline_dict = { "PRO" : "P", "HYP" : "PX" }
 
 color_dict = { "H" : (1, 1, 1),
@@ -525,19 +525,13 @@ class Atom( molecules.Atom ):
 
     def __init__(self, *args, **kwargs):
         super( Atom, self ).__init__( *args, **kwargs )
-        self.x = None
-        self.y = None
-        self.z = None
         self.element = None
         self.pdb_name = None
 
         self._label = None
         self.residue = None
 
-        self._res_id = None
         self._res_name = None
-
-        self.Property = molecules.Property()
 
         self.in_qm_region = False
         self.in_qmmm_border = False
@@ -603,6 +597,7 @@ class Atom( molecules.Atom ):
 class Residue( molecules.Molecule ):
 
     def __init__(self, *args, **kwargs):
+        self.label_dict = {}
         super( Residue, self ).__init__( *args, **kwargs )
         self.Chain = None
         self.c_term = False
@@ -612,7 +607,6 @@ class Residue( molecules.Molecule ):
         self.in_mm_region = True
         self._res_id = None
         self._res_name = None
-        self.label_dict = {}
         self.Prev = None
         self.Next = None
         self.Bridge = None
@@ -1034,7 +1028,7 @@ class Residue( molecules.Molecule ):
         return False
 
     def __str__(self):
-        base = "-".join( [self.Chain.chain_id,self.res_name + str(self.res_id)] )
+        base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
         if self.concap:
             base += '-con'
         return base
@@ -1445,6 +1439,53 @@ class System( list ):
     def __init__(self):
         pdbfile = None
         pass
+
+    @staticmethod
+    def all_chains_from_pdb_file( _file, in_AA = True, out_AA = True ):
+        pass
+
+    @staticmethod
+    def all_chains_from_pdb_string( _string, in_AA = True, out_AA = True ):
+        """Will return all residues in pdbfile, residues in same chain will belong
+        to the same chain type"""
+        pat = re.compile(r'^ATOM|^HETATM')
+        text = [f for f in _string.split('\n') if pat.match(f)]
+
+        atoms = []
+        res_ids = []
+        chain_ids = []
+        for i, line in enumerate( text ):
+            res_name = text[i][17:21].strip()
+            res_id = int( text[i][22:26].strip() )
+            pdb_name = text[i][11:16].strip()
+            element = pdb_name[0]
+            chain_id = text[i][21:22].strip()
+            if chain_id == "":
+                chain_id = "X"
+            x = text[i][30:38].strip()
+            y = text[i][38:46].strip()
+            z = text[i][46:54].strip()
+            x, y, z = map( float, [x, y, z] )
+
+            atoms.append( Atom( x = x, y = y, z = z,
+                element = element,
+                pdb_name = pdb_name,
+                res_id = res_id ))
+
+            res_ids.append( res_id )
+            chain_ids.append( chain_id )
+        res_ids = utilz.unique( res_ids )
+        chain_ids = utilz.unique( chain_ids )
+
+        residues = []
+        for res_id in res_ids:
+            residues.append( Residue([a for a in atoms if a.res_id == res_id]) )
+
+        chains = []
+        for chain_id in chain_ids:
+            chains.append( Chain( [r for r in residues if r.chain_id == chain_id] )
+
+
 
     @staticmethod
     def read_protein_from_file( FILE, in_AA = True ):
