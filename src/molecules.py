@@ -2083,13 +2083,15 @@ Center of coordinate
         return  np.array([at.r for at in self]).sum(axis = 0) / len(self)
 
     def translate_by_r( self, *args ):
+        """Will translate all atoms by vector r"""
         if type(args[0]) == int:
             r = np.array( args )
             assert len(r) == 3 
         elif type( args[0] ) == list:
             r = np.array( args[0] )
             assert len(r) == 3 
-        """Will translate all atoms by vector r"""
+        else:
+            r = args[0]
         for at in self:
             at.x += r[0]
             at.y += r[1]
