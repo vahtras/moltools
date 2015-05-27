@@ -1310,6 +1310,17 @@ class NewChain( molecules.Cluster):
     def __init__(self, *args, **kwargs):
         self._snapshot = None
         super( NewChain, self).__init__( *args, **kwargs )
+
+    @property
+    def chain_id(self):
+        if self._chain_id is not None:
+            return self._chain_id
+        return None
+
+    @chain_id.setter
+    def chain_id(self, val):
+        self._chain_id = val
+
         
 
 class Chain( molecules.Cluster ):
