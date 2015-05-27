@@ -1326,7 +1326,7 @@ class NewChain( molecules.Cluster):
 class Chain( molecules.Cluster ):
     def __init__(self ):
         super( Chain, self).__init__()
-        self.chain_id = None
+        self.chain_id = 'A'
         self.res_count = 0
 
         self.ready_residues = []

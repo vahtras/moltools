@@ -2934,6 +2934,7 @@ class Cluster(list):
         """ Can be a list of molecules or a list of clusters"""
 
         super(Cluster, self).__init__()
+        self._chain_id = None
         self.Property = None
         self.atom_list = []
         if type(args) == tuple:
