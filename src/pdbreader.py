@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle
+import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle, logging
 
 #from mayavi import mlab
 
@@ -520,6 +520,22 @@ class Pattern( dict ):
     def get( self, res_name ="reg", res_type = "res",  what_pos ="t", what_todo = 'add', level = 1 ):
         return self[ (res_name, res_type, what_pos, what_todo,level) ]
 
+class NewAtom( molecules.Atom ):
+    def __init__(self, *args, **kwargs):
+        self._chain_id = None
+        super( NewAtom, self ).__init__( *args, **kwargs )
+
+        if kwargs != {}:
+            setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
+
+    @property
+    def chain_id(self):
+        if self._chain_id:
+            return self._chain_id
+        if self.Molecule:
+            if self.Molecule.Chain:
+                return self.Molecule.Chain.chain_id
+        return None
 
 class Atom( molecules.Atom ):
 
@@ -594,7 +610,37 @@ class Atom( molecules.Atom ):
     def xyz(self):
         return " ".join( [self.element] + map( str, self.r() )  )
 
+class NewResidue( molecules.Molecule ):
+    def __init__(self, *args, **kwargs):
+        self._chain_id = None
+        self._res_id = None
+        self.Chain = None
+        super( NewResidue, self ).__init__( *args, **kwargs )
+    @property
+    def res_id(self):
+        if self._res_id:
+            return self._res_id
+        tmp_id = self[0].res_id
+        for at in self:
+            try:
+                assert tmp_id == at.res_id
+            except AssertionError:
+                logging.error( "No _res_id in NewResidue and not all atoms in same residue")
+        return tmp_id
+    @property
+    def chain_id(self):
+        if self.Chain:
+            return self.Chain.chain_id
+        tmp_ch = self[0].chain_id
+        for at in self:
+            try:
+                assert tmp_ch == at.chain_id
+            except AssertionError:
+                logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
+        return tmp_ch
+
 class Residue( molecules.Molecule ):
+    """Class designed to calculate MFCC procedure for proteins"""
 
     def __init__(self, *args, **kwargs):
         self.label_dict = {}
@@ -1259,6 +1305,12 @@ class Residue( molecules.Molecule ):
                 string += '{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n'.format( *tuple([ k.label, float(k.x), float(k.y), float(k.z) ]) )
         return string.rstrip( '\n' )
 
+class NewChain( molecules.Cluster):
+    """Will behaive like Cluster and rely everything on getters and setters to avoid bugs in overwriting properties"""
+    def __init__(self, *args, **kwargs):
+        super( NewChain, self).__init__( *args, **kwargs )
+        
+
 class Chain( molecules.Cluster ):
     def __init__(self ):
         super( Chain, self).__init__()
@@ -1433,60 +1485,10 @@ class Chain( molecules.Cluster ):
                             tmp_atom.setXyz (C + (H - C) * dist / np.linalg.norm(H - C))
                             tmp_residue.add_atom( tmp_atom )
                 self.ready_bridges.append( tmp_residue )
-
 class System( list ):
-
     def __init__(self):
         pdbfile = None
         pass
-
-    @staticmethod
-    def all_chains_from_pdb_file( _file, in_AA = True, out_AA = True ):
-        pass
-
-    @staticmethod
-    def all_chains_from_pdb_string( _string, in_AA = True, out_AA = True ):
-        """Will return all residues in pdbfile, residues in same chain will belong
-        to the same chain type"""
-        pat = re.compile(r'^ATOM|^HETATM')
-        text = [f for f in _string.split('\n') if pat.match(f)]
-
-        atoms = []
-        res_ids = []
-        chain_ids = []
-        for i, line in enumerate( text ):
-            res_name = text[i][17:21].strip()
-            res_id = int( text[i][22:26].strip() )
-            pdb_name = text[i][11:16].strip()
-            element = pdb_name[0]
-            chain_id = text[i][21:22].strip()
-            if chain_id == "":
-                chain_id = "X"
-            x = text[i][30:38].strip()
-            y = text[i][38:46].strip()
-            z = text[i][46:54].strip()
-            x, y, z = map( float, [x, y, z] )
-
-            atoms.append( Atom( x = x, y = y, z = z,
-                element = element,
-                pdb_name = pdb_name,
-                res_id = res_id ))
-
-            res_ids.append( res_id )
-            chain_ids.append( chain_id )
-        res_ids = utilz.unique( res_ids )
-        chain_ids = utilz.unique( chain_ids )
-
-        residues = []
-        for res_id in res_ids:
-            residues.append( Residue([a for a in atoms if a.res_id == res_id]) )
-
-        chains = []
-        for chain_id in chain_ids:
-            chains.append( Chain( [r for r in residues if r.chain_id == chain_id] )
-
-
-
     @staticmethod
     def read_protein_from_file( FILE, in_AA = True ):
         pat = re.compile(r'^ATOM|^HETATM|^TER|^END')
@@ -2013,6 +2015,53 @@ def main():
     if args.write_xyz:
         for i in args.write_xyz:
             Syst.write_xyz( i )
+
+def all_residues_from_pdb_file( _file ):
+    with open( _file ) as f:
+        return all_residues_from_pdb_string( f.read() )
+
+def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
+    """Will return all residues in pdbfile, residues in same chain will belong
+    to the same chain type"""
+    pat = re.compile(r'^ATOM|^HETATM')
+    text = [f for f in _string.split('\n') if pat.match(f)]
+
+    atoms = []
+    res_ids = []
+    chain_ids = []
+    for i, line in enumerate( text ):
+        res_name = text[i][17:21].strip()
+        res_id = int( text[i][22:26].strip() )
+        pdb_name = text[i][11:16].strip()
+        element = pdb_name[0]
+        chain_id = text[i][21:22].strip()
+        if chain_id == "":
+            chain_id = "X"
+        x = text[i][30:38].strip()
+        y = text[i][38:46].strip()
+        z = text[i][46:54].strip()
+        x, y, z = map( float, [x, y, z] )
+
+        atoms.append( NewAtom( x = x, y = y, z = z,
+            element = element,
+            pdb_name = pdb_name,
+            res_id = res_id,
+            chain_id = chain_id ))
+
+        res_ids.append( res_id )
+        chain_ids.append( chain_id )
+    res_ids = utilz.unique( res_ids )
+    chain_ids = utilz.unique( chain_ids )
+
+    residues = []
+    for res_id in res_ids:
+        residues.append( NewResidue([a for a in atoms if a.res_id == res_id]) )
+
+    res = ([ NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)]) for c in chain_ids for r in res_ids])
+
+    return res
+
+
 
 if __name__ == "__main__":
     main()
