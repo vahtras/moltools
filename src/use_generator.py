@@ -40,7 +40,8 @@ import numpy as np
 import math as m
 
 from template import Template
-from molecules import Generator, Molecule, Water, Methanol, Atom, Property, Cluster
+from molecules import Molecule, Water, Methanol, Atom, Property, Cluster
+from generator import Generator
 
 a0 = 0.52917721092
 if __name__ == '__main__':

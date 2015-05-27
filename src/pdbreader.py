@@ -523,10 +523,20 @@ class Pattern( dict ):
 class NewAtom( molecules.Atom ):
     def __init__(self, *args, **kwargs):
         self._chain_id = None
+        self._name = None
         super( NewAtom, self ).__init__( *args, **kwargs )
 
         if kwargs != {}:
             setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
+
+    @property
+    def name(self):
+        if self._name:
+            return self._name
+        return 'X'
+    @name.setter
+    def name(self,val):
+        self._name = val
 
     @property
     def chain_id(self):
