@@ -2120,6 +2120,22 @@ Angstrom [ out_AA = True ]
                 at.to_AA()
             self.AA = True
 
+    def get_atom_by_pdbname(self, label, dup = False):
+        at = []
+        for i in self:
+            if i.pdb_name == label:
+                at.append(i)
+        if len(at) > 1 and not dup:
+            print "Warning: Duplicate with pdb name %s, returning %s" %(label, at[0].label )
+            return at[0]
+        elif len(at) > 1 and dup:
+            return at
+
+        elif len(at) == 0:
+            print "No %s in %s" %(label, self)
+            return
+        return at[0]
+
 class Water( Molecule ):
     """
 **Derives all general methods from Molecule.**
