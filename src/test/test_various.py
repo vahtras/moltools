@@ -42,7 +42,7 @@ class WaterTest( unittest.TestCase ):
 
 # Read in distributed properties, transform to atomic sites from waters euler angles
         for wat in c:
-            t1, t2, t3  = wat.get_euler()
+            t3, t2, t1  = wat.get_euler()
             kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
                 True , "0.0" ))
             for at in wat:
