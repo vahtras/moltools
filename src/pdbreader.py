@@ -626,6 +626,7 @@ class NewResidue( molecules.Molecule ):
         self._res_id = None
         self.Chain = None
         super( NewResidue, self ).__init__( *args, **kwargs )
+
     @property
     def res_id(self):
         if self._res_id:
@@ -637,6 +638,13 @@ class NewResidue( molecules.Molecule ):
             except AssertionError:
                 logging.error( "No _res_id in NewResidue and not all atoms in same residue")
         return tmp_id
+
+    @res_id.setter
+    def res_id(self, val):
+        self._res_id = val
+
+
+
     @property
     def chain_id(self):
         if self.Chain:
