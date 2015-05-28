@@ -90,16 +90,12 @@ class Cell( np.ndarray ):
               )
         for at in cluster.atoms:
             cell.add(at)
-
         return cell
-
-
 
     @staticmethod
     def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
 
         ats = []
-
         if not in_AA:
             co /= a0
 
@@ -240,7 +236,6 @@ to iterate not over whole cell box but closest
                 cell.add_cluster( item )
         return cell
 
-
     def plot(self):
         """
 Plot all Atoms in the cell
@@ -265,6 +260,13 @@ Plot all Atoms in the cell
         plt.xlim(-5,5)
         plt.ylim(-5,5)
         plt.show()
+
+    @property
+    def atoms(self):
+        ats = []
+        for i in self:
+            ats.append(i)
+        return ats
 
     def get_index( self, item ):
         """
