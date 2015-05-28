@@ -18,6 +18,7 @@ import read_dal
 from pd import gaussian
 
 import utilz
+from generator import Generator
 
 import h5py
 from loprop.loprop import *
@@ -1313,11 +1314,12 @@ class Molecule( list ):
             basis = "ANOPVDZ",
             loprop = True,
             freq = "0.0",
-            key = lambda x: x.pdb_name):
+            key = lambda x: x.pdb_name,
+            force = False):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
-        if isinstance(self, Water):
+        if isinstance(self, Water) and not force:
             key = lambda x: x.element + str(x.order)
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
@@ -1338,6 +1340,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     def get_euler(self):
         """Will be overwritten by specific molecule classes"""
         return np.zeros(3)
+
     def props_from_targz(self,
             f_ = None,
             tmpdir = None,
@@ -2024,6 +2027,39 @@ Read in molecule given .mol file and unit specification.
         return tmp_molecule
 
 
+    @staticmethod
+    def from_xyz_string( _string, in_AA = True, out_AA = True ):
+        m = Molecule( AA = in_AA )
+        for ind, i in enumerate( _string.split('\n') ):
+            if ind in [0, 1]: 
+                continue
+
+            label = i.split()[0]
+            if len(label) == 1:
+                elem = label
+            else:
+                elem = label[0]
+            x = i.split()[1]
+            y = i.split()[2]
+            z = i.split()[3]
+            at = Atom( **{"element":elem,
+                "x" : x,
+                "y" : y,
+                "z" : z,
+                "AA" : in_AA,
+#Order later used to read in templates
+                "order" : ind - 1,
+                'name' : elem + str(ind-1)
+                })
+            m.append( at )
+            at.Molecule = m
+
+        if in_AA:
+            if not out_AA:
+                m.to_AU()
+        return m
+
+
 
     @staticmethod
     def from_xyz( f, in_AA = True, out_AA = True ):
@@ -2160,9 +2196,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         d = (90 - a_hoh/2 ) * np.pi / 180
         origin = np.array( [ 0, 0, 0] )
 
-        h1 = Atom( **{ "AA" : AA, "element" : "H"} )
-        h2 = Atom( **{ "AA" : AA, "element" : "H"} )
-        o =  Atom( **{ "AA" : AA, "element" : "O"} )
+        h1 = Atom( AA = AA, element = "H" )
+        h2 = Atom( AA = AA, element = "H" )
+        o =  Atom( AA = AA, element = "O" )
 
         o.x = center[0]
         o.y = center[1]
@@ -2245,7 +2281,7 @@ Override list append method, will add up to 3 atoms,
             atom.Molecule = self
             atom.name = "O1"
 #Add the atom
-        super( Water , self).append(atom)
+        super( Water, self).append(atom)
 
 #Define water center, by default set it to center of nuclei
         if (self.h1 and self.h2 and self.o):
@@ -2346,7 +2382,7 @@ The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\r
             if abs(a-b) < thr:return True
             else: return False
 
-        return theta3, theta2, theta1
+        return theta1, theta2, theta3
 
     def get_xyz_string(self, ):
         st = "%d\n\n" % len(self)
@@ -3357,7 +3393,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 Property.add_prop_from_template( at, templ )
             t1, t2, t3 = mol.get_euler()
             for at in mol:
-                at.Property.transform_ut_properties( t1, t2, t3 )
+                at.Property.transform_ut_properties( t3, t2, t1 )
             if loprop:
                 mol.LoProp = True
             else:
