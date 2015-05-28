@@ -916,9 +916,11 @@ Plot Atom in a 3D frame
 
     @property
     def res_id(self):
+        if self._res_id:
+            return self._res_id
         if self.Molecule:
             return self.Molecule.res_id
-        return self._res_id
+        return 0
 
     def potline(self, max_l=2, pol=22, hyper=1):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
@@ -926,7 +928,7 @@ Plot Atom in a 3D frame
 
 #Atom string method
     def __str__(self):
-        return "%s %f %f %f" %(self.name, self.x, self.y, self.z)
+        return "%s %f %f %f" %(self.label, self.x, self.y, self.z)
 
     def __add__(self, other):
         return Molecule( self, other )
@@ -1290,8 +1292,8 @@ class Molecule( list ):
 
     @property
     def label(self):
-        if self._label is None:
-            self._label = self.element
+        if self._label is not None:
+            return self._label
         return self.element + self.order
  
     def save(self, fname = "molecule.p"):
@@ -1314,18 +1316,20 @@ class Molecule( list ):
             basis = "ANOPVDZ",
             loprop = True,
             freq = "0.0",
-            key = lambda x: x.pdb_name,
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
             force = False):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
         if isinstance(self, Water) and not force:
-            key = lambda x: x.element + str(x.order)
+            euler_key = lambda x: (x.o.r, x.h1.r, x.h2.r)
+            template_key = lambda x: x.element + str(x.order)
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for at in self:
-            at.p = Property.from_template( key(at), templ )
-        t1, t2, t3 = self.get_euler()
+            at.p = Property.from_template( template_key(at), templ )
+        t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
             at.p.transform_ut_properties( t1, t2, t3 )
         if loprop:
@@ -1337,9 +1341,29 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
 
-    def get_euler(self):
-        """Will be overwritten by specific molecule classes"""
-        return np.zeros(3)
+    def get_euler(self, key = lambda x: (x[0].r, x[1].r, x[2].r)):
+        """Takes a function as an argument.
+
+        By default, the defauling function picks the point of the first 3 atoms in the Molecule.
+
+        If the euler angles are sought after for specific atomic types, supply:
+
+        get_euler( key = lambda x: (x.N.r, x.C.r, x.CA.r)
+
+        where .N, .C, and .CA are wrapper functions for retrieving atoms with pdb_name of respective atom
+
+        For more verbosity:
+        get_euler( key = lambda x: (x.get_atom_by_pdbname('N').r,
+             x.get_atom_by_pdbname('C').r,
+             x.get_atom_by_pdbname('CA').r)
+        
+        """
+        try:
+            p1, p2, p3 = key( self )
+        except IndexError:
+            logging.error('Tried to get euler on Molecule with too few atoms')
+        t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+        return r1, r2, r3
 
     def props_from_targz(self,
             f_ = None,
@@ -2335,7 +2359,7 @@ Override list append method, will add up to 3 atoms,
     def dist_to_water(self, other):
         return np.sqrt(np.sum((self.coo - other.coo)**2) )
 
-    def get_euler(self):
+    def get_euler(self, key = lambda x: (x[0].r, x[1].r, x[2].r)):
         """
 Returns the 3 euler angles required to rotate the water to given coordinate system.
 The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\rho_3`.
@@ -2667,10 +2691,19 @@ class Cluster(list):
                 for item in args:
                     self.add( item )
 
+    def connect_everything(self):
+        self.connect_atoms_to_cluster()
+        self.connect_atoms_to_molecules()
+        self.connect_molecules_to_cluster()
+
     def connect_atoms_to_molecules(self):
         for res in [mol for mol in self if isinstance(mol,Molecule) ]:
             for at in res:
                 at.Molecule = res
+    def connect_atoms_to_cluster(self):
+        for res in [mol for mol in self if isinstance(mol,Molecule) ]:
+            for at in res:
+                at.Cluster = res
     def connect_molecules_to_cluster(self):
         for res in [mol for mol in self if isinstance(mol,Molecule) ]:
             res.Cluster = self
@@ -2926,7 +2959,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, copy = False, center = False ):
+    def plot(self, copy = True, center = False ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -2943,10 +2976,12 @@ Plot Cluster a 3D frame in the cluster
 #Make a copy in order to not change original, and perform plot on it
         if copy:
             copy = copymod.deepcopy( self )
+            copy.connect_everything()
         else:
             copy = self
+            copy.connect_everything()
         if center:
-            copy.translate([0,0,0])
+            copy.translate( -self.com )
 
         for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
             mol.populate_bonds()
