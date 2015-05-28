@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil, logging, string, types
+import re, os, itertools, warnings, subprocess, shutil, logging, string
 import cPickle as pickle
 
 from template import Template
@@ -653,8 +653,6 @@ AA       True     bool
         self.dihedral = {}
 
         self._q = None
-
-        self._get_euler = None
 
         self.Cluster = None
 
@@ -1302,18 +1300,9 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
 
-    @property
     def get_euler(self):
         """Will be overwritten by specific molecule classes"""
-        if not self._get_euler:
-            if not isinstance(self._get_euler, types.FunctionType ):
-                logger.error( 'Tried to run run get_euler with not well defined funct' )
-            return self._get_euler
         return np.zeros(3)
-    @get_euler.setter
-    def get_euler(self, func):
-        self._get_euler = func
-
     def props_from_targz(self,
             f_ = None,
             tmpdir = None,
