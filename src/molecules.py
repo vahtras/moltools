@@ -632,13 +632,14 @@ AA       True     bool
 
         """
 #Element one-key char
-        self.element = "X"
+        self._element = "X"
 
 #Order in xyz files
         self._order = None
 
 #Name is custom name, for water use O1, H2 (positive x ax), H3
-        self.name = None
+        self._name = None
+
 #Label is custom name, for water use O1, H2 (positive x ax), H3
         self._label = None
 
@@ -654,18 +655,22 @@ AA       True     bool
 
         self._q = None
 
-        self.Cluster = None
 
-        self.number = 0
+        self._number = None
         self._res_id = 0
         self._atom_id = None
 
         self.in_water = False
-        self.Molecule = Molecule()
 
+#Connectivity
+        self.Molecule = False
+        self.Cluster = None
+
+#QM border settings
         self._in_qm = False
         self._in_mm = False
         self._in_qmmm = False
+
 #Property set to true if atoms have properties
         self.Property = Property()
         self.AA = True
@@ -676,7 +681,6 @@ AA       True     bool
             self.y = float( kwargs.get( "y", 0.0 ))
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
-            self.name = kwargs.get( "name", "1-XXX-X1" )
             self.number = kwargs.get( "number", 0 )
             self.pdb_name = kwargs.get( "pdb_name", 'X1' )
             self.order = kwargs.get( "order", 0 )
@@ -685,6 +689,43 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+# property setters and getters
+    @property
+    def element(self):
+        if self._element:
+            return self._element
+    @element.setter
+    def element(self, val):
+        self._element = val
+    @property
+    def name(self):
+        if self._name:
+            return self._name
+        if self._element and self._order:
+            return self._element + str(self._order)
+        return 'X'
+    @name.setter
+    def name(self,val):
+        self._name = val
+    @property
+    def label(self):
+        if self._label is not None:
+            return self._label
+        self._label = self.element
+        return self._label
+    @label.setter
+    def label(self, val):
+        self._label = val
+
+    @property
+    def order(self):
+        if self._order:
+            return self._order
+        return 0
+    @order.setter
+    def order(self, val):
+        self._order = val
 
     @property
     def com(self):
@@ -726,12 +767,6 @@ AA       True     bool
         self._atom_id = self.Molecule.index( self )
         return self._atom_id
 
-    @property
-    def label(self):
-        if self._label is not None:
-            return self._label
-        self._label = self.element
-        return self._label
     @property
     def p(self):
         """Wrapper to access class Property object attached to the atom"""

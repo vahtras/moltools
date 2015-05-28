@@ -528,15 +528,15 @@ class NewAtom( molecules.Atom ):
 
         if kwargs != {}:
             setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
-
     @property
-    def name(self):
-        if self._name:
-            return self._name
-        return 'X'
-    @name.setter
-    def name(self,val):
-        self._name = val
+    def order(self):
+        if self._order:
+            return self._order
+        return 0
+    @order.setter
+    def order(self,val):
+        self._order = val
+
 
     @property
     def chain_id(self):

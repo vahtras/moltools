@@ -123,12 +123,20 @@ class Cell( np.ndarray ):
             cell.add(at)
 
         for at in cell:
-            if len(at.Molecule) == 0:
-                at.Molecule.append( at )
+            if at.Molecule:
+                if len(at.Molecule) == 0:
+                    at.Molecule.append( at )
             cell.build_molecules( current = at, closeby = cell.get_closest(at) )
         return cell
 
     def build_molecules(self, current = None, visited = [],
+            closeby = [], max_dist = 1.46, AA = False):
+
+        for at in self:
+            at.Molecule = molecules.Molecule()
+        self.actually_build_molecules( current = at, visited = visited, closeby = [] )
+    
+    def actually_build_molecules(self, current = None, visited = [],
             closeby = [], max_dist = 1.46, AA = False):
         """Recursively builds molecules from .xyz file format"""
         visited.append( current )
@@ -148,7 +156,7 @@ class Cell( np.ndarray ):
             current.Molecule.append( at )
             at.Molecule = current.Molecule
             close = [a for a in self.get_closest( at ) if a not in visited ]
-            self.build_molecules( current = at, closeby = close, visited = visited )
+            self.actually_build_molecules( current = at, closeby = close, visited = visited )
  
     def add_atom( self, atom ):
         assert isinstance( atom, molecules.Atom )
@@ -224,11 +232,11 @@ to iterate not over whole cell box but closest
               AA = self.AA,
               )
         for item in ats:
-            if type(item) == molecules.Atom:
+            if isinstance( item, molecules.Atom):
                 cell.add_atom( item )
-            if type(item) == molecules.Molecule:
+            if isinstance( item, molecules.Molecule):
                 cell.add_molecule( item )
-            if type(item) == molecules.Cluster:
+            if isinstance( item, molecules.Cluster):
                 cell.add_cluster( item )
         return cell
 
