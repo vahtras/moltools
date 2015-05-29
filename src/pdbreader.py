@@ -40,6 +40,96 @@ mass_dict = { "H" : 1.0 , "C" : 12.0 , "N" : 14.0 , "O" : 16.0 , "S" : 32.0 }
 
 pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
 
+
+
+def all_residues_from_pdb_file( _file, meta = False ):
+    with open( _file ) as f:
+        return all_residues_from_pdb_string( f.read(),
+                in_AA = in_AA,
+                out_AA = out_AA,
+                meta = meta )
+
+def all_residues_from_pdb_string( _string,
+        in_AA = True,
+        out_AA = True,
+        meta = False ):
+    """Will return all residues in pdbfile, residues in same chain will belong
+    to the same chain type"""
+    pat = re.compile(r'^ATOM|^HETATM')
+    pat_meta = re.compile(r'^TITLE|^REMARK|^CRYST1|^MODEL')
+    text = [f for f in _string.split('\n') if pat.match(f)]
+    meta_text = [f for f in _string.split('\n') if pat_meta.match(f)]
+
+    atoms = []
+    res_ids = []
+    chain_ids = []
+    chain_dict = {}
+    for i, line in enumerate( text ):
+        res_name = text[i][17:21].strip()
+        res_id = int( text[i][22:26].strip() )
+        pdb_name = text[i][11:16].strip()
+        element = pdb_name[0]
+        chain_id = text[i][21:22].strip()
+        if chain_id == "":
+            chain_id = "X"
+        x = text[i][30:38].strip()
+        y = text[i][38:46].strip()
+        z = text[i][46:54].strip()
+        x, y, z = map( float, [x, y, z] )
+
+        atoms.append( NewAtom( x = x, y = y, z = z,
+            element = element,
+            pdb_name = pdb_name,
+            res_id = res_id,
+            chain_id = chain_id,
+            AA = in_AA,
+            res_name = res_name,
+            ))
+
+        res_ids.append( res_id )
+        chain_ids.append( chain_id )
+        if chain_id in chain_dict:
+            chain_dict[chain_id].append( res_id )
+        else:
+            chain_dict[chain_id] = []
+
+    res_ids = utilz.unique( res_ids )
+    chain_ids = utilz.unique( chain_ids )
+
+    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
+
+    for each in res:
+        each.res_id = each[0].res_id
+        each.res_name = each[0].res_name
+    
+
+    if in_AA and not out_AA:
+        for each in res:
+            each.to_AU()
+
+    if meta:
+        return res, meta_text
+    return res
+#
+def uniq( inp ):
+    output = []
+    rest = []
+    for x in inp:
+        if x not in output:
+            output.append(x)
+        else:
+            rest.append(x)
+    return output
+
+def almost_eq( a, b, thr = 1.0e-4 ):
+    if abs( a - b ) < thr:
+        return True
+    return False
+
+
+
+
+
 def get_rep_2( con_list, rep_list, pat_rep, pat_con ):
     tmp_atomlist = []
     for at in rep_list:
@@ -2006,23 +2096,49 @@ class System( list ):
             f_.write("%d\n\n" %len(atoms))
             [f_.write( at + "\n" ) for at in atoms ]
 
-#
-def uniq( inp ):
-    output = []
-    rest = []
-    for x in inp:
-        if x not in output:
-            output.append(x)
-        else:
-            rest.append(x)
-    return output
+class NewSystem( list ):
+    """Can hold instances of Clusters, Molecules, Atoms in it
+    used to separate trajectory configurations between different snapshots"""
+    def __init__(self, *args, **kwargs):
+        super(NewSystem, self).__init__()
+        self._snapshot = None
 
-def almost_eq( a, b, thr = 1.0e-4 ):
-    if abs( a - b ) < thr:
-        return True
-    return False
+        if args is not None:
+            if type( args == list ):
+                for each in args[0]:
+                    self.add( each )
+            for each in args:
+                self.add( each )
 
+    def add(self, item):
+        if isinstance( item, molecules.Cluster):
+            self.append( item )
 
+    @classmethod
+    def from_pdb_string( cls, _string ):
+        """Assuming the string is a pdb format, read in all chains and stuff"""
+        res, meta = all_residues_from_pdb_string( _string, meta = True )
+        chains = [ NewChain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
+        for ch in chains:
+            ch.connect_everything()
+        for chain in chains:
+            for res in chain:
+                chain.chain_id = res.chain_id
+        system = cls( *chains )
+        system.meta = meta
+        return system
+        
+class World( list ):
+    """Can hold instances of Systems, Clusters, Molecules, Atoms in it"""
+    def __init__(self, *args, **kwargs):
+        super(World, self).__init__()
+        self._project = None
+
+        if args is not none:
+            for each in args:
+                if isinstance( each, NewSystem):
+                    self.append( each )
+        
 def main():
 
     """
@@ -2082,64 +2198,6 @@ def main():
         for i in args.write_xyz:
             Syst.write_xyz( i )
 
-def all_residues_from_pdb_file( _file ):
-    with open( _file ) as f:
-        return all_residues_from_pdb_string( f.read() )
-
-def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
-    """Will return all residues in pdbfile, residues in same chain will belong
-    to the same chain type"""
-    pat = re.compile(r'^ATOM|^HETATM')
-    text = [f for f in _string.split('\n') if pat.match(f)]
-
-    atoms = []
-    res_ids = []
-    chain_ids = []
-    chain_dict = {}
-    for i, line in enumerate( text ):
-        res_name = text[i][17:21].strip()
-        res_id = int( text[i][22:26].strip() )
-        pdb_name = text[i][11:16].strip()
-        element = pdb_name[0]
-        chain_id = text[i][21:22].strip()
-        if chain_id == "":
-            chain_id = "X"
-        x = text[i][30:38].strip()
-        y = text[i][38:46].strip()
-        z = text[i][46:54].strip()
-        x, y, z = map( float, [x, y, z] )
-
-        atoms.append( NewAtom( x = x, y = y, z = z,
-            element = element,
-            pdb_name = pdb_name,
-            res_id = res_id,
-            chain_id = chain_id,
-            AA = in_AA,
-            res_name = res_name,
-            ))
-
-        res_ids.append( res_id )
-        chain_ids.append( chain_id )
-        if chain_id in chain_dict:
-            chain_dict[chain_id].append( res_id )
-        else:
-            chain_dict[chain_id] = []
-
-    res_ids = utilz.unique( res_ids )
-    chain_ids = utilz.unique( chain_ids )
-
-    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
-
-    for each in res:
-        each.res_id = each[0].res_id
-        each.res_name = each[0].res_name
-    
-
-    if in_AA and not out_AA:
-        for each in res:
-            each.to_AU()
-
-    return res
 
 
 

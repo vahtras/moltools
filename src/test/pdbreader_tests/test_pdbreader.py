@@ -1217,6 +1217,7 @@ class SystemTestCase( unittest.TestCase ):
         assert res[15].chain_id == "A"
         assert res[29].chain_id == "B"
         assert res[-1].chain_id == "C"
+
     def test_all_residues_from_pdb_string_new_1000( self ):
         res = all_residues_from_pdb_string( _string_new_1000 )
         assert len( res ) == 6
@@ -1224,6 +1225,10 @@ class SystemTestCase( unittest.TestCase ):
         assert res[-1].res_name == "SOL"
         assert res[0].res_id == 1
         assert res[-1].res_id == 6
+
+    def test_meta( self ):
+        res, meta = all_residues_from_pdb_string( _string_new_1000, meta = True )
+        assert len(meta ) == 5
 
 if __name__ == '__main__':
     unittest.main(  )

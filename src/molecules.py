@@ -2701,9 +2701,11 @@ class Cluster(list):
             for at in res:
                 at.Molecule = res
     def connect_atoms_to_cluster(self):
-        for res in [mol for mol in self if isinstance(mol,Molecule) ]:
-            for at in res:
-                at.Cluster = res
+        for cluster in self:
+            for res in [res for res in cluster if isinstance(res, Molecule)]:
+                for at in res:
+                    at.Cluster = cluster
+
     def connect_molecules_to_cluster(self):
         for res in [mol for mol in self if isinstance(mol,Molecule) ]:
             res.Cluster = self
@@ -3625,22 +3627,6 @@ Translate everythin in cluster by r
             at.y = r[1] + at.y 
             at.z = r[2] + at.z 
 
-if __name__ == '__main__':
-    from use_generator import *
-    from gaussian import *
-    m1 = Generator().get_mol(model = 'spc' )
-    m2 = Generator().get_mol( center = [0,0, 10 ], model = 'spc' )
-    m2.res_id = 2
-    c = Cluster()
-    c.add_mol(m1)
-    c.add_mol(m2)
-    
-    t = Template().get( model = 'SPC' )
-#    for m in [m1, m2]:
-#        for at in m:
-#            Property.add_prop_from_template( at, t )
-    c.update_water_props( model = 'SPC', dist = True )
-    g = GaussianQuadrupoleList.from_string( c.get_qmmm_pot_string( ignore_qmmm = True ) )
-    g.solve_scf()
-    print g.beta()
 
+if __name__ == '__main__':
+    print "no main method for module implemented"
