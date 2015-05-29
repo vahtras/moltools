@@ -42,7 +42,10 @@ pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) 
 
 
 
-def all_residues_from_pdb_file( _file, meta = False ):
+def all_residues_from_pdb_file( _file,
+        in_AA = True,
+        out_AA = True,
+        meta = False ):
     with open( _file ) as f:
         return all_residues_from_pdb_string( f.read(),
                 in_AA = in_AA,
@@ -2115,9 +2118,9 @@ class NewSystem( list ):
             self.append( item )
 
     @classmethod
-    def from_pdb_string( cls, _string ):
+    def from_pdb_string( cls, _string, meta = False ):
         """Assuming the string is a pdb format, read in all chains and stuff"""
-        res, meta = all_residues_from_pdb_string( _string, meta = True )
+        res, meta = all_residues_from_pdb_string( _string, meta = meta )
         chains = [ NewChain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
         for ch in chains:
             ch.connect_everything()
@@ -2134,11 +2137,30 @@ class World( list ):
         super(World, self).__init__()
         self._project = None
 
-        if args is not none:
+        if args is not None:
             for each in args:
                 if isinstance( each, NewSystem):
                     self.append( each )
         
+    def add(self, item):
+        if isinstance(item, molecules.Cluster ):
+            self.append( item )
+ 
+    def save(self, fname = "world.p"):
+        pickle.dump( self, open(fname, 'wb' ), protocol = 2 )
+
+    @staticmethod
+    def load(fname = 'world.p'):
+        if not os.path.isfile( fname ):
+            raise IOError
+        pick = pickle.load( open(fname, 'rb' ) )
+        if not isinstance( pick, World ):
+            raise TypeError("Wrong pickled class")
+        return pick
+    
+
+
+
 def main():
 
     """
