@@ -625,6 +625,7 @@ class NewResidue( molecules.Molecule ):
         self._chain_id = None
         self._snapshot = None
         self._res_id = None
+        self._Chain = None
         self._Cluster = None
         super( NewResidue, self ).__init__( *args, **kwargs )
 
