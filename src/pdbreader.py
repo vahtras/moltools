@@ -524,10 +524,22 @@ class NewAtom( molecules.Atom ):
     def __init__(self, *args, **kwargs):
         self._chain_id = None
         self._name = None
+        self._res_name = None
         super( NewAtom, self ).__init__( *args, **kwargs )
 
         if kwargs != {}:
             setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
+            setattr( self, "_res_name",  kwargs.get( "res_name", None ) )
+
+    @property
+    def res_name(self):
+        if self._res_name:
+            return self._res_name
+        return "XXX"
+    @res_name.setter
+    def order(self,val):
+        self._res_name = val
+
     @property
     def order(self):
         if self._order:
@@ -536,7 +548,6 @@ class NewAtom( molecules.Atom ):
     @order.setter
     def order(self,val):
         self._order = val
-
 
     @property
     def chain_id(self):
@@ -625,6 +636,7 @@ class NewResidue( molecules.Molecule ):
         self._chain_id = None
         self._snapshot = None
         self._res_id = None
+        self._res_name = None
         self._Chain = None
         self._Cluster = None
         super( NewResidue, self ).__init__( *args, **kwargs )
@@ -662,6 +674,17 @@ class NewResidue( molecules.Molecule ):
     @res_id.setter
     def res_id(self, val):
         self._res_id = val
+
+    @property
+    def res_name(self):
+        if self._res_name:
+            return self._res_name
+        return "YYY"
+    @res_name.setter
+    def res_name(self, val):
+        self._res_name = val
+
+
 
 
 
@@ -2091,7 +2114,8 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
             pdb_name = pdb_name,
             res_id = res_id,
             chain_id = chain_id,
-            AA = in_AA
+            AA = in_AA,
+            res_name = res_name,
             ))
 
         res_ids.append( res_id )
@@ -2105,6 +2129,11 @@ def all_residues_from_pdb_string( _string, in_AA = True, out_AA = True ):
     chain_ids = utilz.unique( chain_ids )
 
     res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
+
+    for each in res:
+        each.res_id = each[0].res_id
+        each.res_name = each[0].res_name
+    
 
     if in_AA and not out_AA:
         for each in res:
