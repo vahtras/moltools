@@ -35,6 +35,15 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
 allowed_elements = ( 'H', 'O' )
 
 
+def make_para( shape = ( 0,) ):                                                      
+    """Returns a np array that can be used for writing between different processes"""
+    arr = np.zeros( shape )                                                          
+    sb = multiprocessing.Array( ctypes.c_double, reduce(lambda a,b:a*b, arr.shape) )              
+    sb = np.ctypeslib.as_array( sb.get_obj())                                        
+    sb[:] = None                                                                     
+    return sb.reshape( shape )  
+
+
 def convex_hull_volume( pts):
     from scipy.spatial import Delaunay, ConvexHull
     def tetrahedron_volume(a, b, c, d):

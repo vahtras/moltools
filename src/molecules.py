@@ -4,23 +4,23 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
+import re, os, itertools, warnings, subprocess, shutil, logging, string
+import h5py
+
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
-
 import numpy as np
-import re, os, itertools, warnings, subprocess, shutil, logging, string
 import cPickle as pickle
-
-from template import Template
 import copy as copymod
 
-import read_dal
-from pd import gaussian
 
+import read_dal
 import utilz
+
+from pd import gaussian
+from template import Template
 from generator import Generator
 
-import h5py
 from loprop.loprop import *
 
 a0 = 0.52917721092
