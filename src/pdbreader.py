@@ -623,9 +623,23 @@ class Atom( molecules.Atom ):
 class NewResidue( molecules.Molecule ):
     def __init__(self, *args, **kwargs):
         self._chain_id = None
+        self._snapshot = None
         self._res_id = None
-        self.Chain = None
+        self._Chain = None
         super( NewResidue, self ).__init__( *args, **kwargs )
+
+    @property
+    def snapshot(self):
+        if self._snapshot:
+            return self._snapshot
+        if self.Chain:
+            return self.Chain.snapshot
+
+    @property
+    def Chain(self):
+        if self._Chain:
+            return self._Chain
+        return None
 
     @property
     def res_id(self):
@@ -1311,6 +1325,16 @@ class NewChain( molecules.Cluster):
     def __init__(self, *args, **kwargs):
         self._snapshot = None
         super( NewChain, self).__init__( *args, **kwargs )
+
+    @property
+    def snapshot(self):
+        if self._snapshot is not None:
+            return self._snapshot
+        return None
+
+    @property.setter
+    def snapshot(self, val):
+        self._snapshot = val
 
     @property
     def chain_id(self):
