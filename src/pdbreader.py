@@ -625,7 +625,7 @@ class NewResidue( molecules.Molecule ):
         self._chain_id = None
         self._snapshot = None
         self._res_id = None
-        self._Chain = None
+        self._Cluster = None
         super( NewResidue, self ).__init__( *args, **kwargs )
 
     @property
@@ -639,7 +639,12 @@ class NewResidue( molecules.Molecule ):
     def Chain(self):
         if self._Chain:
             return self._Chain
+        if self._Cluster:
+            return self._Cluster
         return None
+    @Chain.setter
+    def Chain(self, val):
+        self._Chain = val
 
     @property
     def res_id(self):
@@ -1332,7 +1337,7 @@ class NewChain( molecules.Cluster):
             return self._snapshot
         return None
 
-    @property.setter
+    @snapshot.setter
     def snapshot(self, val):
         self._snapshot = val
 
