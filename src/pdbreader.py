@@ -2128,6 +2128,18 @@ class NewSystem( list ):
         system = cls( *chains )
         system.meta = meta
         return system
+
+    def save(self, fname = "system.p"):
+        pickle.dump( self, open(fname, 'wb' ), protocol = 2 )
+    @staticmethod
+    def load(fname = 'system.p'):
+        if not os.path.isfile( fname ):
+            raise IOError
+        pick = pickle.load( open(fname, 'rb' ) )
+        if not isinstance( pick, NewSystem ):
+            raise TypeError("Wrong pickled class")
+        return pick
+    
         
 class World( list ):
     """Can hold instances of Systems, Clusters, Molecules, Atoms in it"""
