@@ -3454,10 +3454,11 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         self.Property = True
 
     def add(self, item ):
-        if isinstance( mol , Molecule ):
+        if isinstance( item , Molecule ):
             self.add_mol( item )
-        else:
+        elif isinstance( item, Atom) :
             self.add_atom( item )
+
     def add_mol(self, mol, in_mm = False, in_qm = False,
             in_qmmm = False, *args, **kwargs):
         if isinstance( mol , Molecule ):

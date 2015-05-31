@@ -110,9 +110,7 @@ def all_residues_from_pdb_string( _string,
         for each in res:
             each.to_AU()
 
-    if meta:
-        return res, meta_text
-    return res
+    return res, meta_text
 #
 def uniq( inp ):
     output = []
@@ -2143,7 +2141,7 @@ class World( list ):
                     self.append( each )
         
     def add(self, item):
-        if isinstance(item, molecules.Cluster ):
+        if isinstance(item, NewSystem ):
             self.append( item )
  
     def save(self, fname = "world.p"):
