@@ -4361,18 +4361,25 @@ TER
 
 class NewSystemTest( unittest.TestCase ):
 
+    def setUp(self):
+        self.s1 = NewSystem.from_pdb_string( _string1 )
+        self.s2 = NewSystem.from_pdb_string( _string2 )
+        self.s3 = NewSystem.from_pdb_string( _string3 )
+
     def test_system(self):
-        s1 = NewSystem.from_pdb_string( _string1 )
-        s2 = NewSystem.from_pdb_string( _string2 )
-        s3 = NewSystem.from_pdb_string( _string3 )
-        assert len( s1 ) == len( s2 )
-        assert len( s1 ) == 6
-        assert len( s3 ) == 3
+        assert len( self.s1 ) == len( self.s2 )
+        assert len( self.s1 ) == 6
+        assert len( self.s3 ) == 3
 
-        assert s2[-1].chain_id == 'X'
-        assert s2[4][0].res_name == 'MOL'
-        assert len( [mol for chain in s2 for mol in chain if mol.res_name == 'MOL']) == 5
+        assert self.s2[-1].chain_id == 'X'
+        assert self.s2[4][0].res_name == 'MOL'
+        assert len( [mol for chain in self.s2 for mol in chain if mol.res_name == 'MOL']) == 5
 
+    def test_atoms(self):
+        assert len(self.s1.molecules) == 505
+
+    def test_molecules(self):
+        assert len(self.s1.atoms) == 1645
         
 
 if __name__ == '__main__':

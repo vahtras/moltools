@@ -44,18 +44,15 @@ pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) 
 
 def all_residues_from_pdb_file( _file,
         in_AA = True,
-        out_AA = True,
-        meta = False ):
+        out_AA = True):
     with open( _file ) as f:
         return all_residues_from_pdb_string( f.read(),
                 in_AA = in_AA,
-                out_AA = out_AA,
-                meta = meta )
+                out_AA = out_AA)
 
 def all_residues_from_pdb_string( _string,
         in_AA = True,
-        out_AA = True,
-        meta = False ):
+        out_AA = True):
     """Will return all residues in pdbfile, residues in same chain will belong
     to the same chain type"""
     pat = re.compile(r'^ATOM|^HETATM')
@@ -2115,10 +2112,18 @@ class NewSystem( list ):
         if isinstance( item, molecules.Cluster):
             self.append( item )
 
+    @property
+    def atoms(self):
+        return [a for chain in self for mol in chain for a in mol if isinstance(a , molecules.Atom ) ]
+
+    @property
+    def molecules(self):
+        return [m for chain in self for m in chain if isinstance(m , molecules.Molecule ) ]
+
     @classmethod
-    def from_pdb_string( cls, _string, meta = False ):
+    def from_pdb_string( cls, _string ):
         """Assuming the string is a pdb format, read in all chains and stuff"""
-        res, meta = all_residues_from_pdb_string( _string, meta = meta )
+        res, meta = all_residues_from_pdb_string( _string )
         chains = [ NewChain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
         for ch in chains:
             ch.connect_everything()

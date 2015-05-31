@@ -8,7 +8,7 @@ import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'snapshot1.pdb')
 
-@unittest.skip('Skip due to being too slow')
+#@unittest.skip('Skip due to being too slow')
 class ReadPdb( unittest.TestCase ):
 
     def setUp(self):

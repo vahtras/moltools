@@ -4,7 +4,7 @@ import unittest, os
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 
-@unittest.skip('Skip due to being too slow')
+#@unittest.skip('Skip due to being too slow')
 class TestConcapsLevel1( unittest.TestCase ):
     def setUp(self):
         """ Default arguments used for program 
@@ -66,37 +66,6 @@ class TestConcapsLevel1( unittest.TestCase ):
                     if res.Next and res.Prev:
                         if res.Next.Next and res.Prev.Prev:
                             assert len( res.ready ) == 29
-
-#        For ready made residues:
-#        For N-terminal, total = N-4
-#        For C-terminal, total = N-5
-#
-#        Res | N
-#        --------
-#        PRO | 26
-#        HYP | 27
-#        GLY | 19
-#        ALA | 22
-#
-#        """
-#        for chain in self.ch:
-#            for res in chain:
-#                if res.res_name == "PRO":
-#                    if res.n_term:
-#                        assert len( res.ready ) == 22
-#                    elif res.c_term:
-#                        assert len( res.ready ) == 21
-#                    else:
-#                        assert len( res.ready ) == 26
-#                elif res.res_name == "HYP":
-#                    assert len( res.ready ) == 27
-#                elif res.res_name == "GLY":
-#                    if res.c_term:
-#                        assert len( res.ready ) == 15
-#                    else:
-#                        assert len( res.ready ) == 19
-#                elif res.res_name == "ALA":
-#                    assert len( res.ready ) == 22
 
 if __name__ == '__main__':
     unittest.main(  )
