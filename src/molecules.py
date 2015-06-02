@@ -3558,8 +3558,9 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
             keep_outfile = False,
+            freq = None,
             ):
-        """Put properties on all 'ligands' and 'solvents' in cluster"""
+        """Put properties on all class/sublass of Molecules in Cluster"""
         for mol in [m for m in self if isinstance(m, Molecule)]:
             mol.props_from_qm( tmpdir = tmpdir,
                     dalpath = dalpath,
@@ -3574,6 +3575,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                     basdir = basdir,
                     log = log,
                     keep_outfile = False,
+                    freq = freq,
                     )
 
 
