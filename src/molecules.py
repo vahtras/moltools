@@ -24,6 +24,7 @@ from generator import Generator
 from loprop.loprop import *
 
 a0 = 0.52917721092
+au_nm_conv = 45.563352491
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
