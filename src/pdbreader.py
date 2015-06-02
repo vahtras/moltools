@@ -2155,6 +2155,15 @@ class NewSystem( list ):
             cluster.connect_everything()
 
     @property
+    def snapshot(self):
+        if self._snapshot:
+            return self._snapshot
+        return None
+    @snapshot.setter
+    def snapshot(self, val):
+        self._snapshot = val
+
+    @property
     def time(self):
         if self._time:
             return self._time
