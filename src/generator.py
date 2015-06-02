@@ -159,8 +159,8 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
-    def get_b3lyplin_dal( ):
-        return """**DALTON INPUT
+    def get_b3lyplin_freq_dal( freqs = ["0.0"], au = True, nm = False  ):
+        _string = """**DALTON INPUT
 .RUN RESPONSE
 .DIRECT
 .PARALLELL
@@ -180,8 +180,12 @@ YDIPLEN
 ZDIPLEN
 *LINEAR
 .DIPLEN
-**END OF DALTON INPUT""" 
-
+.FREQUE
+ %d
+""" %( len(freqs) )
+        _string += " ".join( map(str,freqs) ) + '\n'
+        _string += "**END OF DALTON INPUT\n"
+        return _string
 
 
 
