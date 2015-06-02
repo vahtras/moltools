@@ -1426,6 +1426,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
             keep_outfile = False,
+            freq = None
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1466,9 +1467,15 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         elif method == 'b3lypqua':
             open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
         elif method == 'hflin':
-            open( dal, 'w').write( Generator.get_hflin_dal( ) )
+            if freq:
+                open( dal, 'w').write( Generator.get_hflin_freq_dal( freq = freq ) )
+            else:
+                open( dal, 'w').write( Generator.get_hflin_dal( ) )
         elif method == 'b3lyplin':
-            open( dal, 'w').write( Generator.get_b3lyplin_dal( ) )
+            if freq:
+                open( dal, 'w').write( Generator.get_b3lyplin_freq_dal( freq = freq ) )
+            else:
+                open( dal, 'w').write( Generator.get_b3lyplin_dal( ) )
         else:
             print "wrong calculation type specified"
             return
@@ -1551,14 +1558,14 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                     max_l = maxl,
                     pol = pol,
                     pf = penalty_function( 2.0 ),
-                    freqs = None,
+                    freqs = [ freq ],
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
                             hyper = hyper,
                             decimal = decimal,
                             )
-        except:
+        except UnboundLocalError:
             logging.error("Some error in LoProp, check so that the latest source is in PYTHONPATH")
             print real_tmp
 

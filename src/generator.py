@@ -159,7 +159,34 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
-    def get_b3lyplin_freq_dal( freqs = ["0.0"], au = True, nm = False  ):
+    def get_hflin_freq_dal( freq = "0.0", au = True, nm = False  ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+.FREQUE
+ 1
+ %s
+""" %( freq )
+        _string += "**END OF DALTON INPUT\n"
+        return _string
+
+    @staticmethod
+    def get_b3lyplin_freq_dal( freq = "0.0", au = True, nm = False  ):
         _string = """**DALTON INPUT
 .RUN RESPONSE
 .DIRECT
@@ -181,14 +208,11 @@ ZDIPLEN
 *LINEAR
 .DIPLEN
 .FREQUE
- %d
-""" %( len(freqs) )
-        _string += " ".join( map(str,freqs) ) + '\n'
+ 1
+ %s
+""" %( freq )
         _string += "**END OF DALTON INPUT\n"
         return _string
-
-
-
 
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
