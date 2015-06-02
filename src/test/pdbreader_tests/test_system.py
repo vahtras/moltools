@@ -4380,6 +4380,23 @@ class NewSystemTest( unittest.TestCase ):
 
     def test_molecules(self):
         assert len(self.s1.atoms) == 1645
+
+    def test_connections(self):
+        s1 = NewSystem.from_pdb_string( _string1 )
+        s1.connect_everything()
+        assert s1[0].System == s1
+        assert s1[1].System == s1
+        assert s1[2].System == s1
+        assert s1[3].System == s1
+        assert s1[4].System == s1
+        assert s1[5].System == s1
+
+        assert s1[0][0].Cluster == s1[0]
+        assert s1[1][0].Cluster == s1[1]
+        assert s1[2][0].Cluster == s1[2]
+        assert s1[3][0].Cluster == s1[3]
+        assert s1[4][0].Cluster == s1[4]
+        assert s1[5][333].Cluster == s1[5]
         
     def test_properties(self):
         self.s1.time = '5050'
