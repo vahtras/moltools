@@ -34,6 +34,9 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
+def nm_to_au( val ):
+    au_to_nm = 45.563352491687866
+    return "%.7f" %( au_to_nm / float(val) )
 
 def make_para( shape = ( 0,) ):                                                      
     """Returns a np array that can be used for writing between different processes"""
