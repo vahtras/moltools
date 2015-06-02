@@ -1331,8 +1331,10 @@ class Molecule( list ):
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
         if isinstance(self, Water) and not force_template:
-            euler_key = lambda x: (x.o.r, x.h1.r, x.h2.r)
             template_key = lambda x: x.element + str(x.order)
+
+        if isinstance(self, Water):
+            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2-x.o.r, x.h1.r)
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for at in self:
