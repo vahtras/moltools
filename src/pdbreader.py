@@ -1441,7 +1441,18 @@ class NewChain( molecules.Cluster):
     """Will behaive like Cluster and rely everything on getters and setters to avoid bugs in overwriting properties"""
     def __init__(self, *args, **kwargs):
         self._snapshot = None
+        self._time = None
         super( NewChain, self).__init__( *args, **kwargs )
+
+    @property
+    def time(self):
+        if self.System:
+            return self.System.time
+        return self._time
+
+    @time.setter
+    def time(self, val):
+        self._time = val
 
     @property
     def snapshot(self):
@@ -2096,10 +2107,15 @@ class System( list ):
 
 class NewSystem( list ):
     """Can hold instances of Clusters, Molecules, Atoms in it
-    used to separate trajectory configurations between different snapshots"""
+    used to separate trajectory configurations between different snapshots.
+
+    Each trajectory snapshot thus holds a NewSystem class
+    
+    """
     def __init__(self, *args, **kwargs):
-        super(NewSystem, self).__init__()
         self._snapshot = None
+        self._time = None
+        super(NewSystem, self).__init__()
 
         if args is not None:
             if type( args == list ):
@@ -2107,6 +2123,13 @@ class NewSystem( list ):
                     self.add( each )
             for each in args:
                 self.add( each )
+    def connect_everything(self):
+        for atom in self.atoms:
+            atom.System = self
+        for mol in self.molecules:
+            mol.System = self
+        for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
+            cluster.System = self
 
     def add(self, item):
         if isinstance( item, molecules.Cluster):
@@ -2115,11 +2138,9 @@ class NewSystem( list ):
     @property
     def atoms(self):
         return [a for chain in self for mol in chain for a in mol if isinstance(a , molecules.Atom ) ]
-
     @property
     def molecules(self):
         return [m for chain in self for m in chain if isinstance(m , molecules.Molecule ) ]
-
     @classmethod
     def from_pdb_string( cls, _string ):
         """Assuming the string is a pdb format, read in all chains and stuff"""

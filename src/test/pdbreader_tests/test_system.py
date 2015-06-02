@@ -4381,6 +4381,11 @@ class NewSystemTest( unittest.TestCase ):
     def test_molecules(self):
         assert len(self.s1.atoms) == 1645
         
+    def test_properties(self):
+        self.s1.time = '5050'
+        self.s1.connect_everything()
+        assert isinstance( self.s1[0], Cluster ) 
+        assert self.s1[0].time == '5050'
 
 if __name__ == '__main__':
     unittest.main()
