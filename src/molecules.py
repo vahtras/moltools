@@ -2273,6 +2273,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         w.append( o )
         w.append( h1 )
         w.append( h2 )
+        w.o.pdb_name = 'OW'
+        w.h1.pdb_name = 'HW1'
+        w.h2.pdb_name = 'HW2'
         if worst:
             w.populate_bonds()
             w.populate_angles()
