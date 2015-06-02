@@ -1055,12 +1055,12 @@ class Molecule( list ):
             if len(args) == 1:
                 if type(args[0]) == list:
                     for i in args[0]:
-                        self.add_atom( i )
+                        self.add( i )
                 else:
-                    self.add_atom( args[0] )
+                    self.add( args[0] )
             else:
                 for at in args:
-                    self.add_atom( at )
+                    self.add( at )
 
         if kwargs != {} :
             for i in kwargs:
@@ -1211,8 +1211,11 @@ class Molecule( list ):
     def append(self, atom ):
         super( Molecule, self).append( atom )
 
-    def add_atom(self, atom):
-        self.append( atom )
+    def add(self, item):
+        if isinstance( item, Atom ):
+            self.append( item )
+        else:
+            logging.warning('Passed %s instance to Molecule' %type(item) )
 
     def plot_2d(self, key = None, ):
         """Plots the 2D projetion of the molecule onto the y plane,
@@ -3458,6 +3461,8 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             self.add_mol( item )
         elif isinstance( item, Atom) :
             self.add_atom( item )
+        else:
+            logging.warning( 'Tried to pass other instance than Atom or Molecule to Cluster' )
 
     def add_mol(self, mol, in_mm = False, in_qm = False,
             in_qmmm = False, *args, **kwargs):
@@ -3538,7 +3543,7 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
             keep_outfile = False,
             ):
         """Put properties on all 'ligands' and 'solvents' in cluster"""
-        for mol in [m for m in self if isinstance(m, Molecule) and m.in_mm]:
+        for mol in [m for m in self if isinstance(m, Molecule)]:
             mol.props_from_qm( tmpdir = tmpdir,
                     dalpath = dalpath,
                     procs = procs,
@@ -3547,7 +3552,6 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                     pol = pol,
                     hyper = hyper,
                     method = method,
-                    env = env,
                     basis = basis,
                     dalexe = dalexe,
                     basdir = basdir,
