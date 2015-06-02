@@ -1442,7 +1442,17 @@ class NewChain( molecules.Cluster):
     def __init__(self, *args, **kwargs):
         self._snapshot = None
         self._time = None
+        self._freq = None
+        self._System = None
         super( NewChain, self).__init__( *args, **kwargs )
+    @property
+    def System(self):
+        if self._System:
+            return self._System
+        return None
+    @System.setter
+    def System(self, val):
+        self._System = val
 
     @property
     def time(self):
@@ -1456,13 +1466,23 @@ class NewChain( molecules.Cluster):
 
     @property
     def snapshot(self):
-        if self._snapshot is not None:
-            return self._snapshot
+        if self._System is not None:
+            return self._System.snapshot
         return None
 
     @snapshot.setter
     def snapshot(self, val):
         self._snapshot = val
+
+    @property
+    def freq(self):
+        if self._System is not None:
+            return self._System.freq
+        return None
+
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
 
     @property
     def chain_id(self):
@@ -2115,6 +2135,7 @@ class NewSystem( list ):
     def __init__(self, *args, **kwargs):
         self._snapshot = None
         self._time = None
+        self._freq = None
         super(NewSystem, self).__init__()
 
         if args is not None:
@@ -2128,8 +2149,29 @@ class NewSystem( list ):
             atom.System = self
         for mol in self.molecules:
             mol.System = self
+            mol.connect_everything()
         for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
             cluster.System = self
+            cluster.connect_everything()
+
+    @property
+    def time(self):
+        if self._time:
+            return self._time
+        return None
+    @time.setter
+    def time(self, val):
+        self._time = val
+
+    @property
+    def freq(self):
+        if self._freq:
+            return self._freq
+        return None
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
+
 
     def add(self, item):
         if isinstance( item, molecules.Cluster):

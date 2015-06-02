@@ -1067,6 +1067,10 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    def connect_everything(self):
+        for a in self:
+            a.Molecule = self
+
     def t(self, *args):
         """Wrapper function for self.translate_by_r"""
         return self.translate_by_r( *args )
