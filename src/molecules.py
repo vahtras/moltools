@@ -1326,11 +1326,11 @@ class Molecule( list ):
             freq = "0.0",
             euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
             template_key = lambda x: x.pdb_name,
-            force = False):
+            force_template = False):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
-        if isinstance(self, Water) and not force:
+        if isinstance(self, Water) and not force_template:
             euler_key = lambda x: (x.o.r, x.h1.r, x.h2.r)
             template_key = lambda x: x.element + str(x.order)
 

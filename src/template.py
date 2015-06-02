@@ -35,6 +35,8 @@ Frequency:  Field :math:`\\omega`    string
 
     def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
             dist = True, freq = "0.0", nm = False ):
+        if freq == "0.0000000":
+            freq = "0.0"
         if nm:
             freq = "%.7f" %( conv/ freq )
         if model.lower() == 'tip4p':
