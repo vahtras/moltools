@@ -1437,6 +1437,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 
         Might take long time for large residues.
         """
+        if freq == None:
+            freq = 0.0
         if log:
             logging.basicConfig( filename=log, level=logging.DEBUG )
 
