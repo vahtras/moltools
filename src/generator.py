@@ -87,6 +87,30 @@ B3LYP
         return st
 
     @staticmethod
+    def get_b3lyplin_dal():
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+B3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+    @staticmethod
     def get_b3lypqua_dal( ):
         return """**DALTON INPUT
 .RUN RESPONSE
