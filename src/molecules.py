@@ -1334,7 +1334,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             template_key = lambda x: x.element + str(x.order)
 
         if isinstance(self, Water):
-            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2-x.o.r, x.h1.r)
+            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         for at in self:
@@ -1351,7 +1351,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
 
-    def get_euler(self, key = lambda x: (x[0].r, x[1].r, x[2].r)):
+    def get_euler(self, key = lambda x: (x[0].r, x[1].r, x[2].r),
+            rot_type = None):
         """Takes a function as an argument.
 
         By default, the defauling function picks the point of the first 3 atoms in the Molecule.
@@ -1368,6 +1369,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
              x.get_atom_by_pdbname('CA').r)
         
         """
+        if rot_type == 'water':
+            key = lambda x: (x[0].r, x[2].r + (x[1].r-x[2].r)/2, x[1].r)
         try:
             p1, p2, p3 = key( self )
         except IndexError:
@@ -2380,71 +2383,6 @@ Override list append method, will add up to 3 atoms,
 
     def dist_to_water(self, other):
         return np.sqrt(np.sum((self.coo - other.coo)**2) )
-
-    def get_euler(self, key = lambda x: (x[0].r, x[1].r, x[2].r)):
-        """
-Returns the 3 euler angles required to rotate the water to given coordinate system.
-The return values are ordered in :math:`\\rho_1`, :math:`\\rho_2` and :math:`\\rho_3`.
-
-.. code:: python
-
-    >>> w = Water()
-    >>> w.append( Atom( x = 1, z = 1, element = 'H' ) )
-    >>> w.append( Atom( x =-1, z = 1, element = 'H' ) )
-    >>> w.append( Atom( x = 0, z = 1, element = 'O' ) )
-    >>> r1, r2, r3 = w.get_euler()
-    >>> print r1
-    0.0
-
-
-        """
-
-        H1 = self.h1.r.copy()
-        H2 = self.h2.r.copy()
-        O1 = self.o.r.copy()
-
-        dip = (-0.5*O1 + 0.25*H1 + 0.25 *H2).copy()
-
-        origin = O1.copy()
-        H1, H2, O1 = H1 - origin, H2 - origin, O1 - origin
-
-        theta1 = np.arctan2( dip[1], dip[0])
-        if theta1 < 0:
-            theta1 += 2 * np.pi
-
-        H1 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H1 )
-        H2 =  np.dot( Rotator.get_Rz_inv( theta1 ) , H2 )
-        O1 =  np.dot( Rotator.get_Rz_inv( theta1 ) , O1 )
-
-        dip = np.dot( Rotator.get_Rz_inv( theta1 ) , dip )
-
-#Rotate by theta around y axis so that the dipole is in the z axis 
-        theta2 = np.arctan2( -dip[0], dip[2] )
-        if theta2 < 0:
-            theta2 += 2 * np.pi
-
-        H1 =  np.dot( Rotator.get_Ry( theta2 ) , H1 )
-        H2 =  np.dot( Rotator.get_Ry( theta2 ) , H2 )
-        O1 =  np.dot( Rotator.get_Ry( theta2 ) , O1 )
-
-        dip = np.dot( Rotator.get_Ry( theta2 ) , dip )
-
-#Rotate around Z axis so that hydrogens are in xz plane.
-        if H2[1] >0:
-            xc = H2[0]
-            yc = H2[1]
-        else:
-            xc = H1[0]
-            yc = H1[1]
-        theta3 = np.arctan2( yc , xc)
-        if theta3 < 0:
-            theta3 += 2 * np.pi
-
-        def eq(a, b, thr = 0.0001): 
-            if abs(a-b) < thr:return True
-            else: return False
-
-        return theta1, theta2, theta3
 
     def get_xyz_string(self, ):
         st = "%d\n\n" % len(self)
