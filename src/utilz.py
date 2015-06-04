@@ -69,7 +69,6 @@ def rotate_point_by_two_points(p, p1, p2, theta):
     p = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), p )
     p += origin
     return p
-
 def reflect_point_by_three_points( p, p1, p2, p3 ):
     """ will reflect point p by 
     plane formed by points p1, p2 and p3"""
@@ -80,6 +79,16 @@ def reflect_point_by_three_points( p, p1, p2, p3 ):
     r_orig = p - r
     return -r + r_orig
 
+def S( plane = 'xz'):
+    """Reflect by plane in cartesian 3D space"""
+    vec = np.identity( 3 )
+    opt_dict = { 'xy' : (2,2), 'xz' : (1, 1 ), 'yz' :(0,0,),
+                 'yx' : (2,2), 'zx' : (1, 1 ), 'zy' :(0,0,) }
+    if plane not in opt_dict:
+        print 'Wrong plane given'
+        raise SystemExit
+    vec[ opt_dict[plane] ] = -1
+    return vec
     
 def Rz( theta ):
     vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
