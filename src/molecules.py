@@ -917,10 +917,10 @@ Plot Atom in a 3D frame
 
     @property
     def res_id(self):
-        if self._res_id:
-            return self._res_id
         if self.Molecule:
             return self.Molecule.res_id
+        if self._res_id:
+            return self._res_id
         return 0
 
     def potline(self, max_l=2, pol=22, hyper=1):
@@ -2813,8 +2813,8 @@ class Cluster(list):
         """
         tmp = []
         ats = self.min_dist_atoms( AA_cutoff = AA_cutoff )
-        for i in range(len(ats)-1):
-            for j in range(  i, len( ats )):
+        for i, at in enumerate( ats ):
+            for j in range( i, len( ats ) ):
                 if ats[i].res_id == ats[j].res_id:
                     continue
                 if ats[i].dist_to_atom( ats[j] ) < AA_cutoff:
