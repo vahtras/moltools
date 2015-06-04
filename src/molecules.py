@@ -3421,20 +3421,16 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
         else:
             logging.warning( 'Tried to pass other instance than Atom or Molecule to Cluster' )
 
-    def add_mol(self, mol, in_mm = False, in_qm = False,
-            in_qmmm = False, *args, **kwargs):
+    def add_mol(self, mol, ):
         if isinstance( mol , Molecule ):
-            mol.in_mm = in_mm
-            mol.in_qm = in_qm
-            mol.in_qmmm = in_qmmm
-            super( Cluster, self ).append( mol, *args, **kwargs )
+            super( Cluster, self ).append( mol )
             mol.Cluster = self
         elif type( mol ) == list:
             for each in mol:
                 each.in_mm = in_mm
                 each.in_qm = in_qm
                 each.in_qmmm = in_qmmm
-                super( Cluster, self ).append( each, *args, **kwargs )
+                super( Cluster, self ).append( each )
                 each.Cluster = each
 
     def add_atom(self, *at):
