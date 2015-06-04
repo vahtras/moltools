@@ -286,15 +286,23 @@ class Monomer( pdbreader.Residue ):
     @property
     def first_h(self):
         return self.get_atom_by_pdb_name( 'HN' )
+
     @property
     def last_h(self):
+        for at in self.hidden:
+            if at.pdb_name == 'HC':
+                return at
         return self.get_atom_by_pdb_name( 'HC' )
+
+
     @property
     def last_heavy(self):
         return self.get_atom_by_pdb_name( 'CA' )
+
     @property
     def first_heavy(self):
         return self.get_atom_by_pdb_name( 'C' )
+
     def get_atom_by_pdb_name(self, label, dup = False):
         at = []
         for i in self:
@@ -460,6 +468,10 @@ class Monomer( pdbreader.Residue ):
         for at in self + self.hidden:
             at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
 
+    def reflect_around(self, p1, p2, p3):
+        """Rotate clockwise around line formed from point p1 to point p2 by theta"""
+        for at in self + self.hidden:
+            at.x, at.y, at.z = utilz.reflect_point_by_three_points( at.r, p1, p2, p3 )
 
     def translate_by_r(self, r):
         """Need to override class.Molecules and also include hidden hydrogens"""
