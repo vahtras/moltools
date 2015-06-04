@@ -9,6 +9,22 @@ class RotatorTest( unittest.TestCase ):
         pass
 
 
+    def test_reflect_point_by_three_points(self):
+        """Plane is just xy plane, should give [1, 1, -1] """
+        p = np.array( [1, 1, 1] )
+        p1 = np.array( [0,0,0] )
+        p2 = np.array( [1,0,0] )
+        p3 = np.array( [0,1,0] )
+        np.testing.assert_allclose( [1, 1, -1], 
+                reflect_point_by_three_points( p, p1, p2, p3 ))
+
+        p = np.array( [-5, 0, 3] )
+        p1 = np.array( [0,0,0] )
+        p2 = np.array( [1,0,0] )
+        p3 = np.array( [0,1,0] )
+        np.testing.assert_allclose( [-5, 0, -3], 
+                reflect_point_by_three_points( p, p1, p2, p3 ))
+
     def test_splitter(self):
         a = ['A', 'B', 'B', 'C', 'C', 'C' ]
         u = splitter( a )

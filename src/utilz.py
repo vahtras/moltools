@@ -69,6 +69,17 @@ def rotate_point_by_two_points(p, p1, p2, theta):
     p = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), p )
     p += origin
     return p
+
+def reflect_point_by_three_points( p, p1, p2, p3 ):
+    """ will reflect point p by 
+    plane formed by points p1, p2 and p3"""
+    v1 , v2 = p2 - p1, p3 - p1
+    n = np.cross( v1, v2 )
+    n = n / np.linalg.norm( n )
+    r = np.dot( p, n ) * n / np.linalg.norm( n )
+    r_orig = p - r
+    return -r + r_orig
+
     
 def Rz( theta ):
     vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
