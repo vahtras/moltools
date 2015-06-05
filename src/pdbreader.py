@@ -2185,6 +2185,7 @@ class NewSystem( list ):
     def add(self, item):
         if isinstance( item, molecules.Cluster):
             self.append( item )
+            item.System = self
 
     @property
     def atoms(self):
@@ -2196,14 +2197,18 @@ class NewSystem( list ):
     def from_pdb_string( cls, _string ):
         """Assuming the string is a pdb format, read in all chains and stuff"""
         res, meta = all_residues_from_pdb_string( _string )
+
         chains = [ NewChain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
+
+        system = cls( *chains )
+        system.meta = meta
+
         for ch in chains:
             ch.connect_everything()
+            ch.System = system
         for chain in chains:
             for res in chain:
                 chain.chain_id = res.chain_id
-        system = cls( *chains )
-        system.meta = meta
         return system
 
     def save(self, fname = "system.p"):
