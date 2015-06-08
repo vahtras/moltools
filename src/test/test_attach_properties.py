@@ -17,7 +17,7 @@ class AttachPropertyTest( unittest.TestCase ):
 
     def test_attach_properties(self):
         w = Water.get_standard()
-        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h2.r - w.h1.r)/2.0 -w.o.r, w.h1.r )
+        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r - w.h2.r)/2.0 + w.h2.r, w.h1.r )
         w.o.pdb_name = 'OW'
         w.h1.pdb_name = 'HW1'
         w.h2.pdb_name = 'HW2'
@@ -26,14 +26,14 @@ class AttachPropertyTest( unittest.TestCase ):
                 method = 'B3LYP',
                 basis ='ANO631',
                 template_key = lambda x: x.pdb_name,
-                force = True
+                force_template = True
                 )
         np.testing.assert_allclose( w.p.q , 0.0, atol = 1e-4 )
 
     def test_attach_to_water(self):
 
         w = Molecule.from_xyz_string( WATER )
-        p1, p2, p3 = w[0].r, (w[2].r - w[1].r)/2.0 -w[0].r, w[1].r 
+        p1, p2, p3 = w[0].r, (w[1].r - w[2].r)/2.0 + w[2].r, w[1].r 
         t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
         w[0].pdb_name = 'OW'
         w[1].pdb_name = 'HW1'
@@ -43,7 +43,7 @@ class AttachPropertyTest( unittest.TestCase ):
                 method = 'B3LYP',
                 basis ='ANO631',
                 template_key = lambda x: x.pdb_name,
-                force = True
+                force_template = True
                 )
         np.testing.assert_allclose( w.p.q , 0.0, atol = 1e-4 )
 
