@@ -149,6 +149,22 @@ class WaterTest( unittest.TestCase ):
         p2["charge"] = 0.7
         self.eq( (p2 - p1)["charge"] , 0.4, decimal = 7 )
 
+    def test_reflection(self):
+        """docstring for test_reflection"""
+        w = Water.get_standard()
+        w.attach_properties()
+
+        w.rotate( 0, np.pi/3.0, 0 )
+        for at in w:
+            at.p.transform_ut_properties( 0, np.pi/3.0, 0 )
+
+        b_ref = w.p.b_proj.copy()
+        d_ref = w.p.d.copy()
+        w.reflect( lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r, x.h1.r ) )
+        assert w.p.q == 0.0
+        assert w.p.b_proj == b_ref
+        np.testing.assert_allclose( abs(w.p.d), abs( d_ref ), atol = 1e-5 )
+        
     def eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
 
