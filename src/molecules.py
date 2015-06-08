@@ -1088,7 +1088,7 @@ class Molecule( list ):
         p1, p2, p3 = key( self )
         origin = p1.copy()
         t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
-        self.t( -t )
+        self.t( -origin )
 
         R1_inv = utilz.Rz_inv( r1 )
         R2     = utilz.Ry( r2 )
@@ -1107,6 +1107,7 @@ class Molecule( list ):
             at.p = at.p.transform_by_matrix( R3_inv )
             at.p = at.p.transform_by_matrix( S )
             at.p.transform_ut_properties( r3, r2, r1)
+        self.t( origin )
 
     def t(self, *args):
         """Wrapper function for self.translate_by_r"""
