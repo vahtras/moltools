@@ -63,18 +63,18 @@ class WaterEulerTest( unittest.TestCase ):
     def test_center_get_euler(self):
         w = Water.get_standard()
 
-        t1, t2, t3 = w.get_euler()
+        t1, t2, t3 = w.get_euler( lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r, x.h1.r ))
         self.eq( [t1, t2, t3] , np.zeros(3) )
 
     def test_moved_get_euler(self):
         w = Water.get_standard()
         w.translate([5,5,5])
-        t1, t2 ,t3 =  w.get_euler()
+        t1, t2 ,t3 =  w.get_euler( lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r, x.h1.r ))
         w.center()
 
         self.eq( [t1, t2, t3] , np.zeros(3) )
 
-        t1, t2 ,t3 =  w.get_euler()
+        t1, t2 ,t3 =  w.get_euler(lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r, x.h1.r ))
         w.center()
 
         self.eq( [t1, t2, t3] , np.zeros(3) )

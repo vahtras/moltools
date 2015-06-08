@@ -42,12 +42,12 @@ class WaterTest( unittest.TestCase ):
 
 # Read in distributed properties, transform to atomic sites from waters euler angles
         for wat in c:
-            t3, t2, t1  = wat.get_euler()
+            t1, t2, t3  = wat.get_euler( key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r ))
             kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
                 True , "0.0" ))
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
-                at.Property.transform_ut_properties( t1, t2 ,t3)
+                at.Property.transform_ut_properties( t3, t2 ,t1)
 
 # Read in the properties for the oxygen atom, the projected dipole vector should
 # be the same
