@@ -287,6 +287,16 @@ Puts properties read from the :ref:`template` module into the :ref:`atom` at.
         p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
         return p
 
+    def transform_by_matrix(self, matrix):
+        """docstring for by_matrix"""
+        assert matrix.shape == (3,3,)
+        p = Property()
+        p.q = self.q
+        p.d = np.einsum( 'ij,j', matrix, self.d )
+        p.a = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.a) ))
+        p.Q = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.Q) ))
+        p.b = utilz.s2ut(np.einsum( 'ai,bj,ck,ijk', matrix, matrix, matrix, utilz.ut2s(self.b) ))
+        return p
 
 
     def transform_ut_properties( self, t1, t2, t3):
@@ -1071,6 +1081,32 @@ class Molecule( list ):
     def connect_everything(self):
         for a in self:
             a.Molecule = self
+
+    def reflect(self, key = lambda x:(x[0].r, x[1].r, x[2].r),
+            plane = 'xz'):
+        """docstring for reflect"""
+        p1, p2, p3 = key( self )
+        origin = p1.copy()
+        t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+        self.t( -t )
+
+        R1_inv = utilz.Rz_inv( r1 )
+        R2     = utilz.Ry( r2 )
+        R3_inv = utilz.Rz_inv( r3 )
+        S = utilz.S( plane )
+        R1 = np.einsum( 'ij->ji', R3_inv )
+        R2_inv = np.einsum( 'ij->ji', R2 )
+        R3 = np.einsum( 'ij->ji', R1_inv )
+
+# Rotate each atom to fit key orientation, followed by plane reflection and rotation back
+        for at in self:
+            at.x, at.y, at.z = np.einsum( 'ab, bc, cd, de, ef, fg, gi, i', R3, R2_inv, R1, S, R3_inv, R2, R1_inv, at.r )
+
+            at.p = at.p.transform_by_matrix( R1_inv )
+            at.p = at.p.transform_by_matrix( R2 )
+            at.p = at.p.transform_by_matrix( R3_inv )
+            at.p = at.p.transform_by_matrix( S )
+            at.p.transform_ut_properties( r3, r2, r1)
 
     def t(self, *args):
         """Wrapper function for self.translate_by_r"""
