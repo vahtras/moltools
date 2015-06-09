@@ -1,6 +1,7 @@
 import numpy as np
 import molecules 
 
+a0 = 0.52917721092
 class Generator( dict ):
     """
     Used to create molecules, write dalton .mol files 
@@ -239,6 +240,126 @@ ZDIPLEN
         _string += "**END OF DALTON INPUT\n"
         return _string
 
+    def get_mol( self, 
+            center = [0,0,0], 
+            mol = "water", 
+            model = "tip3p",
+            AA = False ):
+        """return molecule in center, all molecules have different definition
+        of euler angles
+
+        for water place O in origo
+        for methanol place C=O bond in origo
+        
+        """
+
+        if mol == "water":
+#Geometrical parameters, dependent om model
+            if model == "tip3p":
+                r_oh = self[ ("water", "tip3p", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "tip3p", "a_hoh","degree") ]
+
+            if model == "spc":
+                r_oh = self[ ("water", "spc", "r_oh", "AA") ]
+                a_hoh = self[ ("water", "spc", "a_hoh","degree") ]
+
+            if not AA:
+                r_oh = r_oh / a0
+
+            d = (90 - a_hoh/2 ) * np.pi / 180
+
+
+            xo = center[0]
+            yo = center[1]
+            zo = center[2] 
+
+            xh1 = (center[0] + r_oh * np.cos(d))
+            yh1 =  center[1] 
+            zh1 = (center[2] + r_oh* np.sin(d))
+
+            xh2 = (center[0] - r_oh * np.cos(d)) 
+            yh2 = center[1] 
+            zh2 = (center[2] + r_oh* np.sin(d))
+
+            h1 = molecules.Atom( **{ "AA" : AA,
+                "x" : xh1,
+                "y" : yh1,
+                "z" : zh1,
+                "element" : "H"} )
+            h2 = molecules.Atom( **{ "AA" : AA,
+                "x" : xh2,
+                "y" : yh2,
+                "z" : zh2,
+                "element" : "H"} )
+            o = molecules.Atom( **{ "AA" : AA,
+                "x" : xo,
+                "y" : yo,
+                "z" : zo,
+                "element" : "O"} )
+
+            w = molecules.Water( AA = AA)
+            w.append( o )
+            w.append( h1 )
+            w.append( h2 )
+            
+            return w
+
+        elif mol == "methanol":
+
+            r_co = self[ ("methanol", "gas_opt", "r_co", "AA" )]
+            r_oh = self[ ("methanol", "gas_opt", "r_oh", "AA" )]
+            r_ch = self[ ("methanol", "gas_opt", "r_ch", "AA" )]
+
+            a_coh = self[ ("methanol", "gas_opt", "a_coh", "degree" ) ]
+            #a_hch = self[ ("methanol","gas_opt",  "a_hch", "degree" ) ]
+            a_hco = self[ ("methanol", "gas_opt", "a_hco", "degree" ) ]
+
+            a_coh *= np.pi / 180
+            a_hco *= np.pi / 180
+
+            d_hcoh_4 = self[ ("methanol","gas_opt",  "d_hcoh", "h4", "degree" ) ]
+            d_hcoh_4 *= np.pi / 180
+            d_hcoh_5 = self[ ("methanol","gas_opt",  "d_hcoh", "h5", "degree" ) ]
+            d_hcoh_5 *= np.pi / 180
+            d_hcoh_6 = self[ ("methanol","gas_opt",  "d_hcoh", "h6", "degree" ) ]
+            d_hcoh_6 *= np.pi / 180
+
+            if not AA:
+                r_co, r_oh, r_ch = r_co/a0, r_oh/a0, r_ch/a0
+
+            c1 = molecules.Atom( **{"x":0, "y":0, "z":-r_co/2, "AA": AA, "element":"C" } )
+            o2 = molecules.Atom( **{"x":0, "y":0, "z": r_co/2, "AA": AA, "element":"O" } )
+
+            h3 = molecules.Atom( **{"x":r_oh*np.cos( a_coh-np.pi/2),
+                "y":0,
+                "z":r_oh*np.sin( a_coh-np.pi/2) + r_co/2,
+                "AA": AA, "element":"H" } )
+
+            h4 = molecules.Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_4 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_4 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+            h5 = molecules.Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_5 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_5 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+            h6 = molecules.Atom( **{"x": r_ch*np.sin( a_hco ) * np.cos( d_hcoh_6 ),
+                "y": r_ch*np.sin( a_hco) * np.sin( d_hcoh_6 ),
+                "z": r_ch*np.cos( a_hco) - r_co/2 ,
+                "AA": AA, "element":"H" } )
+
+            m = Methanol()
+            m.append(c1)
+            m.append(o2)
+            m.append(h3)
+            m.append(h4)
+            m.append(h5)
+            m.append(h6)
+
+            return m
+
+
+
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
             basis = ["ano-1 2 1", "ano-1 3 2 1"],
@@ -271,7 +392,6 @@ ZDIPLEN
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                c= molecules.Cluster()
                                 w1 = self.get_mol( [0, 0, 0], 
                                         mol = mol,
                                         model = model, AA = AA)
@@ -285,17 +405,15 @@ ZDIPLEN
                                     w1.h1.scale_bond( 0.985 )
                                     w1.h2.scale_bond( 1.015 )
                                     w1.inv_rotate()
-
-                                c.add_mol( w1, in_qm = True )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
                                 w2 = self.get_mol( [x,y,z], mol, AA = AA)
                                 w2.rotate( l, m, n )
 
-                                c.add_mol( w2, in_qm = True )
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
                                 name += ".mol"
 
+                                c = molecules.Cluster( w1, w2 )
                                 tmp_mol = c.get_qm_mol_string( AA = AA,
                                         basis = tuple(basis),
                                         )
@@ -362,7 +480,6 @@ ZDIPLEN
                         w.h1.scale_angle( scale_angle )
                         w.inv_rotate()
                         open( "_".join([model]+names) + ".mol",'w').write(w.get_mol_string())
-        
     def build_pna( self,  xyz = "tmp.xyz", waters = 0,
             min_r = 2.0,
             mult_r = 10,
