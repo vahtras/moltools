@@ -14,9 +14,10 @@ import math as m
 #from particles import *
 from pd.gaussian import *
 
-#import molecules 
+import molecules 
 #from template import Template
 import matplotlib as mpl
+import logging
 #from use_calculator import *
 
 import h5py
@@ -380,7 +381,11 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
             if len(lab.split('-')) == 4:
                 element = "H"
             else:
-                element = lab.split('-')[2][0]
+                try:
+                    element = lab.split('-')[2][0]
+                except IndexError as e:
+                    logging.error( e )
+                    continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
             tmpAtom = molecules.Atom( **kwargs )
