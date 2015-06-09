@@ -3013,6 +3013,39 @@ Plot Cluster a 3D frame in the cluster
         plt.show()
 
 
+    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
+# If basis len is more than one, treat it like molecular ano type
+# Where first element is for first row of elements
+        if len( basis ) > 1:
+            # Set row index number to periodic table one
+            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1 , "S" : 2  }
+        else:
+            # Keep all 0, since basis is only len 1
+            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0 }
+
+        st = ""
+        comm1 = "Comment 1"
+        comm2 = "Comment 2"
+        uni = utilz.unique([ at.element for mol in self for at in mol])
+        s_ = ""
+        if self.AA: 
+            s_ += "Angstrom"
+
+        st += "ATOMBASIS\n%s\n%s\nAtomtypes=%d Charge=0 Nosymm %s\n" %( \
+                comm1,
+                comm2,
+                len(uni),
+                s_)
+        for el in uni:
+            st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
+                    len( [all_el for mol in self for all_el in mol if (all_el.element == el)] ),
+                     basis[ el_to_rowind[el] ] )
+            for i in [all_el for mol in self for all_el in mol if (all_el.element == el) ]:
+                st += "{0:5s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( i.element, i.x, i.y, i.z )
+        return st
+
+
+
 
     def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) , AA = False):
 # If basis len is more than one, treat it like molecular ano type

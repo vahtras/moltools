@@ -414,9 +414,7 @@ ZDIPLEN
                                 name += ".mol"
 
                                 c = molecules.Cluster( w1, w2 )
-                                tmp_mol = c.get_qm_mol_string( AA = AA,
-                                        basis = tuple(basis),
-                                        )
+                                tmp_mol = c.get_mol_string( basis = tuple(basis))
                                 f_ = open(name, 'w')
                                 f_.write( tmp_mol )
         return 0
