@@ -1,4 +1,5 @@
 import numpy as np
+import molecules 
 
 class Generator( dict ):
     """
@@ -270,7 +271,7 @@ ZDIPLEN
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                c= Cluster()
+                                c= molecules.Cluster()
                                 w1 = self.get_mol( [0, 0, 0], 
                                         mol = mol,
                                         model = model, AA = AA)
@@ -371,7 +372,7 @@ ZDIPLEN
 
         np.random.seed( seed )
 
-        c = Cluster()
+        c = molecules.Cluster()
         c.add_mol(pna, in_qm = True)
         cnt = 0
         while cnt < waters:
