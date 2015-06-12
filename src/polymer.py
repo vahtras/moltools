@@ -285,6 +285,9 @@ class Monomer( pdbreader.Residue ):
 
     @property
     def first_h(self):
+        for at in self.hidden:
+            if at.pdb_name == 'HN':
+                return at
         return self.get_atom_by_pdb_name( 'HN' )
 
     @property
