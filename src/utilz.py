@@ -22,7 +22,6 @@ import logging
 
 import h5py
 
-
 a0 = 0.52917721092
 lab = [ "X", "Y", "Z"]
 charge_dic = {"H1": 1.0 ,"H2":1.0 , "C1":6.0, "C7":6.0, "H3":1.0,

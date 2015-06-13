@@ -854,47 +854,6 @@ class Residue( molecules.Molecule ):
             return self.Cluster.index( self )
         else:
             return self.res_id
-
-    def plot_maya( self, p1, p2, p3, copy = True ):
-        """Wrapper function to plot quivers of beta 
-
-        For Residue
-        
-        at1 is the first atom to center around
-        at2 is the atom which will lie in the z axis together with at1
-        at3 will be projected to lie in the zx-axis
-        """
-        
-        if copy:
-            copy = self.copy()
-        else:
-            copy = self
-        copy.populate_bonds()
-        v, t1, t2, t3 = utilz.center_and_xz( p1, p2, p3 )
-
-# plotting section
-        copy.translate_by_r( v )
-        copy.inv_rotate( t1, t2, t3 )
-
-        x, y, z = utilz.E_at_sphere(r_points=5)
-        bv = utilz.b_at_sphere( utilz.ut2s(copy.p.b) , x, y, z )
-
-        mlab.figure(figure=None, bgcolor=(1,1,1), fgcolor=None, engine=None, size=(400, 350))
-        mlab.quiver3d( x, y, z, bv[...,0], bv[...,1], bv[...,2],
-                colormap = 'BrBG' )
-
-#Plot bonds
-        for each in copy.bond_dict:
-            for key in copy.bond_dict[ each ]:
-                mlab.plot3d( [key.x, each.x],
-                         [key.y, each.y],
-                         [key.z, each.z], color = (0,0,0,) )
-        for i in copy:
-            mlab.points3d([i.x], [i.y], [i.z], 
-                    color = color_dict[ i.element ],
-                    resolution = 50,
-                    scale_factor = scale_factor_dict[ i.element] )
-
     def center( self, atom = None ):
         if atom is None:
             atom = self[0]
