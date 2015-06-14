@@ -650,7 +650,6 @@ class Atom( molecules.Atom ):
 
     def __init__(self, *args, **kwargs):
         super( Atom, self ).__init__( *args, **kwargs )
-        self.element = None
         self.pdb_name = None
 
         self._label = None
