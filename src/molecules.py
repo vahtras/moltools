@@ -2248,8 +2248,10 @@ class Water( Molecule ):
 
     def copy(self):
         return self.copy_water()
+
     def copy_self(self):
         return self.copy_water()
+
     def copy_water(self):
         w = Water()
         [w.append(i.copy_atom()) for i in self]
@@ -2265,9 +2267,6 @@ class Water( Molecule ):
                 return result
         else:
             return super(Molecule,self).__getitem__( item )
-
-
-
 
     @staticmethod
     def get_standard( AA = False,
@@ -2314,9 +2313,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         h1.order = 2
         h2.order = 3
         w = Water( AA = AA)
-        w.append( o )
-        w.append( h1 )
-        w.append( h2 )
+        w.add_atom( o )
+        w.add_atom( h1 )
+        w.add_atom( h2 )
         w.o.pdb_name = 'OW'
         w.h1.pdb_name = 'HW1'
         w.h2.pdb_name = 'HW2'
@@ -2350,7 +2349,7 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
     @property
     def coo(self):
         return self.o.r
-    def append(self, atom):
+    def add_atom(self, atom):
         """
 Override list append method, will add up to 3 atoms,
 1 must be oxygen, 2 must be hydrogens.
@@ -2358,7 +2357,7 @@ Override list append method, will add up to 3 atoms,
 .. code:: python
 
     >>> m = Water()
-    >>> m.append( Atom( z = 0.11, element = 'H' ) )
+    >>> m.add_atom( Atom( z = 0.11, element = 'H' ) )
     >>> m.coc
 
 """
