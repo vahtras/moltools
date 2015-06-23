@@ -18,6 +18,18 @@ LoProp:     True/False              bool
 Frequency:  Field :math:`\\omega`    string
 =========== ======================= ==========
 
+BASIS AVAILABLE
+
+
+=========== ======= ==========
+Basis       Element Basis sets
+=========== ======= ==========
+ANO631      H       2s
+            C/N/O   4s 3p 1d
+------------------------------
+
+=========== ======= ==========
+
 
 .. code:: python
 
@@ -842,6 +854,8 @@ Frequency:  Field :math:`\\omega`    string
 ( 'H2', "beta") : [ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., ],
 ( 'H3', "beta") : [ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., ],
 }
+
+
 
 # B3LYP with ano-1 4 3 1 on OXY 2s on H For freqs static, 1907, 1064, 589 nm
         self[("TIP3P_PDB", "B3LYP", "ANO631", True, "0.0")] = \
