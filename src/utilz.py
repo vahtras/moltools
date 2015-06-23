@@ -333,6 +333,7 @@ def read_energy( fname, calctype = 'HF' ):
     for line in open(fname).readlines():
         if re.compile(r'.*Final.*energy').match(line):
             return line.split()[-1]
+
 def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
     nuc_dip = np.zeros(3)
     el_dip = np.zeros(3)
@@ -350,7 +351,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 #Special xyz hack for camb3lyp output from akka dalton to find atoms
     pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
 
-    pat_labels_xyz = re.compile(r'^\s*(\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+    pat_labels_xyz = re.compile(r'^\s*((?!-)\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
 # Reading in dipole and charge
     for i in open( file_ ).readlines():
         if pat_Q.search( i ):
@@ -383,7 +384,8 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                 try:
                     element = lab.split('-')[2][0]
                 except IndexError as e:
-                    logging.error( e )
+                    logging.warning( f )
+                    logging.warning( e )
                     continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
@@ -489,6 +491,172 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                     beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
     N_el = sum([charge_dic[at.element] for at in atoms]) - Q
     tot_dip = el_dip - coc * N_el
+
+    return atoms, tot_dip, alpha , beta
+
+def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, akka = False):
+    nuc_dip = np.zeros(3)
+    el_dip = np.zeros(3)
+    alpha = np.zeros([3,3])
+    beta = np.zeros([3,3,3])
+    tmp = []
+    atoms = []
+    missing = {}
+    exists = {}
+    lab = ["X", "Y", "Z"]
+
+    pat_Q = re.compile(r'Total charge of the molecule')
+    pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+    pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
+#Special xyz hack for camb3lyp output from akka dalton to find atoms
+    if akka:
+        pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
+    else:
+        pat_akka_xyz = re.compile(r'^(?!a)a')
+
+    pat_labels_xyz = re.compile(r'^\s*((?!-)\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+# Reading in dipole and charge
+    for i in string_.split('\n'):
+        if pat_Q.search( i ):
+            Q = float(i.split()[-1])
+        if pat_xyz.match(i):
+            f = pat_xyz.match(i).groups()
+            matched = pat_xyz.match(i).groups()
+#Skip coordinates in out file that are for MM region from QMMM
+            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
+                    "y" : matched[2], "z" : matched[3] }
+            tmpAtom = molecules.Atom( **kwargs )
+            atoms.append( tmpAtom )
+
+        elif pat_akka_xyz.match(i):
+            print i
+            print 'asdf'
+            raise SystemExit
+            f = pat_akka_xyz.match(i).groups()
+            matched = pat_akka_xyz.match(i).groups()
+#Skip coordinates in out file that are for MM region from QMMM
+            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
+                    "y" : matched[2], "z" : matched[3] }
+            tmpAtom = molecules.Atom( **kwargs )
+            atoms.append( tmpAtom )
+
+        elif pat_labels_xyz.match(i):
+            f = pat_labels_xyz.match(i).groups()
+            matched = pat_labels_xyz.match(i).groups()
+            lab = matched[0]
+            if len(lab.split('-')) == 4:
+                element = "H"
+            else:
+                try:
+                    element = lab.split('-')[2][0]
+                except IndexError as e:
+                    logging.warning( f )
+                    logging.warning( e )
+                    continue
+            kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
+                    "y" : matched[2], "z" : matched[3] }
+            tmpAtom = molecules.Atom( **kwargs )
+            atoms.append( tmpAtom )
+
+        if pat_pol.search(i):
+            if pat_pol.search(i).group(1) == "X":
+                try:
+                    if "D" in i.split()[3]:
+                        frac = float(i.split()[3].replace("D","E"))
+                    else:
+                        frac = float(i.split()[3])
+                except IndexError:
+                    if "D" in i.split()[2]:
+                        frac = float( i.split()[2].strip(":").replace("D","E"))
+                    else:
+                        frac = float( i.split()[2].strip(":"))
+                el_dip[0] += frac
+            if pat_pol.search(i).group(1) == "Y":
+                try:
+                    if "D" in i.split()[3]:
+                        frac = float(i.split()[3].replace("D","E"))
+                    else:
+                        frac = float(i.split()[3])
+                except IndexError:
+                    if "D" in i.split()[2]:
+                        frac = float( i.split()[2].strip(":").replace("D","E"))
+                    else:
+                        frac = float( i.split()[2].strip(":"))
+                el_dip[1] += frac
+            if pat_pol.search(i).group(1) == "Z":
+                try:
+                    if "D" in i.split()[3]:
+                        frac = float(i.split()[3].replace("D","E"))
+                    else:
+                        frac = float(i.split()[3])
+                except IndexError:
+                    if "D" in i.split()[2]:
+                        frac = float( i.split()[2].strip(":").replace("D","E"))
+                    else:
+                        frac = float( i.split()[2].strip(":"))
+                el_dip[2] += frac
+
+
+#Set center of nuceli charge to 0
+    coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
+            sum([ charge_dic[x.element] for x in atoms ])
+
+    for i in atoms:
+        nuc_dip += charge_dic[ i.element ] * (i.r - coc )
+
+    if in_AA and not out_AA:
+# Make sure center of charge is in Atomic units to give correct electronic dipole
+        coc /= a0
+
+# Reading in Alfa and Beta tensor
+    fre = str("%.5f" % float(freq))
+    pat_alpha = re.compile(r'@.*QRLRVE.*([XYZ])DIPLEN.*([XYZ])DIPLEN.*%s' %fre)
+    alpha = np.zeros( [3,3,] )
+    lab = ['X', 'Y', 'Z', ]
+
+    for i in string_.split('\n'):
+        if pat_alpha.match( i ):
+            try:
+                if "D" in i.split()[-1]:
+                    frac = float( i.split()[-1].replace("D","E") )
+                else:
+                    frac = float( i.split()[-1] )
+            except IndexError:
+                if "D" in i.split()[-1]:
+                    frac = float( i.split()[-1].strip("=").replace("D","E") )
+                else:
+                    frac = float( i.split()[-1].strip("=") )
+            A = pat_alpha.match(i).groups(1)[0]
+            B = pat_alpha.match(i).groups(1)[1]
+            alpha[ lab.index( A ) , lab.index( B ) ]  = frac
+            if A == "X" and B == "Y":
+                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+            if A == "X" and B == "Z":
+                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+            if A == "Y" and B == "Z":
+                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+
+    pat_beta = re.compile(r'@ B-freq')
+    for i in string_.split('\n'):
+        if pat_beta.match(i):
+            try:
+                if i.split()[7].lstrip("beta") in exists:
+                    continue
+                exists[ i.split()[7].lstrip("beta") ] = float(i.split()[9] )
+            except ValueError:
+                a, b, c = i.split()[9].lstrip("beta").strip("()").split(",")
+                if i.split()[7].lstrip("beta") in missing:
+                    continue
+                missing[ i.split()[7].lstrip("beta") ] =  "(%s;%s,%s)"%(a,b,c)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                try:
+                    beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
+                except KeyError:
+                    beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
+    N_el = sum([charge_dic[at.element] for at in atoms]) - Q
+    tot_dip = -el_dip + coc * N_el
 
     return atoms, tot_dip, alpha , beta
 
