@@ -2414,6 +2414,7 @@ Override list append method, will add up to 3 atoms,
 #Water string method
     def __str__(self):
         return "WAT" + str(self.res_id) 
+
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.coo - np.array(point))**2))
 
@@ -3314,7 +3315,7 @@ Return a cluster of water molecules given file.
                 if fname.endswith( '.log' ):
                     tmp.AA = True
                 i.in_water = True
-                tmp.append( i )
+                tmp.add_atom( i )
                 for j in atoms:
                     if j.element == "O":
                         continue
@@ -3323,11 +3324,11 @@ Return a cluster of water molecules given file.
 #If in angstrom
                     if in_AA:
                         if i.dist_to_atom(j) < 1.1:
-                            tmp.append ( j )
+                            tmp.add_atom ( j )
                             j.in_water = True
                     else:
                         if i.dist_to_atom(j) < 1.1/a0:
-                            tmp.append ( j )
+                            tmp.add_atom ( j )
                             j.in_water = True
                 tmp._res_id = cnt
                 cnt += 1
