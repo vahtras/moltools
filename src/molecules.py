@@ -3374,7 +3374,7 @@ Return a cluster of water molecules given file.
 #When all atoms are there
 #Right now NOT center-of-mass
                 i.in_water= True
-                tmp.append(i)
+                tmp.add_atom(i)
                 for j in atoms:
                     if j.element == "O":
                         continue
@@ -3384,15 +3384,14 @@ Return a cluster of water molecules given file.
                     if in_AA:
                         if i.dist_to_atom(j) <= 1.05:
                             j.in_water = True
-                            tmp.append( j )
+                            tmp.add_atom( j )
                     else:
                         if i.dist_to_atom(j) <= 1.05/a0:
                             j.in_water = True
-                            tmp.append( j )
+                            tmp.add_atom( j )
                 tmp._res_id = cnt
                 cnt += 1
                 wlist.append( tmp )
-
             wlist.sort( key = lambda x: x.dist_to_point( center ))
             center_water = wlist[0]
             cent_wlist = wlist[1:]
