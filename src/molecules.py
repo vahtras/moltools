@@ -220,8 +220,6 @@ invoking dalton on a supercomputer.
             if (at_string, p ) not in template:
                 raise RuntimeWarning("'( %s, %s )' not found in provided template" %(at_string,p))
 
-
-
         p = Property() 
         for key in template:
             if key[0] == at_string:
@@ -1047,9 +1045,9 @@ class Molecule( list ):
         self.linewidth = {"X":25,"H":25, "N": 30, "C": 30, "O":40, "P" : 40,
                 'S' : 45 }
 
-# Make emptpy, beware that this causes molecules to give zero dipole momnet
+# Make empty, beware that this causes molecules to give zero dipole momnet
 # before template is loaded
-        self.Property = None
+        self._Property = None
 
 #By default, in no region
         self._in_qm = False
@@ -1187,19 +1185,19 @@ class Molecule( list ):
 
         if centered:
             p = self.p
-            st += "( 'X', {0:8s}) : {1:2.5f},\n".format( 'charge', p.q )
+            st += "( 'X', {0:8s}) : {1:2.5f},\n".format( "'charge'", p.q )
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,4) )))
 
-            st += tmp.format( 'dipole', *(p.d.tolist()) )
+            st += tmp.format( "'dipole'", *(p.d.tolist()) )
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
 
-            st += tmp.format(  'quadrupole', *p.Q.tolist() )
+            st += tmp.format(  "'quadrupole'", *p.Q.tolist() )
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
 
-            st += tmp.format( 'alpha', *p.a )
+            st += tmp.format( "'alpha'", *p.a )
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,11) )))
 
-            st += tmp.format( 'beta', *p.b )
+            st += tmp.format( "'beta'", *p.b )
             return st
 
         for at in self:
@@ -1382,7 +1380,10 @@ class Molecule( list ):
             freq = "0.0",
             euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
             template_key = lambda x: x.pdb_name,
-            force_template = False):
+            force_template = False,
+            centered = None,
+            centered_key = lambda x: x[0].r
+            ):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
@@ -1392,7 +1393,12 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         if isinstance(self, Water):
             euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
 
+
         templ = Template().get( *(model, method, basis, loprop, freq) )
+        if centered is not None:
+            self.Property = Property.from_template( 'X', templ )
+        raise SystemExit
+
         for at in self:
             at.p = Property.from_template( template_key(at), templ )
         t1, t2, t3 = self.get_euler( key = euler_key )
@@ -1402,7 +1408,6 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             self.LoProp = True
         else:
             self.LoProp = False
-        self.Property = True
 
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
@@ -1813,6 +1818,14 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
                         dihed.append( [at1.name, at2.name, at3.name, at4.name] )
                         at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
         return dihed
+
+#For molecular properties on whole molecule, instead of atomic ones
+    @property
+    def Property(self):
+        return self._Property
+    @Property.setter
+    def Property(self, val):
+        self._Property = val
 
     @property
     def p(self):
