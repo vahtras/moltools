@@ -1171,8 +1171,10 @@ class Molecule( list ):
             at.p = at.p.rotate( t1, t2, t3 )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
-            label_func = lambda x: x.pdb_name ):
-        """Write out the template with properties for molecule"""
+            label_func = lambda x: x.pdb_name,
+            centered = None ):
+        """Write out the template with properties for molecule
+        if centered, will put the property on position given as array"""
         if len(label_func.func_code.co_varnames) != 1:
             print "Unsupported multi key function"
             raise SystemExit
@@ -1182,6 +1184,23 @@ class Molecule( list ):
         #st += "'origo' : '%s',\n" % self.origo_z_x[0]
         #st += "'z' : '%s',\n" % self.origo_z_x[1]
         #st += "'x' : '%s',\n}" % self.origo_z_x[2]
+
+        if centered:
+            p = self.p
+            st += "( 'X', {0:8s}) : {1:2.5f},\n".format( 'charge', p.q )
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,4) )))
+
+            st += tmp.format( 'dipole', *(p.d.tolist()) )
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
+
+            st += tmp.format(  'quadrupole', *p.Q.tolist() )
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
+
+            st += tmp.format( 'alpha', *p.a )
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,11) )))
+
+            st += tmp.format( 'beta', *p.b )
+            return st
 
         for at in self:
             st += "( {0:5s}, {1:8s}) : {2:2.5f},\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
