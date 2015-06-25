@@ -931,9 +931,9 @@ Plot Atom in a 3D frame
             return self._res_id
         return 0
 
-    def potline(self, max_l=2, pol=22, hyper=1):
+    def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
-                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper ) + "\n"
+                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, fmt ) + "\n"
 
 #Atom string method
     def __str__(self):
@@ -1031,6 +1031,7 @@ class Molecule( list ):
         self._r = None
         self._com = None
         self.Cluster = None
+        self._cluster_order  = None
         self.no_hydrogens = True
 
 # This will be set True if attaching LoProp properties
@@ -1075,6 +1076,35 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+    def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
+            prop_point = None,
+            ):
+        string = ""
+        if self.Property:
+            if prop_point is None:
+                prop_point = self.com
+            tmp_atom = Atom()
+            tmp_atom.Molecule = self
+            tmp_atom.x, tmp_atom.y, tmp_atom.z = prop_point
+            tmp_atom.Property = self.Property
+            string += tmp_atom.potline( max_l, pol, hyper, fmt )
+        else:
+            for at in self:
+                string += at.potline( max_l, pol, hyper, fmt )
+        return string
+
+    @property
+    def cluster_order(self):
+        if self._cluster_order is not None:
+            return self._cluster_order
+        return 0
+
+    @cluster_order.setter
+    def cluster_order(self, val):
+        self._cluster_order = val
+
+
 
     def connect_everything(self):
         for a in self:
@@ -1407,6 +1437,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             self.Property = None
             self.LoProp = True
         else:
+            self.Property.transform_ut_properties( t1, t2, t3 )
             self.LoProp = False
 
     def dist_to_point( self , point ):
@@ -3169,8 +3200,6 @@ Plot Cluster a 3D frame in the cluster
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
             hyp = 1,
-# If complicated molecule, set dummy_pd to a coordinate to place the net property
-            dummy_pd = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
 
@@ -3178,8 +3207,6 @@ Plot Cluster a 3D frame in the cluster
         self.order_mm_mols()
 
 # We need to check that it is not in LoProp mode
-        if dummy_pd:
-            assert self.LoProp == False
 
         if self.AA:
             st = "AA\n"
@@ -3189,13 +3216,14 @@ Plot Cluster a 3D frame in the cluster
         if hyp == 0:
             hyp_int = 1
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self ]), 
-                    max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol ] )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp])+len([m for m in self if m.Property]), max_l, pol, 1 )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
+            st += "".join( [ mol.potline(max_l, pol, hyp) for mol in self if mol.Property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
                     max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm] )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
+            st += "".join( [ mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.Property ] )
         return st
 
     def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
@@ -3231,6 +3259,7 @@ Plot Cluster a 3D frame in the cluster
             cnt += 1
     def order_mm_mols(self):
         cnt = 1
+        self.sort( key = lambda x:x.Property )
         for mol in self:
             mol.cluster_order = cnt
             cnt += 1
