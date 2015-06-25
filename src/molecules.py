@@ -1382,7 +1382,6 @@ class Molecule( list ):
             template_key = lambda x: x.pdb_name,
             force_template = False,
             centered = None,
-            centered_key = lambda x: x[0].r
             ):
         """
 Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
@@ -1395,16 +1394,17 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
 
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
-        if centered is not None:
+        if loprop:
+            for at in self:
+                at.p = Property.from_template( template_key(at), templ )
+        else:
             self.Property = Property.from_template( 'X', templ )
-        raise SystemExit
 
-        for at in self:
-            at.p = Property.from_template( template_key(at), templ )
         t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
             at.p.transform_ut_properties( t1, t2, t3 )
         if loprop:
+            self.Property = None
             self.LoProp = True
         else:
             self.LoProp = False
@@ -1839,6 +1839,8 @@ Return the sum properties of all properties in molecules
 .. code:: python
     >>> wat
         """
+        if self.Property:
+            return self.Property
         el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
         nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
@@ -3512,7 +3514,6 @@ Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
                 mol.LoProp = True
             else:
                 mol.LoProp = False
-        self.Property = True
 
     def add(self, item ):
         if isinstance( item , Molecule ):
