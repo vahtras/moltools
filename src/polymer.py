@@ -108,7 +108,7 @@ class Monomer( pdbreader.Residue ):
         new._res_name = self.res_name
         new.Next = self.Next
         new.Prev = self.Prev
-        new.chain = self.chain
+        new.Chain = self.Chain
         return new
 
     def gather_ready( self, 
