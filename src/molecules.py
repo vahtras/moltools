@@ -751,13 +751,12 @@ AA       True     bool
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
         """Return pdb line as specified by the PDB standard"""
-        st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:3s}{6:1s}{7:1s}{8:4s}{9:1s}{10:3s}{11:8s}{12:8s}{13:8s}{14:22s}{15:2s}\n".format( "ATOM", 
+        st = "{0:6s}{1:5s}{2:1s}{3:4s}{4:1s}{5:4s}{6:1s}{7:4s}{8:1s}{9:3s}{10:8s}{11:8s}{12:8s}{13:22s}{14:2s}\n".format( "ATOM", 
                 str(self.atom_id),
                 "",
                 self.pdb_name,
                 "",
                 self.Molecule.res_name,
-                "",
                 self.Molecule.Cluster._chain_id,
                 string.rjust( str(self.Molecule.res_id), 4),
                 "",
@@ -2752,6 +2751,17 @@ class Cluster(list):
             else:
                 for item in args:
                     self.add( item )
+    @property
+    def chain_id(self):
+        if self._chain_id:
+            return self._chain_id
+        return 'X'
+
+    @chain_id.setter
+    def chain_id(self, val ):
+        self._chain_id = val
+
+
 
     def connect_everything(self):
         self.connect_atoms_to_cluster()
