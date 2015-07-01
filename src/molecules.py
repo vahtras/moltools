@@ -1076,6 +1076,18 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    @property
+    def freq(self):
+        if self._freq is not None:
+            return self._freq
+        if self.Cluster:
+            return self.Cluster.freq
+        return "0.0"
+
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
+
     def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
             prop_point = None,
             ):
