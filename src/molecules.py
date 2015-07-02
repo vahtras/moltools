@@ -1026,6 +1026,7 @@ class Molecule( list ):
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
         self._res_name = None
+        self._freq = None
         self._res_id = 0
         self._r = None
         self._com = None
@@ -2321,6 +2322,8 @@ class Water( Molecule ):
 
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
+
+#If initializing water from list of 3 atoms, set H, O for given atoms
 
     def copy(self):
         return self.copy_water()
