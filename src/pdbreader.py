@@ -729,6 +729,25 @@ class NewResidue( molecules.Molecule ):
         super( NewResidue, self ).__init__( *args, **kwargs )
 
     @property
+    def o(self):
+        return self.OW
+    @property
+    def h1(self):
+        return self.HW1
+    @property
+    def h2(self):
+        return self.HW2
+    @property
+    def OW(self):
+        return self.get_atom_by_pdbname( 'OW' )
+    @property
+    def HW1(self):
+        return self.get_atom_by_pdbname( 'HW1' )
+    @property
+    def HW2(self):
+        return self.get_atom_by_pdbname( 'HW2' )
+
+    @property
     def snapshot(self):
         if self._snapshot:
             return self._snapshot
