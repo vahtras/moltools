@@ -45,15 +45,15 @@ ANO631      H       2s
 """
 
 
-    def get(self, model = "TIP3P", method = "HF", basis ="ANOPVDZ",
-            dist = True, freq = "0.0", nm = False ):
+    def get(self, model = "TIP3P_PDB", method = "B3LYP", basis ="ANO631",
+            loprop = True, freq = "0.0", nm = False ):
         if freq == "0.0000000":
             freq = "0.0"
         if nm:
             freq = "%.7f" %( conv/ freq )
         if model.lower() == 'tip4p':
             model = 'TIP3P'
-        return self[ ( model.upper(), method.upper(), basis.upper(), dist, freq) ]
+        return self[ ( model.upper(), method.upper(), basis.upper(), loprop, freq) ]
 
 
     def __init__(self):
