@@ -1212,7 +1212,8 @@ class Molecule( list ):
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name,
-            centered = None ):
+            centered = None,
+            decimal = 7):
         """Write out the template with properties for molecule
         if centered, will put the property on position given as array"""
         if len(label_func.func_code.co_varnames) != 1:
@@ -1227,33 +1228,33 @@ class Molecule( list ):
 
         if centered:
             p = self.p
-            st += "( 'X', {0:8s}) : {1:2.5f},\n".format( "'charge'", p.q )
-            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,4) )))
+            st += ("( 'X', {0:8s}) : " + "{1:%df},\n"%decimal).format( "'charge'", p.q )
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,4) )))
 
             st += tmp.format( "'dipole'", *(p.d.tolist()) )
-            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,7) )))
 
             st += tmp.format(  "'quadrupole'", *p.Q.tolist() )
-            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,7) )))
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,7) )))
 
             st += tmp.format( "'alpha'", *p.a )
-            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(1,11) )))
+            tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,11) )))
 
             st += tmp.format( "'beta'", *p.b )
             return st
 
         for at in self:
-            st += "( {0:5s}, {1:8s}) : {2:2.5f},\n".format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
-            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,5) )))
+            st += ("( {0:5s}, {1:8s}) : "+"{2:.%df},\n" %decimal).format( "'" +label_func(at)  +"'" , "'charge'", at.p.q )
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(2,5) )))
 
             st += tmp.format( "'" + label_func(at) + "'", "'dipole'", *(at.p.d.tolist()) )
-            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(2,8) )))
 
             st += tmp.format(  "'" + label_func(at) + "'", "'quadrupole'",*at.p.Q.tolist() )
-            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,8) )))
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(2,8) )))
 
             st += tmp.format( "'" + label_func(at) + "'", "'alpha'",*at.p.a )
-            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:1.5f}, " %x, range(2,12) )))
+            tmp = "( {0:5s}, {1:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(2,12) )))
 
             st += tmp.format( "'" + label_func(at) +"'", "'beta'", *at.p.b )
 
@@ -1415,9 +1416,9 @@ class Molecule( list ):
         return np.einsum( 'ijj,i', b, p )/np.linalg.norm( p )
 
     def attach_properties(self, 
-            model = "TIP3P",
-            method = "HF",
-            basis = "ANOPVDZ",
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
             loprop = True,
             freq = "0.0",
             euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
