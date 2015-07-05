@@ -1475,7 +1475,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         
         """
         if rot_type == 'water':
-            key = lambda x: (x[0].r, x[2].r + (x[1].r-x[2].r)/2, x[1].r)
+            key = lambda x: (x.o.r, x.h2.r + (x.h1.r-x.h2.r)/2, x.h1.r)
         try:
             p1, p2, p3 = key( self )
         except IndexError:
@@ -1547,6 +1547,8 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         """
         if freq == None:
             freq = 0.0
+        else:
+            freq = float(freq)
         if log:
             logging.basicConfig( filename=log, level=logging.DEBUG )
 
