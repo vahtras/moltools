@@ -2834,7 +2834,7 @@ class Cluster(list):
             rp = 1e-9,
             AA_cutoff = 1.5,
             nullify = False,
-            model = 'Thole'
+            model = 'thole'
             ):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
@@ -2843,8 +2843,12 @@ class Cluster(list):
         from pd.gaussian import GaussianQuadrupoleList
         from pd.thole import TholeList
 
-        opts = { 'Thole' : TholeList, 'Gaussian' :GaussianQuadrupoleList,
-                't' : TholeList, 'g' :GaussianQuadrupoleList,
+        opts = { 'pointdipole' : PointDipoleList,
+                'thole' : TholeList,
+                'gaussian' :GaussianQuadrupoleList,
+                'p' : PointDipoleList,
+                't' : TholeList,
+                'g' :GaussianQuadrupoleList,
                 }
 
         aa = self.AA
