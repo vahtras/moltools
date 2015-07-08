@@ -2840,6 +2840,7 @@ class Cluster(list):
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
+        from pd.particles import PointDipoleList
         from pd.gaussian import GaussianQuadrupoleList
         from pd.thole import TholeList
 
