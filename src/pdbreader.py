@@ -2211,6 +2211,10 @@ class World( list ):
                 if isinstance( each, NewSystem):
                     self.append( each )
         
+    def connect(self):
+        for s in [s for s in self if isinstance(s, NewSystem) ]:
+            s.connect_everything
+
     def add(self, item):
         if isinstance(item, NewSystem ):
             self.append( item )
