@@ -498,7 +498,7 @@ class Monomer( pdbreader.Residue ):
     def connect_monomer(self, other):
         r_ca = self.last_heavy.r
         e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
-        r_new = e_old * other._r
+        r_new = e_old * other._rn
         other.translate_by_r( r_ca + r_new - other.first_heavy.r )
 
         self.c_term = False
