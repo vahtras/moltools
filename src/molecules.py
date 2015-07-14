@@ -3341,8 +3341,8 @@ Return a cluster of water molecules given file.
 #Temporary atom numbering so that it is compatible with PEQM reader in dalton
             for i in open( fname ).readlines():
                 if pat1.search(i):
-                    if ( i[11:16].strip() == "SW") or (i[11:16] == "DW") \
-                            or (i[11:16].strip() == "MW"):
+                    n = i[11:16].strip()
+                    if n in [ "SW", "DW", "MW" ]:
                         continue
                     kwargs = {
                             "AA" : in_AA,
