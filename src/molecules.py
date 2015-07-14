@@ -2068,9 +2068,9 @@ Plot Molecule in a 3D frame
             x = copy.coc[0]
             y = copy.coc[1]
             z = copy.coc[2]
-            p = copy.p
+            p = copy.p.d
             ax.plot( [x,x+p[0]], [y,y+p[1]], [z,z+p[2]], 'k-', linewidth = 3 )
-            ax.plot( [p[0]],[p[1]],[p[2]],'ko', markersize = 5, linewidth = 5 )
+            #ax.plot( [p[0]],[p[1]],[p[2]],'ko', markersize = 5, linewidth = 5 )
         for i in copy:
             ax.plot( [i.x], [i.y], [i.z], copy.style[i.element], linewidth= copy.linewidth[i.element] )
 
