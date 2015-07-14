@@ -3,6 +3,7 @@ import molecules, re, copy
 import copy as copy
 import numpy as np
 import utilz
+import logging
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
         "P" : 15, "X" : 0.0 }
@@ -495,24 +496,32 @@ class Monomer( pdbreader.Residue ):
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
     
-    def connect_monomer(self, other):
-        r_ca = self.last_heavy.r
-        e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
-        r_new = e_old * other._rn
-        other.translate_by_r( r_ca + r_new - other.first_heavy.r )
+    def connect_monomer(self, other, last = True):
+        """By default connects to the last point of the Monomer"""
+        if last:
+            r_ca = self.last_heavy.r
+            e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
+            r_new = e_old * other._rn
+            other.translate_by_r( r_ca + r_new - other.first_heavy.r )
 
-        self.c_term = False
-        other.c_term = True
-        other._res_id = self._res_id + 1
+            self.c_term = False
+            other.c_term = True
+            other._res_id = self._res_id + 1
 
-        other.hide( other.first_h )
-        self.hide( self.last_h )
+            other.hide( other.first_h )
+            self.hide( self.last_h )
+        else:
+            r_ca = self.last_heavy.r
+            e_old = (self.first_heavy.r - first_h.r)/ np.linalg.norm( (self.first_heavy.r - self.first_h.r) )
+            r_new = e_old * other._rn
+            other.translate_by_r( r_ca + r_new - other.first_heavy.r )
 
-        p1 = self.last_heavy.r
-        p2 = other.first_heavy.r
-        other.rotate_around( p1, p2, other.res_id * other._rot_angle )
+            self.c_term = False
+            other.c_term = True
+            other._res_id = self._res_id + 1
 
-
+            other.hide( other.first_h )
+            self.hide( self.last_h )
 
 class Polymer( molecules.Cluster ):
     @staticmethod
@@ -528,14 +537,14 @@ class Polymer( molecules.Cluster ):
         P.append( mono )
         return P
 
-    def add_monomer(self,mono):
+    def add_monomer(self, mono, last = True):
         mono = copy.deepcopy( mono )
         last = self[-1]
         last.Next = mono
         mono.Prev = last
         mono.Cluster = self
         mono.Polymer = self
-        last.connect_monomer( mono )
+        last.connect_monomer( mono, last = last )
         self.append( mono )
 
     @property
