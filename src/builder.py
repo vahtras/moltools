@@ -8,11 +8,13 @@ def pmma_monomer( t = 0 ):
     """Return pmmma monomer building block as defined by SMILES
     format obtained in avogadro
 
-    3 differen versions exist
+    4 differen versions exist
 
     0 is standard from smiles( gives bas CH-3 overlap between neighbours
     1 is where CB1 is rotated pi/4.5 degrees around CA-CB1 bond
     2 is where also hydrogens in CD methyl group are rotated by np/2.5
+    3 is the geometry optimized monomer from B3LYP/6-31+G* with the C-C bond beeing the average of the previous included and next
+    included monomer in the optimization
     
     """
     builddir = 'build'
