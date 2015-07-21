@@ -693,13 +693,23 @@ AA       True     bool
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
             self.number = kwargs.get( "number", 0 )
-            self.pdb_name = kwargs.get( "pdb_name", 'X1' )
+            self._pdb_name = kwargs.get( "pdb_name", 'X1' )
             self.order = kwargs.get( "order", 0 )
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+# property setters and getters for pdb_name
+    @property
+    def pdb_name(self):
+        if self._pdb_name is None:
+            return 'X1'
+        return self._pdb_name
+    @pdb_name.setter
+    def pdb_name(self, val):
+        self._pdb_name = val
 
 # property setters and getters
     @property
