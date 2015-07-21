@@ -1036,6 +1036,11 @@ class Molecule( list ):
         self._cluster_order  = None
         self.no_hydrogens = True
 
+
+# This will be set True if Property is represented by a point on molecule
+        self._is_property = False
+        self._property_r = None
+
 # This will be set True if attaching LoProp properties
         self.LoProp = False
 
@@ -1079,6 +1084,22 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+
+#Properties relating to whether molecule has fixed point for Properties instead of LoProp
+    @property
+    def is_property(self):
+        return self._is_property
+    @is_property.setter
+    def is_property(self,val):
+        self._is_property = val
+    @property
+    def property_r(self):
+        return self._property_r
+    @property_r.setter
+    def property_r(self,val):
+        self._property_r = val
+#// end of properties
+
     @property
     def freq(self):
         if self._freq is not None:
@@ -1096,12 +1117,14 @@ class Molecule( list ):
             prop_point = None,
             ):
         string = ""
-        if self.Property:
-            if prop_point is None:
-                prop_point = self.com
+        if self.is_property:
+#can override molecules property location if we want by prop_point keyword
+            center = self.property_r
+            if prop_point is not None:
+                center = prop_point
             tmp_atom = Atom()
             tmp_atom.Molecule = self
-            tmp_atom.x, tmp_atom.y, tmp_atom.z = prop_point
+            tmp_atom.x, tmp_atom.y, tmp_atom.z = center
             tmp_atom.Property = self.sum_property
             string += tmp_atom.potline( max_l, pol, hyper, fmt )
         else:
@@ -1433,9 +1456,9 @@ class Molecule( list ):
             force_template = False,
             centered = None,
             ):
-        """
-Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
-        """
+        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        if centered is None:
+            centered = np.zeros(3,)
         if isinstance(self, Water) and not force_template:
             template_key = lambda x: x.element + str(x.order)
 
@@ -1458,6 +1481,7 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
             self.LoProp = True
         else:
             self.is_property = True
+            self.property_r = centered
             self.Property.transform_ut_properties( t1, t2, t3 )
             self.LoProp = False
 
