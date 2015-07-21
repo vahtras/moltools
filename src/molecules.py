@@ -3324,7 +3324,7 @@ Plot Cluster a 3D frame in the cluster
             cnt += 1
     def order_mm_mols(self):
         cnt = 1
-        self.sort( key = lambda x:x.Property )
+        self.sort( key = lambda x:x.is_property )
         for mol in self:
             mol.cluster_order = cnt
             cnt += 1
