@@ -145,6 +145,7 @@ class Property( dict ):
         """
         return np.einsum('ijj,i', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
 
+#Method of Property
     def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
         string = ""
         if 0  <= max_l :
@@ -930,6 +931,7 @@ Plot Atom in a 3D frame
             return self._res_id
         return 0
 
+#Method of Atom
     def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, fmt ) + "\n"
@@ -1089,6 +1091,7 @@ class Molecule( list ):
     def freq(self, val):
         self._freq = val
 
+#Method of Molecule
     def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
             prop_point = None,
             ):
@@ -1099,7 +1102,7 @@ class Molecule( list ):
             tmp_atom = Atom()
             tmp_atom.Molecule = self
             tmp_atom.x, tmp_atom.y, tmp_atom.z = prop_point
-            tmp_atom.Property = self.Property
+            tmp_atom.Property = self.sum_property
             string += tmp_atom.potline( max_l, pol, hyper, fmt )
         else:
             for at in self:
@@ -1183,6 +1186,10 @@ class Molecule( list ):
     #    assert isinstance( p2, Atom )
     #    assert isinstance( p3, Atom )
     #    self._origo_z_x = (p1.r.copy,(),())
+    def rotate_around(self, p1, p2, theta = 0.0):
+        """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
+        for at in self :
+            at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
 
     def inv_rotate(self, t1, t2, t3):
         """rotate all atoms and properties as
@@ -1447,9 +1454,10 @@ Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
         for at in self:
             at.p.transform_ut_properties( t1, t2, t3 )
         if loprop:
-            self.Property = None
+            self.is_property = False
             self.LoProp = True
         else:
+            self.is_property = True
             self.Property.transform_ut_properties( t1, t2, t3 )
             self.LoProp = False
 
@@ -2780,7 +2788,6 @@ class Cluster(list):
         self._chain_id = val
 
 
-
     def connect_everything(self):
         self.connect_atoms_to_cluster()
         self.connect_atoms_to_molecules()
@@ -3248,15 +3255,16 @@ Plot Cluster a 3D frame in the cluster
 # Old qmmm format requires integer at end to properly read charges
         if hyp == 0:
             hyp_int = 1
+#Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp])+len([m for m in self if m.Property]), max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
-            st += "".join( [ mol.potline(max_l, pol, hyp) for mol in self if mol.Property ] )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self])+len([m for m in self if m.Property]), max_l, pol, 1 )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
                     max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
-            st += "".join( [ mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.Property ] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.is_property ] )
         return st
 
     def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
@@ -3561,21 +3569,16 @@ Return a cluster of water molecules given file.
             method = "HF",
             basis = "ANOPVDZ",
             loprop = True,
-            freq = "0.0"):
-        """
-Attach property to all atoms and oxygens, by default TIP3P/HF/ANOPVDZ, static
-        """
-        templ = Template().get( *(model, method, basis, loprop, freq) )
+            freq = "0.0",
+            force_template = False):
+        """Attach properties to all molecules in this cluster"""
         for mol in self:
-            for at in mol:
-                Property.add_prop_from_template( at, templ )
-            t1, t2, t3 = mol.get_euler()
-            for at in mol:
-                at.Property.transform_ut_properties( t3, t2, t1 )
-            if loprop:
-                mol.LoProp = True
-            else:
-                mol.LoProp = False
+            mol.attach_properties( model = model,
+                    method = method,
+                    basis = basis,
+                    loprop = loprop,
+                    freq = freq,
+                    force_template = force_template)
 
     def add(self, item ):
         if isinstance( item , Molecule ):
