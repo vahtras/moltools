@@ -1475,7 +1475,6 @@ class Molecule( list ):
         if isinstance(self, Water):
             euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
 
-
         templ = Template().get( *(model, method, basis, loprop, freq) )
         if loprop:
             for at in self:
@@ -1913,6 +1912,12 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
+        assert val is not None
+        if self.LoProp is None:
+            logging.error("Can't set property, already set since LoProp is False")
+            raise AssertionError
+        self.LoProp = None
+
         self._Property = val
 
 #Wrapper func for Molecule
@@ -3601,7 +3606,7 @@ Return a cluster of water molecules given file.
 
     def attach_properties(self, 
             model = "TIP3P_PDB",
-            method = "B3LYP",
+            method = "HF",
             basis = "ANO631",
             loprop = True,
             freq = "0.0",
