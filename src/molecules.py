@@ -3280,25 +3280,27 @@ Plot Cluster a 3D frame in the cluster
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
             hyp = 1,
+#set center to true to avoid emply loprop atom lines in output, good to make matrices smaller in pointdipole list
+            center = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
 
 #make sure that each unique residue is in seperate residue in POT output
         self.order_mm_mols()
 
-# We need to check that it is not in LoProp mode
-
         if self.AA:
             st = "AA\n"
         else:
             st = "AU\n"
+
 # Old qmmm format requires integer at end to properly read charges
         if hyp == 0:
             hyp_int = 1
+
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self])+len([m for m in self if m.Property]), max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol] )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.Property]), max_l, pol, 1 )
+            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
             st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
