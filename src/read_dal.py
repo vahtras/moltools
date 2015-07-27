@@ -1022,7 +1022,7 @@ def read_energy( fname, calctype = 'HF' ):
         if re.compile(r'.*Final.*energy').match(line):
             return line.split()[-1]
 
-def read_beta_ccsd( args ):
+def read_beta_ccsd( fstr ):
 
     mol_dip = np.zeros(3)
     alpha = np.zeros(  [3,3])
@@ -1039,16 +1039,15 @@ def read_beta_ccsd( args ):
     pat_beta=  re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
 
 # Reading in dipole
-    lines = open( args.beta ).readlines()
+    lines = fstr.split('\n')
     for i in range(len( lines )):
         if pat_dipole.search( lines[i] ):
             mol_dip[0] = lines[i+5].split()[1]
             mol_dip[1] = lines[i+6].split()[1]
             mol_dip[2] = lines[i+7].split()[1]
-            print mol_dip
 
 # Reading in Alfa 
-    for i in open( args.beta ).readlines():
+    for i in lines:
         if pat_alpha.search( i ):
             if len(i.split()) < 8:
                 try:
@@ -1071,7 +1070,7 @@ def read_beta_ccsd( args ):
                 if A == "Y" and B == "Z":
                     alpha[ lab.index( B ) , lab.index( A ) ]  = frac
 #For Beta
-    for i in open( args.beta ).readlines():
+    for i in lines:
         if pat_beta.search( i ):
             if len(i.split()) >8:
                 try:
@@ -1089,12 +1088,11 @@ def read_beta_ccsd( args ):
                 lab2 = pat_beta.search(i).groups(1)[1]
                 lab3 = pat_beta.search(i).groups(1)[2]
 
-                beta_dict[ lab1 + lab2 + lab3 ] = frac
+                beta_dict[ "".join( [lab1 + lab2 + lab3]) ] = frac
     for i, l1 in enumerate(lab):
         for j, l2 in enumerate(lab):
             for k, l3 in enumerate(lab):
                 beta[i, j, k] = beta_dict[ l1 + l2 + l3 ]
-
 
     return atoms, mol_dip, alpha , beta
 
