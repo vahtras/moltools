@@ -1745,7 +1745,6 @@ class Molecule( list ):
                     maxl = maxl,
                     pol = pol,
                     hyper = hyper )
-        self.LoProp = True
 
 
 #So that we do not pollute current directory with dalton outputs
@@ -1776,6 +1775,7 @@ class Molecule( list ):
         #        os.remove( f_ )
         #    except OSError:
         #        pass
+        self.LoProp = True
 
     @classmethod
     def from_string(cls, fil):
@@ -1915,6 +1915,7 @@ class Molecule( list ):
     def Property(self, val):
         self._Property = val
 
+#Wrapper func for Molecule
     @property
     def p(self):
         return self.sum_property
@@ -3089,7 +3090,7 @@ class Cluster(list):
         for atom in [at for mol in self for at in mol]:
             yield atom
    
-# Specifi
+# Center of charge of Cluster
     @property
     def coc(self):
     #obj should be atom
@@ -3599,12 +3600,16 @@ Return a cluster of water molecules given file.
         return False
 
     def attach_properties(self, 
-            model = "TIP3P",
-            method = "HF",
-            basis = "ANOPVDZ",
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
             loprop = True,
             freq = "0.0",
-            force_template = False):
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
+            force_template = False,
+            centered = None,
+            ):
         """Attach properties to all molecules in this cluster"""
         for mol in self:
             mol.attach_properties( model = model,
@@ -3612,7 +3617,10 @@ Return a cluster of water molecules given file.
                     basis = basis,
                     loprop = loprop,
                     freq = freq,
-                    force_template = force_template)
+                    euler_key = euler_key,
+                    template_key = template_key,
+                    force_template = force_template,
+                    centered = centered )
 
     def add(self, item ):
         if isinstance( item , Molecule ):
@@ -3736,6 +3744,7 @@ Return a cluster of water molecules given file.
         if len(self) == 0:return np.zeros(3)
         return sum([at.r*at.mass for mol in self for at in mol]) / sum([at.mass for mol in self for at in mol] )
 
+#Wrapper func for cluster
     @property
     def p(self):
         return self.sum_property
@@ -3751,7 +3760,9 @@ Return the sum properties of all molecules in cluster
         dip = el_dip + nuc_dip
         dip_tot = (dip + dip_lop).sum(axis=0)
         p = Property()
-        for mol in self:
+        for mol in [m for m in self if m.is_property]:
+            p += mol.Property
+        for mol in [m for m in self if m.LoProp]:
             for at in mol:
                 p += at.Property
         p['dipole'] = dip_tot
