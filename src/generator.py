@@ -113,6 +113,26 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
+    def get_ccsdqua_dal():
+        return """
+**DALTON INPUT
+.RUN RESPONSE
+**INTEGRALS
+.DIPLEN
+.SECMOM
+**WAVE FUNCTION
+.CC
+*CC INPUT
+.CCSD
+*CCFOP
+.DIPMOM
+*CCLR
+.DIPOLE
+*CCQR
+.DIPOLE
+**END OF DALTON INPUT
+"""
+    @staticmethod
     def get_b3lypqua_dal( ):
         return """**DALTON INPUT
 .RUN RESPONSE
