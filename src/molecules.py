@@ -1129,7 +1129,7 @@ class Molecule( list ):
         string = ""
         if self.is_property:
 #can override molecules property location if we want by prop_point keyword
-            center = self.property_r
+            center = self.com
             if prop_point is not None:
                 center = prop_point
             tmp_atom = Atom()
@@ -1237,6 +1237,7 @@ class Molecule( list ):
         for at in self:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
+
     def rotate(self, t1, t2, t3):
         """Rotate atomss and properties by t1, t2, t3
         t1 positive rotation around Z-axis
@@ -1246,9 +1247,14 @@ class Molecule( list ):
         r1 = utilz.Rz(t1)
         r2 = utilz.Ry_inv(t2)
         r3 = utilz.Rz(t3)
-        for at in self:
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
-            at.p = at.p.rotate( t1, t2, t3 )
+        if self.LoProp:
+            for at in self:
+                at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+                at.p = at.p.rotate( t1, t2, t3 )
+        elif self.is_property:
+            for at in self:
+                at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+            self.Property = self.Property.rotate( t1, t2, t3 )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name,
