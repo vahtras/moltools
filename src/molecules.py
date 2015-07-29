@@ -1531,7 +1531,7 @@ class Molecule( list ):
             maxl = 2,
             pol = 22,
             hyper = 2,
-            decimal = 5,
+            decimal = 7,
             ):
         if tmpdir is None:
             tmpdir = "/tmp"
