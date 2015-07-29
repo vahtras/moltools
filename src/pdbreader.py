@@ -2222,6 +2222,11 @@ class World( list ):
     def save(self, fname = "world.p"):
         pickle.dump( self, open(fname, 'wb' ), protocol = 2 )
 
+    
+    @property
+    def molecules(self):
+        return [m for s in self for ch in s for m in ch if isinstance( m, molecules.Molecule ) ]
+
     @staticmethod
     def load(fname = 'world.p'):
         if not os.path.isfile( fname ):
