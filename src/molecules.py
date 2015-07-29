@@ -702,6 +702,14 @@ AA       True     bool
         self._mass = None
 
 # property setters and getters for pdb_name
+    @property
+    def pdb_name(self):
+        if self._pdb_name is None:
+            return 'X1'
+        return self._pdb_name
+    @pdb_name.setter
+    def pdb_name(self, val):
+        self._pdb_name = val
 
 # property setters and getters
     @property
