@@ -1247,6 +1247,9 @@ class Molecule( list ):
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             self.Property = self.Property.rotate( t1, t2, t3 )
+        else:
+            for at in self:
+                at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name,
