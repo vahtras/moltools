@@ -27,7 +27,7 @@ a0 = 0.52917721092
 au_nm_conv = 45.563352491
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
 
-charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
+charge_dict = {"H": 1.0, "He" :2.0, "Li" : 3.0,  "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
         "P" : 15, "X" : 0.0 }
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
@@ -1708,7 +1708,16 @@ class Molecule( list ):
             tar = "dalton_molecule.tar.gz"
 #Need to do this since late dalton scripts appends the tmp with seperate PID
             real_tmp = utilz.find_dir( of, tmpdir )
-            of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+
+#If smth happend to the dalton subprocess, the of will not exist and throw exception
+            try:
+                of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+            except AttributeError:
+                logging.error( "Some internal HPC specific error occured" )
+                logging.error( "Will dump the .mol file of botched calculation" )
+                logging.error( self.get_mol_string( basis = basis) )
+                return
+
             #print out, err, real_tmp
             #raise SystemExit
 
@@ -1745,8 +1754,12 @@ class Molecule( list ):
         f_at = lambda x: map(float,x.get_mol_line().split()[1:])
         f_prop = lambda x: map(float,x.split()[1:4])
 
-        assert len( self ) == len( lines )
 
+        try:
+            assert len( self ) == len( lines )
+        except:
+            logging.error("Some error went undetected despite creating .tar.gz and .out files")
+            return
 
         for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
             at.Property = Property.from_propline( prop ,
@@ -1772,17 +1785,8 @@ class Molecule( list ):
         if not keep_outfile:
             for fil in [f for f in os.listdir(os.getcwd()) if "dalton_molecule" in f]:
                 os.remove( os.path.join( os.getcwd(), fil ) )
-        #try:
-        #    os.remove( tar )
-        #except OSError:
-        #    pass
-        #os.remove( of )
-        #shutil.rmtree( tmpdir )
-        #for f_ in [mol, dal]:
-        #    try:
-        #        os.remove( f_ )
-        #    except OSError:
-        #        pass
+
+        self.is_property = False
         self.LoProp = True
 
     @classmethod
@@ -2139,8 +2143,8 @@ Plot Molecule in a 3D frame
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
-            el_to_rowind = {"H" : 0, "C" : 1, "O" : 1, "N" : 1,
-                    "S" : 2, "P" : 2}
+            el_to_rowind = {"H" : 0, "He" : 0, "Li" : 1, "C" : 1, "O" : 1, "N" : 1,
+                    "S" : 2, "P" : 2 }
         else:
             el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0 }
         st = ""
