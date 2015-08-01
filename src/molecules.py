@@ -2169,7 +2169,7 @@ Plot Molecule in a 3D frame
     def copy_self(self):
         return self.copy()
     def copy(self):
-        return copy.deepcopy(self)
+        return copymod.deepcopy(self)
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
 
