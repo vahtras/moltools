@@ -3171,7 +3171,7 @@ Plot Cluster a 3D frame in the cluster
         plt.show()
 
 
-    def get_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
+    def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1", "ano-2 5 4 1" ) ):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
         if len( basis ) > 1:
