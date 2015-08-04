@@ -3312,7 +3312,7 @@ Plot Cluster a 3D frame in the cluster
 
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.Property]), max_l, pol, 1 )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_property]), max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
             st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_property ] )
         else:
