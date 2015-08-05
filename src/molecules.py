@@ -1161,23 +1161,22 @@ class Molecule( list ):
         t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
         self.t( -origin )
 
-        R1_inv = utilz.Rz_inv( r1 )
-        R2     = utilz.Ry( r2 )
-        R3_inv = utilz.Rz_inv( r3 )
+        R1 = utilz.Rz( r1 )
+        R2_inv = utilz.Ry_inv( r2 )
+        R3 = utilz.Rz( r3 )
         S = utilz.S( plane )
-        R1 = np.einsum( 'ij->ji', R3_inv )
-        R2_inv = np.einsum( 'ij->ji', R2 )
-        R3 = np.einsum( 'ij->ji', R1_inv )
+        R1_inv = np.einsum( 'ij->ji', R3 )
+        R2 = np.einsum( 'ij->ji', R2_inv )
+        R3_inv = np.einsum( 'ij->ji', R1 )
 
 # Rotate each atom to fit key orientation, followed by plane reflection and rotation back
         for at in self:
             at.x, at.y, at.z = np.einsum( 'ab, bc, cd, de, ef, fg, gi, i', R3, R2_inv, R1, S, R3_inv, R2, R1_inv, at.r )
-
             at.p = at.p.transform_by_matrix( R1_inv )
             at.p = at.p.transform_by_matrix( R2 )
             at.p = at.p.transform_by_matrix( R3_inv )
             at.p = at.p.transform_by_matrix( S )
-            at.p.transform_ut_properties( r3, r2, r1)
+            at.p.transform_ut_properties( r1, r2, r3)
         self.t( origin )
 
     def t(self, *args):
