@@ -12,7 +12,7 @@ class MoleculesTestCase( unittest.TestCase ):
         kw_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
             True, "0.0"))
         for at in wat:
-            Property.add_prop_from_template( at, kw_dict )
+            at.p = Property.from_template( at.name, kw_dict )
             at.Property.transform_ut_properties( t1, t2, t3 )
 # will only test this quadrupole
             at.Property["quadrupole"] = np.arange( 6 )
