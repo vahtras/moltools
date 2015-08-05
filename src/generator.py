@@ -113,26 +113,6 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
-    def get_ccsdqua_dal():
-        return """
-**DALTON INPUT
-.RUN RESPONSE
-**INTEGRALS
-.DIPLEN
-.SECMOM
-**WAVE FUNCTION
-.CC
-*CC INPUT
-.CCSD
-*CCFOP
-.DIPMOM
-*CCLR
-.DIPOLE
-*CCQR
-.DIPOLE
-**END OF DALTON INPUT
-"""
-    @staticmethod
     def get_b3lypqua_dal( ):
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -157,6 +137,32 @@ ZDIPLEN
 .DIPLEN
 **END OF DALTON INPUT""" 
 
+    @staticmethod
+    def get_hflin_freq_dal( freq = "0.0", au = True, nm = False  ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+.FREQUE
+ 1
+ %s
+""" %( freq )
+        _string += "**END OF DALTON INPUT\n"
+        return _string
     @staticmethod
     def get_hfqua_dal( ):
         return """**DALTON INPUT
@@ -205,33 +211,6 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
-    def get_hflin_freq_dal( freq = "0.0", au = True, nm = False  ):
-        _string = """**DALTON INPUT
-.RUN RESPONSE
-.DIRECT
-.PARALLELL
-**WAVE FUNCTION
-.HF
-**INTEGRAL
-.DIPLEN
-.SECMOM
-**RESPONSE
-.PROPAV
-XDIPLEN
-.PROPAV
-YDIPLEN
-.PROPAV
-ZDIPLEN
-*LINEAR
-.DIPLEN
-.FREQUE
- 1
- %s
-""" %( freq )
-        _string += "**END OF DALTON INPUT\n"
-        return _string
-
-    @staticmethod
     def get_b3lyplin_freq_dal( freq = "0.0", au = True, nm = False  ):
         _string = """**DALTON INPUT
 .RUN RESPONSE
@@ -259,6 +238,129 @@ ZDIPLEN
 """ %( freq )
         _string += "**END OF DALTON INPUT\n"
         return _string
+    @staticmethod
+    def get_camb3lyplin_dal():
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+
+
+    @staticmethod
+    def get_camb3lypqua_dal( ):
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*QUADRATIC
+.QLOP
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+
+
+    @staticmethod
+    def get_camb3lyplin_freq_dal( freq = "0.0", au = True, nm = False  ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+.FREQUE
+ 1
+ %s
+""" %( freq )
+        _string += "**END OF DALTON INPUT\n"
+        return _string
+
+
+
+    @staticmethod
+    def get_ccsdlin_dal():
+        return """
+**DALTON INPUT
+.RUN RESPONSE
+**INTEGRALS
+.DIPLEN
+.SECMOM
+**WAVE FUNCTION
+.CC
+*CC INPUT
+.CCSD
+*CCFOP
+.DIPMOM
+*CCLR
+.DIPOLE
+**END OF DALTON INPUT
+"""
+    @staticmethod
+    def get_ccsdqua_dal():
+        return """
+**DALTON INPUT
+.RUN RESPONSE
+**INTEGRALS
+.DIPLEN
+.SECMOM
+**WAVE FUNCTION
+.CC
+*CC INPUT
+.CCSD
+*CCFOP
+.DIPMOM
+*CCLR
+.DIPOLE
+*CCQR
+.DIPOLE
+**END OF DALTON INPUT
+"""
+
 
     def get_mol( self, 
             center = [0,0,0], 
