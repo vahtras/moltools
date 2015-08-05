@@ -1625,6 +1625,10 @@ class Molecule( list ):
             open( dal, 'w').write( Generator.get_hfqua_dal( ) )
         elif method == 'b3lypqua':
             open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
+        elif method == 'camb3lypqua':
+            open( dal, 'w').write( Generator.get_camb3lypqua_dal( ) )
+        elif method == 'ccsdlin':
+            open( dal, 'w').write( Generator.get_ccsdlin_dal( ) )
         elif method == 'hflin':
             if freq:
                 open( dal, 'w').write( Generator.get_hflin_freq_dal( freq = freq ) )
@@ -1634,7 +1638,12 @@ class Molecule( list ):
             if freq:
                 open( dal, 'w').write( Generator.get_b3lyplin_freq_dal( freq = freq ) )
             else:
-                open( dal, 'w').write( Generator.get_b3lyplin_dal( ) )
+                open( dal, 'w').write( Generator.get_b3lyplin_dal() )
+        elif method == 'camb3lyplin':
+            if freq:
+                open( dal, 'w').write( Generator.get_camb3lyplin_freq_dal( freq = freq ) )
+            else:
+                open( dal, 'w').write( Generator.get_camb3lyplin_dal() )
         else:
             print "wrong calculation type specified"
             return
