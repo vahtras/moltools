@@ -3392,9 +3392,10 @@ Plot Cluster a 3D frame in the cluster
                 Property.add_prop_from_template( at, kwargs_dict )
                 at.Property.transform_ut_properties( t1, t2, t3)
 
-
     @staticmethod
-    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
+    def get_water_cluster_from_string( _str, in_AA,
+            out_AA, N_waters = 1000, file_ending = '.mol'):
+
         """
 Return a cluster of water molecules given file.
 
@@ -3407,9 +3408,11 @@ Return a cluster of water molecules given file.
 """
         atoms = []
         c = Cluster()
-        if fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+        lines = _str.split( '\n' )
+
+        if file_ending == '.mol' or file_ending == '.xyz':
             pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
+            for i in lines:
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     matched = pat_xyz.match(i).groups()
@@ -3418,10 +3421,10 @@ Return a cluster of water molecules given file.
                     tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
 
-        elif fname.endswith( ".pdb" ):
+        elif file_ending == '.pdb':
             pat1 = re.compile(r'^(ATOM|HETATM)')
 #Temporary atom numbering so that it is compatible with PEQM reader in dalton
-            for i in open( fname ).readlines():
+            for i in lines:
                 if pat1.search(i):
                     n = i[11:16].strip()
                     if n in [ "SW", "DW", "MW" ]:
@@ -3435,14 +3438,14 @@ Return a cluster of water molecules given file.
                             "number" : i[6:11].strip()  }
                     tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
-        elif fname.endswith( ".out" ):
+        elif file_ending == '.out':
             pat_xyz = re.compile(r'^(\w+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-            for i in open( fname ).readlines():
+            for i in lines:
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     tmpAtom = Atom(f[0][0], float(f[1]), float(f[2]), float(f[3]), 0)
                     atoms.append( tmpAtom )
-        elif fname.endswith( '.log' ):
+        elif file_ending == '.log':
             pat_atoms = re.compile ( r'NAtoms=\s+(\d+)' )
             pat_xyz = re.compile ( r'Standard ori' )
             lines = open(fname).readlines()
@@ -3466,7 +3469,7 @@ Return a cluster of water molecules given file.
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
         cnt = 1
-        if fname.endswith(".log") or fname.endswith( ".xyz" ) or fname.endswith(".mol"):
+        if file_ending == '.mol' or file_ending == '.xyz' or file_ending == '.log':
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
             xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
             for i in atoms:
@@ -3490,7 +3493,7 @@ Return a cluster of water molecules given file.
                     continue
                 tmp = Water( AA = in_AA)
 #Gaussian output seems to have Angstrom always
-                if fname.endswith( '.log' ):
+                if file_ending == '.log':
                     tmp.AA = True
                 i.in_water = True
                 tmp.add_atom( i )
@@ -3523,7 +3526,7 @@ Return a cluster of water molecules given file.
             waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
             for i in waters:
                 c.append(i)
-        elif fname.endswith( ".pdb" ):
+        elif file_ending == '.pdb':
 #Find out the size of the box encompassing all atoms
             xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
             xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
@@ -3584,7 +3587,7 @@ Return a cluster of water molecules given file.
             waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
             for i in waters:
                 c.append(i)
-        elif fname.endswith( ".out" ):
+        elif file_ending == '.out':
             for i in atoms:
                 if i.element == "H":
                     continue
@@ -3614,7 +3617,7 @@ Return a cluster of water molecules given file.
             for atom in wat:
                 atom._res_id = wat.res_id
 
-        if in_AA or fname.endswith( '.log' ):
+        if in_AA or file_ending == '.log':
             if not out_AA:
                 for wat in c:
                     wat.to_AU()
@@ -3629,6 +3632,12 @@ Return a cluster of water molecules given file.
         c.set_qm_mm(100)
         return c
 
+    @staticmethod
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
+        file_ending = '.' + fname.split('.')[-1]
+        return Cluster.get_water_cluster_from_string( open(fname).read(),
+                in_AA = in_AA, out_AA = out_AA, N_waters = N_waters,
+                file_ending = file_ending)
 
     def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
