@@ -1067,6 +1067,9 @@ class Molecule( list ):
 # before template is loaded
         self._Property = None
 
+#Access snapshot of cluster if exists
+        self._snap = None
+
 #By default, in no region
         self._in_qm = False
         self._in_mm = False
@@ -1110,17 +1113,33 @@ class Molecule( list ):
         self._property_r = val
 #// end of properties
 
+#Molecule freq method
     @property
     def freq(self):
         if self._freq is not None:
             return self._freq
         if self.Cluster:
             return self.Cluster.freq
-        return "0.0"
+        return "0.0000000"
 
     @freq.setter
     def freq(self, val):
         self._freq = val
+
+#Molecule snap method
+    @property
+    def snap(self):
+        if self._snap is not None:
+            return self._snap
+        if self.Cluster:
+            return self.Cluster.snap
+        return "0"
+
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
+
+
 
 #Method of Molecule
     def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
