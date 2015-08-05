@@ -110,11 +110,14 @@ class WaterTest( unittest.TestCase ):
         w.translate_o( np.zeros(3) )
 
         for at in w:
-            Property.add_prop_from_template( at, Template().get() )
+            at.p = Property.from_template( at.name, Template().get( model = 'TIP3p',
+                method ='HF',
+                basis = 'ANOPVDZ') )
+        w.LoProp = True
 
         np.testing.assert_allclose( w.p.d ,[0, 0, 0.78704747], atol = 1e-7)
 
-        w.rotate( np.pi/7, 0, 0 )
+        w.rotate( np.pi/2, 0, 0 )
 
         self.eq( w.p.d ,[0, 0, 0.78704747])
 
