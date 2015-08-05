@@ -726,6 +726,7 @@ class NewResidue( molecules.Molecule ):
         self._res_name = None
         self._Chain = None
         self._Cluster = None
+        self._Bridge = None
         super( NewResidue, self ).__init__( *args, **kwargs )
 
     @property
@@ -746,6 +747,14 @@ class NewResidue( molecules.Molecule ):
     @property
     def HW2(self):
         return self.get_atom_by_pdbname( 'HW2' )
+
+    @property
+    def Bridge(self):
+        if self._Bridge:
+            return self._Bridge
+    @Bridge.setter
+    def Bridge(self, val):
+        self._Bridge = val
 
     @property
     def snapshot(self):
@@ -776,6 +785,12 @@ class NewResidue( molecules.Molecule ):
             except AssertionError:
                 logging.error( "No _res_id in NewResidue and not all atoms in same residue")
         return tmp_id
+
+    def get_atom(self, pdb_name):
+        #try:
+        for i in self:
+            if i.pdb_name == pdb_name:
+                return i.copy()
 
     @res_id.setter
     def res_id(self, val):
@@ -1279,6 +1294,7 @@ class Residue( molecules.Molecule ):
             if atom.pdb_name == pdb_name:
                 return True
         return False
+
     def getAtom(self, pdb_name):
         #try:
         for i in self:
@@ -2130,6 +2146,28 @@ class NewSystem( list ):
         for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
             cluster.System = self
             cluster.connect_everything()
+
+
+    def find_sulfur_bridges(self):
+        """Note: identical to System.find_sulfur_bridges"""
+        cys = []
+        for ch in self:
+            for res in ch:
+                if res.res_name == "CYS":
+                    if "HG1" in res:
+                        #No bridge if has this atom
+                        continue
+                    else:
+                        cys.append( res )
+
+#For all cys that form sulfur bridge, find the partner residue 
+        for i in range(len(cys)):
+            for j in range( i , len(cys)):
+                if i == j:
+                    continue
+                if cys[i].get_atom( "SG" ).dist_to_atom( cys[j].get_atom( "SG" ) ) < 2.8 :
+                    cys[i]._Bridge = cys[j]
+                    cys[j]._Bridge = cys[i]
 
     @property
     def snapshot(self):
