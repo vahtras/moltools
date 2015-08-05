@@ -8,7 +8,7 @@ class ReflectionTest( unittest.TestCase ):
 
     def setUp(self):
         self.w = Water.get_standard()
-        self.w.attach_properties()
+        self.w.attach_properties( force_template = True )
 
     def test_reflection(self):
         q = self.w.p.q
