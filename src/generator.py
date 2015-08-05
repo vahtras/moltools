@@ -89,6 +89,17 @@ B3LYP
         return st
 
     @staticmethod
+    def get_lin_dal( _string ):
+        if _string == 'hflin':
+            return Generator.get_hflin_dal()
+        elif _string == 'b3lyplin':
+            return Generator.get_b3lyplin_dal()
+        elif _string == 'camb3lyplin':
+            return Generator.get_camb3lyplin_dal()
+        elif _string == 'ccsdlin':
+            return Generator.get_ccsdlin_dal()
+
+    @staticmethod
     def get_b3lyplin_dal():
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -324,8 +335,7 @@ ZDIPLEN
 
     @staticmethod
     def get_ccsdlin_dal():
-        return """
-**DALTON INPUT
+        return """**DALTON INPUT
 .RUN RESPONSE
 **INTEGRALS
 .DIPLEN
