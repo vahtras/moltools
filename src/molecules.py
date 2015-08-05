@@ -228,30 +228,6 @@ invoking dalton on a supercomputer.
                     p[ each ] = template[ (at_string, each ) ]
         return p
 
-
-    @staticmethod
-    def add_prop_from_template( at, wat_templ ):
-
-        """
-Puts properties read from the :ref:`template` module into the :ref:`atom` at.
-
-    
-    >>> #Dist = True is the default, properties obtained using LoProp
-    >>> temp = template.Template().get( dist = False ) 
-    >>> w = Water.get_standard() 
-    >>> Property.add_prop_from_template( w.o, temp )
-    >>> print w.o.Property["dipole"]
-    [0.0, 0.0, 0.78719]
-
-"""
-        p = Property()
-        for i, keys in enumerate( wat_templ ):
-            if keys[0] == ( at.element + str(at.order) ):
-                p[keys[1]] = np.array( wat_templ[ keys ] )
-        at.Property = p
-#backwards compatible fix since charge was len 1 ndarray and now scalar
-        at.Molecule.Property = True
-
     def inv_rotate( self, t1, t2, t3 ):
         """Rotate all properties by t1, t2, t3
         t1 negative rotation around Z-axis
