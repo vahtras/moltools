@@ -2908,6 +2908,7 @@ class Cluster(list):
         from pd.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
+                'point' :PointDipoleList,
                 'thole' : TholeList,
                 'gaussian' :GaussianQuadrupoleList,
                 'p' : PointDipoleList,
