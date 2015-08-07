@@ -2917,7 +2917,8 @@ class Cluster(list):
 
         aa = self.AA
         self.to_AU()
-        g = opts[model].from_string( self.get_qmmm_pot_string() )
+        g = opts[model].from_string( self.get_qmmm_pot_string(max_l = max_l,
+            pol = pol, hyp = hyp) )
         for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
             ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
             g[ ind ]._R_q = rq
