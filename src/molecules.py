@@ -1284,6 +1284,7 @@ class Molecule( list ):
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,11) )))
 
             st += tmp.format( "'beta'", *p.b )
+            st += '}'
             return st
 
         for at in self:
