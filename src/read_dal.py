@@ -1430,12 +1430,21 @@ def main():
         write_related( args )
     
 def read_h5_info( _file ):
+    """Usage:
+>>> print read_h5_info( 'test.h5' ):
+test.h5
+asdf/random : random numbers 3 columns
+        """
 
     st = "%s\n" %_file
+    li = []
+
     f = h5py.File( _file , 'r' )
-    for i in f.keys():
+    f.visit( li.append )
+
+    for i in li:
         for elem in f[i].attrs.keys():
-            line = i + '/' + elem + ':' + f[i].attrs[ elem ]
+            line = i + '/' + elem + ':' + f[i].attrs[ elem ] + '\n'
             st += line
     f.close()
     return st
