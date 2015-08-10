@@ -1429,6 +1429,16 @@ def main():
     if args.write:
         write_related( args )
     
+def read_h5_info( _file ):
+
+    st = "%s\n" %_file
+    f = h5py.File( _file , 'r' )
+    for i in f.keys():
+        for elem in f[i].attrs.keys():
+            line = i + '/' + elem + ':' + f[i].attrs[ elem ]
+            st += line
+    f.close()
+    return st
 
 if __name__ == '__main__':
     main()
