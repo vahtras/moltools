@@ -876,6 +876,7 @@ Plot Atom in a 3D frame
         for at in self.bonds:
             self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
 
+#Atom method
     def copy(self):
         return self.copy_atom()
     def copy_self(self):
@@ -2172,8 +2173,12 @@ Plot Molecule in a 3D frame
 
     def copy_self(self):
         return self.copy()
-    def copy(self):
-        return copymod.deepcopy(self)
+
+    def copy(self, shallow = False):
+        if shallow:
+            return copymod.copy(self)
+        else:
+            return copymod.deepcopy(self)
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
 
@@ -2393,8 +2398,8 @@ class Water( Molecule ):
 
 #If initializing water from list of 3 atoms, set H, O for given atoms
 
-    def copy(self):
-        return self.copy_water()
+    def copy(self, shallow = False):
+        return super(Water, self).copy( shallow = shallow )
 
     def copy_self(self):
         return self.copy_water()
