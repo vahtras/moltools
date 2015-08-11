@@ -1436,16 +1436,22 @@ test.h5
 asdf/random : random numbers 3 columns
         """
 
-    st = "%s\n" %_file
+    st = "%s\nfield       description\n" %_file
     li = []
 
     f = h5py.File( _file , 'r' )
     f.visit( li.append )
 
     for i in li:
+        line = ""
+        if isinstance( f[i], h5py.Group):
+            continue
+        line = line + i + ': '
         for elem in f[i].attrs.keys():
-            line = i + '/' + elem + ':' + f[i].attrs[ elem ] + '\n'
-            st += line
+            line = line + f[i].attrs[ elem ] + '\n'
+        if len(f[i].attrs) == 0:
+            line = line + "-\n"
+        st += line
     f.close()
     return st
 
