@@ -3641,7 +3641,7 @@ Return a cluster of water molecules given file.
 
     def attach_properties(self, 
             model = "TIP3P_PDB",
-            method = "HF",
+            method = "B3LYP",
             basis = "ANO631",
             loprop = True,
             freq = "0.0",
