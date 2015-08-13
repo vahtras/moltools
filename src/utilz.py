@@ -1115,6 +1115,10 @@ def ut2s( vec ):
         return ut_2_square( vec )
     elif len( vec ) == 10:
         return ut_3_square( vec )
+    elif vec.shape == (3,3,):
+        return vec
+    elif vec.shape == (3,3,3,):
+        return vec
 
 
 def square_2_ut(alpha):
