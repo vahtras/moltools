@@ -1549,6 +1549,8 @@ class Molecule( list ):
              x.get_atom_by_pdbname('CA').r)
         
         """
+        if isinstance( self, Water ):
+            key = lambda x: (x.o.r, x.h2.r + (x.h1.r-x.h2.r)/2, x.h1.r)
         if rot_type == 'water':
             key = lambda x: (x.o.r, x.h2.r + (x.h1.r-x.h2.r)/2, x.h1.r)
         try:
