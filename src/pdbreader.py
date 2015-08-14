@@ -625,17 +625,17 @@ class NewAtom( molecules.Atom ):
             return self._res_name
         return "XXX"
     @res_name.setter
-    def order(self,val):
+    def res_name(self,val):
         self._res_name = val
 
-    @property
-    def order(self):
-        if self._order:
-            return self._order
-        return 0
-    @order.setter
-    def order(self,val):
-        self._order = val
+    #@property
+    #def order(self):
+    #    if self._order:
+    #        return self._order
+    #    return 0
+    #@order.setter
+    #def order(self,val):
+    #    self._order = val
 
     @property
     def chain_id(self):
