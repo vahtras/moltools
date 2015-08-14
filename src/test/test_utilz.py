@@ -1280,6 +1280,16 @@ class UtilzTestCase( unittest.TestCase ):
         p_out = rotate_point_by_two_points(p, p1, p2, theta)
         np.testing.assert_allclose( p_out, np.array( [ 3, 6, 1] ), atol=1e-10 )
 
+    def test_rotate_point_around_cross(self):
+        p1 = np.array( [ 1, 0, 0] )
+        p2 = np.array( [ 0, 0,  0] )
+        p3 = np.array( [ 0, 1,  0] )
+        theta = np.pi/2
+        p_out = rotate_point_around_cross(p1, p2, p3, theta)
+        np.testing.assert_allclose( p_out, np.array( [ 0, 1, 0] ), atol=1e-10 )
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
