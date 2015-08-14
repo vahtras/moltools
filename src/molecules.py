@@ -701,6 +701,8 @@ AA       True     bool
             return self._name
         if self._element and self._order:
             return self._element + str(self._order)
+        if self.Molecule and self._element:
+            return self._element + str(self.order)
         return 'X'
     @name.setter
     def name(self,val):
@@ -718,6 +720,9 @@ AA       True     bool
     @property
     def order(self):
         if self._order:
+            return self._order
+        if self.Molecule:
+            self._order = self.Molecule.index(self) + 1
             return self._order
         return 0
     @order.setter
@@ -804,7 +809,32 @@ Plot Atom in a 3D frame
         plt.ylim(-5,5)
         plt.show()
 
+    def get_async_bond(self, alist = [], first = None ):
+        """By specifying the first atom, will recursively
+        grab all atoms in that direction until the tree stops
+        
+        useful when rotating coordinates around the cross vector of an angle
+        in order to rotate whole molecule about that angle"""
 
+        if first:
+            self.Molecule.populate_bonds()
+            alist = []
+        if first is not None:
+            alist.append( self )
+            return first.get_async_bond( alist = alist )
+        else:
+            visit = []
+            for a in self.bonds.values():
+                if a in alist:
+                    continue
+                visit.append( a )
+            alist.append( self )
+            if visit == []:
+                return alist
+            for a in visit:
+                alist = a.get_async_bond( alist = alist )
+            return alist
+            
 
     def __len__( self ):
         return 1
@@ -1147,7 +1177,6 @@ class Molecule( list ):
     @cluster_order.setter
     def cluster_order(self, val):
         self._cluster_order = val
-
 
 
     def connect_everything(self):
