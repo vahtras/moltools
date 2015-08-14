@@ -48,6 +48,8 @@ def make_para( shape = ( 0,) ):
 
 
 def convex_hull_volume( pts):
+    """Calculates the minimum convex set from points, in 
+    3D ths corresponds to the minimum volume occupied by the points"""
     from scipy.spatial import Delaunay, ConvexHull
     def tetrahedron_volume(a, b, c, d):
         return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
@@ -57,7 +59,7 @@ def convex_hull_volume( pts):
     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1],
         tets[:, 2], tets[:, 3]))
 
-def rotate_point_by_two_points(p, p1, p2, theta):
+def rotate_point_by_two_points(p, p1, p2, theta = 0.0 ):
     """Rotate the point p around the line with point at p1 or p2 with 
     direction vector p2-p1"""
     origin = p1.copy()
@@ -69,6 +71,21 @@ def rotate_point_by_two_points(p, p1, p2, theta):
     p = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), p )
     p += origin
     return p
+
+def rotate_point_around_cross(p1, p2, p3, theta = 0.0 ):
+    """Rotate the point p1 clockwise 
+    around the vector formed by crossing p1-p2 and p3-p2"""
+    trans, r3, r2, r1 = center_and_xz( p2, p3, p1 )
+
+    p1, p2, p3 = map(lambda x: x + trans, [p1, p2, p3] )
+
+    p1, p2, p3 = map( lambda x: np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), x ), [p1, p2, p3] )
+    p1 = np.einsum('ab,b', Ry_inv(theta), p1 )
+    p1, p2, p3 = map( lambda x: np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), x ), [p1, p2, p3] )
+
+    p1, p2, p3 = map(lambda x: x - trans, [p1, p2, p3] )
+    return p1
+
 def reflect_point_by_three_points( p, p1, p2, p3 ):
     """ will reflect point p by 
     plane formed by points p1, p2 and p3"""
