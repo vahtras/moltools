@@ -808,7 +808,6 @@ Plot Atom in a 3D frame
         plt.xlim(-5,5)
         plt.ylim(-5,5)
         plt.show()
-
     def get_async_bond(self, alist = [], first = None ):
         """By specifying the first atom, will recursively
         grab all atoms in that direction until the tree stops
@@ -1147,6 +1146,22 @@ class Molecule( list ):
         self._freq = val
 
 
+#Bend angle in Molecule
+    def bend(self, at1, at2, at3, theta = 0.0):
+        """Bend angle between at1 and at2 by theta"""
+        self.populate_angles()
+        
+#So we only rotate atoms, not the one in middle of angle bond
+        ats = at2.get_async_bond( first = at1 )[1:]
+
+        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+
+        for at in ats:
+            at.x, at.y, at.z = at.r + trans
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
     def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
@@ -1864,7 +1879,7 @@ class Molecule( list ):
         self.bond_dict = bond_dict
 
     def populate_angles(self):
-# Must be run after populate_bonds
+        self.populate_bonds()
         for at1 in self:
             for at2 in [at2 for at2 in at1.bonds.values()]:
                 for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
@@ -2434,6 +2449,7 @@ class Water( Molecule ):
 
     def copy_self(self):
         return self.copy_water()
+
 
     def copy_water(self):
         w = Water()
