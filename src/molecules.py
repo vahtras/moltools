@@ -1146,6 +1146,16 @@ class Molecule( list ):
         self._freq = val
 
 
+#Scale bond
+    def scale_bond(self, at1, at2, scale = 1.0):
+        """Bend bond from at1 to at2 by a factor scale = 1.0"""
+        self.populate_bonds()
+        assert at2 in at1.bonds.values()
+        ats = at1.get_async_bond( first = at2 )[1:]
+        dr = ( at2.r - at1.r ) * scale - ( at2.r - at1.r )
+        for at in ats:
+            at.x, at.y, at.z = at.r + dr
+
 #Bend angle in Molecule
     def bend(self, at1, at2, at3, theta = 0.0):
         """Bend angle between at1 and at2 by theta"""
