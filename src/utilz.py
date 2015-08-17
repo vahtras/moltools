@@ -42,7 +42,7 @@ def angle( p1, p2 ,p3 ):
     """Return the angle between 3 points"""
     v1 = p1 - p2
     v2 = p3 - p2
-    return np.arccos( np.dot(v1,v2) ) / (np.linalg.norm(v1)* np.linalg.norm(v2))
+    return np.arccos( np.dot(v1,v2) / (np.linalg.norm(v1)* np.linalg.norm(v2)))
 
 
 def make_para( shape = ( 0,) ):                                                      
