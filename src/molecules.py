@@ -39,7 +39,7 @@ color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O
 bonding_cutoff = { 
         ('X','X') : 1.0,
         ('H','H') : 0.8,
-        ('H','C') : 1.101,
+        ('H','C') : 1.105,
         ('H','N') : 1.1,
         ('H','O') : 1.1,
         ('H','P') : 1.1,
@@ -2144,7 +2144,7 @@ Distance to other molecule, measured by center-of-mass
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
 
-    def plot(self, copy = True, center = False, d = False, names = False ):
+    def plot(self, copy = True, center = False, d = False, names = False, attr = False, key = False ):
         """
 Plot Molecule in a 3D frame
 
@@ -2194,6 +2194,9 @@ Plot Molecule in a 3D frame
         if names:
             for i in copy:
                 ax.text( i.x, i.y, i.z, i.name)
+        if attr:
+            for i in copy:
+                ax.text( i.x, i.y, i.z, getattr(i, attr))
 
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
@@ -3193,7 +3196,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, copy = True, center = False, d = False, names = False ):
+    def plot(self, copy = True, center = False, d = False, names = False, attr = False, key = False ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -3243,6 +3246,11 @@ Plot Cluster a 3D frame in the cluster
             for mol in copy:
                 for at in mol:
                     ax.text( at.x, at.y, at.z, at.name)
+        if attr:
+            for mol in copy:
+                for at in mol:
+                    ax.text( at.x, at.y, at.z, getattr(at, attr ) )
+
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
