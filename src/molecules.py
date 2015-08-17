@@ -757,6 +757,10 @@ AA       True     bool
     def order(self, val):
         self._order = val
 
+    def disconnect(self, other):
+        if other.name in self.bonds:
+            del self.bonds[ other.name ]
+
     @property
     def com(self):
         return self.r
