@@ -638,7 +638,7 @@ AA       True     bool
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
         self.bonds = {}
         self.angles = {}
-        self.dihedral = {}
+        self.dihedrals = {}
 
         self._q = None
 
@@ -1963,22 +1963,21 @@ class Molecule( list ):
                     full_charm += pre_str + "\t" + atype_dihed[ t2 ] + '\n'
         return full_charm
 
-    def find_dihedrals(self):
+    def populate_dihedrals(self):
 
+        self.populate_bonds()
         dihed = []
         for at1 in self:
             if at1.bonds == []:
                 continue
-            for at2 in at1.bonds:
+            for at2 in at1.bonds.values():
                 if at2.bonds == []:
                     continue
-                for at3 in [a for a in at2.bonds if a != at1]:
+                for at3 in [a for a in at2.bonds.values() if a != at1]:
                     if at3.bonds == []:
                         continue
-                    for at4 in [a for a in at3.bonds if a != at2]:
-                        dihed.append( [at1.name, at2.name, at3.name, at4.name] )
-                        at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
-        return dihed
+                    for at4 in [a for a in at3.bonds.values() if a != at2]:
+                        at1.dihedrals[ (at2.name, at3.name, at4.name) ] = (at1,at2,at3,at4)
 
 #For molecular properties on whole molecule, instead of atomic ones
     @property
@@ -2148,7 +2147,7 @@ Distance to other molecule, measured by center-of-mass
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
 
-    def plot(self, copy = True, center = False, d = False ):
+    def plot(self, copy = True, center = False, d = False, names = False ):
         """
 Plot Molecule in a 3D frame
 
@@ -2195,6 +2194,9 @@ Plot Molecule in a 3D frame
             #ax.plot( [p[0]],[p[1]],[p[2]],'ko', markersize = 5, linewidth = 5 )
         for i in copy:
             ax.plot( [i.x], [i.y], [i.z], copy.style[i.element], linewidth= copy.linewidth[i.element] )
+        if names:
+            for i in copy:
+                ax.text( i.x, i.y, i.z, i.name)
 
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
@@ -2408,6 +2410,16 @@ Angstrom [ out_AA = True ]
             for at in self:
                 at.to_AA()
             self.AA = True
+
+    def byname(self,label ):
+        return self.get_atom_by_name( label.upper() )
+    def get_atom_by_name(self, label ):
+        for at in self:
+            if at.name == label:
+                return at
+        return None
+
+
 
     def get_atom_by_pdbname(self, label, dup = False):
         at = []
@@ -3743,6 +3755,25 @@ Return a cluster of water molecules given file.
         for i, iat in enumerate(at):
             self.append( iat )
             iat.Cluster = self
+
+#Special cluster method when dealing with different molecules in a clusters
+    def populate_bonds(self):
+        bond_dict = {}
+        for i, at in enumerate( self ):
+            bond_dict[ at ] = []
+        if self.AA:
+            conv = 1.0
+        else:
+            conv = 1/a0
+        for i in range(len(self)):
+            for j in range( i + 1, len(self) ):
+                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
+
+                    self[i].bonds[ self[j].name ] = self[j]
+                    self[j].bonds[ self[i].name ] = self[i]
+                    bond_dict[ self[i] ].append( self[j] )
+                    bond_dict[ self[j] ].append( self[i] )
+        self.bond_dict = bond_dict
 
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""
