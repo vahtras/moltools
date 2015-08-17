@@ -38,7 +38,7 @@ color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O
 
 bonding_cutoff = { 
         ('X','X') : 1.0,
-        ('H','H') : 0.8,
+        ('H','H') : 0.2,
         ('H','C') : 1.105,
         ('H','N') : 1.1,
         ('H','O') : 1.1,
@@ -3767,7 +3767,9 @@ Return a cluster of water molecules given file.
             iat.Cluster = self
 
 #Special cluster method when dealing with different molecules in a clusters
-    def populate_bonds(self):
+# By defalt only connet atoms in the peptide, meaning carbons
+    def populate_bonds(self, all_atoms = False ):
+
         for i, at in enumerate( self.atoms ):
             at.bonds = {}
         if self.AA:
@@ -3778,8 +3780,19 @@ Return a cluster of water molecules given file.
             if a1 == a2:
                 continue
             if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                if (a1 in a1.Molecule) and (a2 in a1.Molecule):
+                    if a1.element != 'C':
+                        continue
                 a1.bonds[ a2.name ] = a2
                 a2.bonds[ a1.name ] = a1
+
+#Cluster method for angles
+    def populate_angles(self):
+        self.populate_bonds()
+        for at1 in self.atoms:
+            for at2 in [at2 for at2 in at1.bonds.values()]:
+                for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
+                    at1.angles[(at2.name,at3.name)] = at3
 
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""
