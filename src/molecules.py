@@ -3794,6 +3794,23 @@ Return a cluster of water molecules given file.
                 for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
                     at1.angles[(at2.name,at3.name)] = at3
 
+#Bend angle in Cluster, should be fine as long as bonds are correctly connected
+    def bend(self, at1, at2, at3, theta = 0.0):
+        """Bend angle between at1 and at2 by theta"""
+        self.populate_angles()
+        
+#So we only rotate atoms, not the one in middle of angle bond
+        ats = at2.get_async_bond( first = at1 )[1:]
+        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+        for at in ats:
+            at.x, at.y, at.z = at.r + trans
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = at.r - trans
+
+
+
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""
         for at in self:
