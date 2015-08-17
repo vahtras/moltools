@@ -36,6 +36,34 @@ mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
 
 color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O":'red', 'S' : 'yellow'}
 
+bonding_cutoff = { 
+        ('X','X') : 1.0,
+        ('H','H') : 0.8,
+        ('H','C') : 1.101,
+        ('H','N') : 1.1,
+        ('H','O') : 1.1,
+        ('H','P') : 1.1,
+        ('H','S') : 1.3,
+        ('C','C') : 1.66,
+        ('C','N') : 1.60,
+        ('C','O') : 1.5,
+        ('C','P') : 2.0,
+        ('C','S') : 2.0,
+        ('N','N') : 1.5,
+        ('N','O') : 1.5,
+        ('N','P') : 1.5,
+        ('N','S') : 1.5,
+        ('O','O') : 1.5,
+        ('O','P') : 2.0,
+        ('O','S') : 1.75,
+        ('P','P') : 1.5,
+        ('P','S') : 2.0,
+        ('S','S') : 2.1,
+    }
+#Make permutations for later on
+for key1, key2 in bonding_cutoff.keys():
+    bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
+
 def upper_triangular(n, start=0):
     """Recursive generator for triangular looping of Carteesian tensor
 
@@ -972,7 +1000,7 @@ Return the distance between two atoms
    1.0
 
 """
-        return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
+        return np.sqrt( ((self.r - other.r)**2).sum() )
 
 
 
@@ -987,7 +1015,7 @@ Return the distance to a point
    5.0
 
 """
-        return np.sqrt( (self.x - other[0])**2 + (self.y -other[1])**2 + (self.z -other[2])**2 )
+        return np.sqrt( ((self.r - other)**2).sum() )
 
     def to_AU(self):
         if self.AA:
@@ -1010,33 +1038,6 @@ class Molecule( list ):
 
     def __init__(self , *args, **kwargs):
         super( Molecule, self).__init__()
-#Bond dict defined in angstromg, if molecule is in AU will be different later
-        self.bonding_cutoff = { 
-                ('X','X') : 1.0,
-                ('H','H') : 0.8,
-                ('H','C') : 1.101,
-                ('H','N') : 1.1,
-                ('H','O') : 1.1,
-                ('H','P') : 1.1,
-                ('H','S') : 1.3,
-                ('C','C') : 1.66,
-                ('C','N') : 1.60,
-                ('C','O') : 1.5,
-                ('C','P') : 2.0,
-                ('C','S') : 2.0,
-                ('N','N') : 1.5,
-                ('N','O') : 1.5,
-                ('N','P') : 1.5,
-                ('N','S') : 1.5,
-                ('O','O') : 1.5,
-                ('O','P') : 2.0,
-                ('O','S') : 1.75,
-                ('P','P') : 1.5,
-                ('P','S') : 2.0,
-                ('S','S') : 2.1,
-            }
-        for key1, key2 in self.bonding_cutoff.keys():
-            self.bonding_cutoff[ (key2, key1)] = self.bonding_cutoff[ (key1, key2) ]
 
 # Dictionary with bonds
         self.bond_dict = {}
@@ -1870,9 +1871,8 @@ class Molecule( list ):
 
     def populate_bonds(self):
 #Implement later that it can only be called once
-        bond_dict = {}
         for i, at in enumerate( self ):
-            bond_dict[ at ] = []
+            at.bonds = {}
 
         if self.AA:
             conv = 1.0
@@ -1880,13 +1880,10 @@ class Molecule( list ):
             conv = 1/a0
         for i in range(len(self)):
             for j in range( i + 1, len(self) ):
-                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
+                if self[i].dist_to_atom( self[j] ) < conv*bonding_cutoff[ (self[i].element, self[j].element) ]:
 
                     self[i].bonds[ self[j].name ] = self[j]
                     self[j].bonds[ self[i].name ] = self[i]
-                    bond_dict[ self[i] ].append( self[j] )
-                    bond_dict[ self[j] ].append( self[i] )
-        self.bond_dict = bond_dict
 
     def populate_angles(self):
         self.populate_bonds()
@@ -2175,11 +2172,11 @@ Plot Molecule in a 3D frame
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 #Plot bonds
-        for each in copy.bond_dict:
-            for key in copy.bond_dict[ each ]:
-                ax.plot( [key.x, each.x],
-                         [key.y, each.y],
-                         [key.z, each.z], color = 'black' )
+        for atom in copy:
+            for key in atom.bonds.values():
+                ax.plot( [key.x, atom.x],
+                         [key.y, atom.y],
+                         [key.z, atom.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -2619,8 +2616,8 @@ Override list append method, will add up to 3 atoms,
 
         if len(self) == 3:
             hyd1, hyd2 = [i for i in self if i.element == "H" ]
-            d1 = hyd1.dist_to_point( [1,1,1] )
-            d2 = hyd2.dist_to_point( [1,1,1] )
+            d1 = hyd1.dist_to_point( np.array([1,1,1]) )
+            d2 = hyd2.dist_to_point( np.array([1,1,1]) )
             if d1 < d2:
                 self.h1 = hyd1
                 self.h2 = hyd2
@@ -3196,7 +3193,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, copy = True, center = False ):
+    def plot(self, copy = True, center = False, d = False, names = False ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -3220,8 +3217,7 @@ Plot Cluster a 3D frame in the cluster
         if center:
             copy.translate( -self.com )
 
-        for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
-            mol.populate_bonds()
+        copy.populate_bonds()
 
 #Plot in nice xyz axis
         fig = plt.figure()
@@ -3230,12 +3226,10 @@ Plot Cluster a 3D frame in the cluster
 #Plot bonds
         for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
             for atom in mol:
-                for key in mol.bond_dict[ atom ]:
+                for key in atom.bonds.values():
                     ax.plot( [key.x, atom.x],
                              [key.y, atom.y],
                              [key.z, atom.z], color = 'black' )
-
-
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -3245,6 +3239,10 @@ Plot Cluster a 3D frame in the cluster
         for i in copy:
             for j in i:
                 ax.plot( [j.x], [j.y], [j.z], j.Molecule.style[j.element], linewidth= j.Molecule.linewidth[j.element] )
+        if names:
+            for mol in copy:
+                for at in mol:
+                    ax.text( at.x, at.y, at.z, at.name)
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -3758,22 +3756,18 @@ Return a cluster of water molecules given file.
 
 #Special cluster method when dealing with different molecules in a clusters
     def populate_bonds(self):
-        bond_dict = {}
-        for i, at in enumerate( self ):
-            bond_dict[ at ] = []
+        for i, at in enumerate( self.atoms ):
+            at.bonds = {}
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
-        for i in range(len(self)):
-            for j in range( i + 1, len(self) ):
-                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
-
-                    self[i].bonds[ self[j].name ] = self[j]
-                    self[j].bonds[ self[i].name ] = self[i]
-                    bond_dict[ self[i] ].append( self[j] )
-                    bond_dict[ self[j] ].append( self[i] )
-        self.bond_dict = bond_dict
+        for a1, a2 in itertools.product( self.atoms, self.atoms ):
+            if a1 == a2:
+                continue
+            if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                a1.bonds[ a2.name ] = a2
+                a2.bonds[ a1.name ] = a1
 
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""
