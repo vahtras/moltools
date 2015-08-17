@@ -38,6 +38,13 @@ def nm_to_au( val ):
     au_to_nm = 45.563352491687866
     return "%.7f" %( au_to_nm / float(val) )
 
+def angle( p1, p2 ,p3 ):
+    """Return the angle between 3 points"""
+    v1 = p1 - p2
+    v2 = p3 - p2
+    return np.arccos( np.dot(v1,v2) ) / (np.linalg.norm(v1)* np.linalg.norm(v2))
+
+
 def make_para( shape = ( 0,) ):                                                      
     """Returns a np array that can be used for writing between different processes"""
     arr = np.zeros( shape )                                                          
