@@ -1904,7 +1904,7 @@ class Molecule( list ):
                 if a1 == a2:
                     continue
                 if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    if (a1 in a1.Molecule) and (a2 in a1.Molecule):
+                    if a1 not in a2.Molecule:
                         if a1.element != 'C':
                             continue
                     a1.bonds[ a2.name ] = a2
