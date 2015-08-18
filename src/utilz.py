@@ -135,6 +135,15 @@ def Ry_inv( theta ):
                         [ np.sin(theta), 0, np.cos(theta)]])
     return vec
 
+def R( axis, theta ):
+    ux, uy, uz = axis
+    st = np.sin(theta)
+    ct = np.cos(theta)
+    omct = 1 - ct
+    R = np.array([[ct + ux*ux*omct, ux*uy*omct - uz*st, ux*uz*omct + uy*st],
+            [ux*uy*omct + uz*st, ct + uy*uy*omct, uy*uz*omct - ux*st],
+            [ux*uz*omct - uy*st, uy*uz*omct + ux*st, ct + uz*uz*omct]])
+    return R
 
 
 def scale_vec_to_abs( vec, value = 1.0 ):
