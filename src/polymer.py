@@ -290,6 +290,9 @@ class Monomer( pdbreader.Residue ):
     @property
     def HC(self):
         return self.last_h
+    @property
+    def CX(self):
+        return self.get_atom_by_pdb_name( 'CX' )
 
     @property
     def first_h(self):
