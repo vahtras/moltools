@@ -1873,7 +1873,7 @@ class Molecule( list ):
         for i in self:
             i.name = i.element + str(i.number)
 
-    def populate_bonds(self):
+    def populate_bonds(self, cluster = False):
 #Implement later that it can only be called once
         for i, at in enumerate( self ):
             at.bonds = {}
@@ -1882,12 +1882,27 @@ class Molecule( list ):
             conv = 1.0
         else:
             conv = 1/a0
-        for i in range(len(self)):
-            for j in range( i + 1, len(self) ):
-                if self[i].dist_to_atom( self[j] ) < conv*bonding_cutoff[ (self[i].element, self[j].element) ]:
 
-                    self[i].bonds[ self[j].name ] = self[j]
-                    self[j].bonds[ self[i].name ] = self[i]
+#Populate bonds on cluster level
+        if cluster:
+            for a1, a2 in itertools.product( self.Cluster.atoms, self.Cluster.atoms ):
+                if a1 == a2:
+                    continue
+                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                    if (a1 in a1.Molecule) and (a2 in a1.Molecule):
+                        if a1.element != 'C':
+                            continue
+                    a1.bonds[ a2.name ] = a2
+                    a2.bonds[ a1.name ] = a1
+        else:
+            for a1, a2 in itertools.product( self, self ):
+                if a1 == a2:
+                    continue
+                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                    a1.bonds[ a2.name ] = a2
+                    a2.bonds[ a1.name ] = a1
+
+
 
     def populate_angles(self):
         self.populate_bonds()
@@ -3768,7 +3783,7 @@ Return a cluster of water molecules given file.
 
 #Special cluster method when dealing with different molecules in a clusters
 # By defalt only connet atoms in the peptide, meaning carbons
-    def populate_bonds(self, all_atoms = False ):
+    def populate_bonds(self ):
 
         for i, at in enumerate( self.atoms ):
             at.bonds = {}
@@ -3780,7 +3795,7 @@ Return a cluster of water molecules given file.
             if a1 == a2:
                 continue
             if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                if (a1 in a1.Molecule) and (a2 in a1.Molecule):
+                if (a1 in a1.Molecule) and (a2 not in a1.Molecule):
                     if a1.element != 'C':
                         continue
                 a1.bonds[ a2.name ] = a2
