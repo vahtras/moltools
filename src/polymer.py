@@ -285,6 +285,13 @@ class Monomer( pdbreader.Residue ):
             self.bri = tmp_residue
 
     @property
+    def HN(self):
+        return self.first_h
+    @property
+    def HC(self):
+        return self.last_h
+
+    @property
     def first_h(self):
         for at in self.hidden:
             if at.pdb_name == 'HN':
