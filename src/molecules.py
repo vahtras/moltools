@@ -674,6 +674,7 @@ AA       True     bool
         self._number = None
         self._res_id = 0
         self._atom_id = None
+        self._chain_id = None
 
         self.in_water = False
 
@@ -704,6 +705,20 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+#Chain ID property
+    @property
+    def chain_id(self):
+        if self._chain_id:
+            return self._chain_id
+        if self.Molecule.Cluster:
+            return self.Molecule.Cluster.chain_id
+        return "X"
+    @chain_id.setter
+    def chain_id(self, val ):
+        self._chain_id = val
+
+
 
 # property setters and getters for pdb_name
     @property
@@ -781,7 +796,7 @@ AA       True     bool
                 self.pdb_name,
                 "",
                 self.Molecule.res_name,
-                self.Molecule.Cluster._chain_id,
+                self.chain_id,
                 string.rjust( str(self.Molecule.res_id), 4),
                 "",
                 "",
