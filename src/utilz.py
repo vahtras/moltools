@@ -79,6 +79,13 @@ def rotate_point_by_two_points(p, p1, p2, theta = 0.0 ):
     p += origin
     return p
 
+def rotate_point_by_two_points2(p, p1, p2, theta = 0.0 ):
+    """Rotate the point p around the line with point at p1 or p2 with 
+    direction vector p2-p1"""
+    return np.dot( R( p2-p1, theta ), p )
+
+
+
 def rotate_point_around_cross(p1, p2, p3, theta = 0.0 ):
     """Rotate the point p1 clockwise 
     around the vector formed by crossing p1-p2 and p3-p2"""
