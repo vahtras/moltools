@@ -1799,14 +1799,6 @@ class Molecule( list ):
                 logging.error( self.get_mol( basis = basis) )
                 return
 
-            #print out, err, real_tmp
-            #raise SystemExit
-
-        if 'lin' in method:
-            at, p, a = read_dal.read_alpha( of )
-        else:
-            at, p, a, b = read_dal.read_beta_hf( of )
-
 #Using Olavs external scripts
         try:
             outpot = MolFrag( tmpdir = real_tmp,
