@@ -1725,7 +1725,7 @@ class Molecule( list ):
         else:
             print "wrong calculation type specified"
             return
-        open( mol, 'w').write( self.get_mol_string( basis = basis) )
+        open( mol, 'w').write( self.get_mol( basis = basis) )
 
 #Make sure that the external dalton script copies the .out and .tar.gz
 #files from calculation to current directory once child process finishes
@@ -1796,7 +1796,7 @@ class Molecule( list ):
             except AttributeError:
                 logging.error( "Some internal HPC specific error occured" )
                 logging.error( "Will dump the .mol file of botched calculation" )
-                logging.error( self.get_mol_string( basis = basis) )
+                logging.error( self.get_mol( basis = basis) )
                 return
 
             #print out, err, real_tmp
@@ -2237,6 +2237,9 @@ Plot Molecule in a 3D frame
         plt.ylim(-5,5)
         plt.show()
 
+    def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
+        "ano-2 5 4 1" )):
+        return self.get_mol_string( basis = basis)
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
