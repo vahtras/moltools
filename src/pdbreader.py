@@ -1245,8 +1245,8 @@ class Residue( molecules.Molecule ):
             for R in self.get_relevant_residues():
                 R.populate_bonds()
                 for hx in R.get_dummy_h():
-                    assert len ( R.bond_dict[ hx ] ) == 1
-                    R.bond_dict[ hx ][0].Property += hx.Property
+                    assert len ( hx.bonds ) == 1
+                    hx.bonds.values()[0].Property += hx.Property
                     R.remove( hx )
                 for R_at in R:
                     if R_at.label == at.label:
@@ -1256,8 +1256,8 @@ class Residue( molecules.Molecule ):
             for C in self.get_relevant_concaps():
                 C.populate_bonds()
                 for hx in C.get_dummy_h():
-                    assert len ( C.bond_dict[ hx ] ) == 1
-                    C.bond_dict[ hx ][0].Property += hx.Property
+                    assert len ( hx.bonds ) == 1
+                    hx.bonds.values()[0].Property += hx.Property
                     C.remove( hx )
                 for C_at in C:
                     if C_at.label == at.label:
