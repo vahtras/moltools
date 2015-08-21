@@ -3349,7 +3349,7 @@ Plot Cluster a 3D frame in the cluster
 
 
 
-    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) , AA = False):
+    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
@@ -3365,7 +3365,7 @@ Plot Cluster a 3D frame in the cluster
         comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
         uni = utilz.unique([ at.element for mol in self for at in mol if mol.in_qm])
         s_ = ""
-        if AA: s_ += "Angstrom"
+        if self.AA: s_ += "Angstrom"
 
         st += "ATOMBASIS\n%s\n%s\nAtomtypes=%d Charge=0 Nosymm %s\n" %( \
                 comm1,
