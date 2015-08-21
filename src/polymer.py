@@ -497,11 +497,10 @@ class Monomer( pdbreader.Residue ):
 
     def inv_rotate(self, t1, t2, t3):
         """Need to override class.Molecules and also include hidden hydrogens"""
-        super( Monomer, self ).inv_rotate( t1, t2, t3 )
         r1 = utilz.Rz_inv(t1)
         r2 = utilz.Ry(t2)
         r3 = utilz.Rz_inv(t3)
-        for at in self.hidden:
+        for at in self + self.hidden:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
