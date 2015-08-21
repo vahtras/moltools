@@ -247,7 +247,8 @@ invoking dalton on a supercomputer.
 
         for p in all_props:
             if (at_string, p ) not in template:
-                raise RuntimeWarning("'( %s, %s )' not found in provided template" %(at_string,p))
+                warnings.warn("'( %s, %s )' not found in provided template" %(at_string,p))
+                return Property()
 
         p = Property() 
         for key in template:
