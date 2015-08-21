@@ -679,8 +679,10 @@ AA       True     bool
         self.in_water = False
 
 #Connectivity
-        self.Molecule = False
-        self.Cluster = None
+        self._Molecule = None
+        self._Cluster = None
+        self._System = None
+        self._World = None
 
 #QM border settings
         self._in_qm = False
@@ -705,6 +707,31 @@ AA       True     bool
             self.in_qmmm = kwargs.get( "in_qmmm", False )
             self._res_id = kwargs.get( "res_id", 0 )
         self._mass = None
+
+#Molecule for this atom
+    @property
+    def Molecule(self):
+        if self._Molecule:
+            return self._Molecule
+        return None
+
+#Molecule for this atom
+    @Molecule.setter
+    def Molecule(self, val):
+        if isinstance( val, Molecule ):
+            self._Molecule = val 
+#Molecule for this atom
+    @property
+    def Cluster(self):
+        if self._Cluster:
+            return self._Cluster
+        return None
+
+#Molecule for this atom
+    @Cluster.setter
+    def Cluster(self, val):
+        if isinstance( val, Cluster ):
+            self._Cluster = val 
 
 #Chain ID property
     @property
@@ -1435,6 +1462,7 @@ class Molecule( list ):
     def add(self, item):
         if isinstance( item, Atom ):
             self.append( item )
+            item.Molecule = self
         else:
             logging.warning('Passed %s instance to Molecule' %type(item) )
 
