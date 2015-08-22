@@ -1153,6 +1153,16 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+#Properties for grabbing uniquely PDB named atoms
+    @property
+    def CA(self):
+        return self.get_atom_by_pdbname( 'CA' )
+    @property
+    def CB(self):
+        return self.get_atom_by_pdbname( 'CB' )
+    @property
+    def CD(self):
+        return self.get_atom_by_pdbname( 'CD' )
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
@@ -2523,6 +2533,17 @@ class Water( Molecule ):
 
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
+
+#Water - Properties for grabbing uniquely PDB named atoms
+    @property
+    def OW(self):
+        return self.get_atom_by_pdbname( 'OW' )
+    @property
+    def HW1(self):
+        return self.get_atom_by_pdbname( 'HW1' )
+    @property
+    def HW2(self):
+        return self.get_atom_by_pdbname( 'HW2' )
 
 #If initializing water from list of 3 atoms, set H, O for given atoms
 
