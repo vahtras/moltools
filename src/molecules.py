@@ -701,12 +701,13 @@ AA       True     bool
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
             self.number = kwargs.get( "number", 0 )
-            self._pdb_name = kwargs.get( "pdb_name", 'X1' )
             self.order = kwargs.get( "order", 0 )
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
             self.in_qmmm = kwargs.get( "in_qmmm", False )
-            self._res_id = kwargs.get( "res_id", 0 )
+            self._pdb_name = kwargs.get( "pdb_name", 'X1' )
+            self._res_id = kwargs.get( "res_id", None )
+            self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
 
 #Molecule for this atom
@@ -734,7 +735,7 @@ AA       True     bool
         if isinstance( val, Cluster ):
             self._Cluster = val 
 
-#Chain ID property
+#Chain ID property of Atom
     @property
     def chain_id(self):
         if self._chain_id:
@@ -1014,12 +1015,13 @@ Plot Atom in a 3D frame
         self._mass = mass_dict[ self.element ]
         return self._mass
 
+#Atom method
     @property
     def res_id(self):
-        if self.Molecule:
-            return self.Molecule.res_id
         if self._res_id:
             return self._res_id
+        if self.Molecule:
+            return self.Molecule.res_id
         return 0
 
 #Method of Atom
