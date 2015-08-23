@@ -2555,6 +2555,7 @@ class NewSystem( list ):
             tmp_residue.add_atom( tmp_atom )
             tmp_residue._res_id = res_id
             tmp_residue._res_name = res_name
+        world.connect_everything()
         return world
 
 
