@@ -133,7 +133,7 @@ def get_rep_2( con_list, rep_list, pat_rep, pat_con ):
     for at in rep_list:
         if pat_rep.match( at.pdb_name ):
             tmp_atom = at.copy()
-            tmp_atom._label += "-XH"
+            tmp_atom.label += "-XH"
             tmp_atom.element = "H"
             H = tmp_atom.r
             for at2 in con_list:
@@ -142,7 +142,7 @@ def get_rep_2( con_list, rep_list, pat_rep, pat_con ):
             C = real_at
             dist = Pattern().pdb_dist_dict[ C.pdb_name ]
             C = C.r
-            tmp_atom.setXyz (C + (H - C) * dist / np.linalg.norm(H - C))
+            tmp_atom.x, tmp_atom.y, tmp_atom.z = C + (H - C) * dist / np.linalg.norm(H - C)
             tmp_atomlist.append( tmp_atom )
     return tmp_atomlist
 
@@ -151,16 +151,16 @@ def get_replacement( atom_list, pat_rep, pat_con, same = True ):
     for at in atom_list:
         if pat_rep.match( at.pdb_name ):
             tmp_atom = at.copy()
-            tmp_atom._label += "-XH"
+            tmp_atom.label += "-XH"
             tmp_atom.element = "H"
             H = tmp_atom.r
-            for at2 in at.residue:
+            for at2 in at.Molecule:
                 if at2.pdb_name == pat_con[at.pdb_name][0]:
                     real_at = at2.copy()
             C = real_at
             dist = Pattern().pdb_dist_dict[ C.pdb_name ]
             C = C.r
-            tmp_atom.setXyz (C + (H - C) * dist / np.linalg.norm(H - C))
+            tmp_atom.x, tmp_atom.y, tmp_atom.z = C + (H - C) * dist / np.linalg.norm(H - C)
             tmp_atomlist.append( tmp_atom )
     return tmp_atomlist
 
@@ -1075,6 +1075,7 @@ class NewResidue( molecules.Molecule ):
             at_t = get_matching( self, p_add_t )
             at_n = get_matching( self.Next, p_add_n )
             at_r1 = get_replacement( self, p_rep_tt, p_con_tt, )
+
             at_r2 = get_replacement( self.Next, p_rep_nn, p_con_nn, )
             if self.Next.Next:
                 at_r3 = get_rep_2( self.Next, self.Next.Next, p_rep_nn_n, p_con_nn_n )
