@@ -628,15 +628,6 @@ class NewAtom( molecules.Atom ):
     def res_name(self,val):
         self._res_name = val
 
-    #@property
-    #def order(self):
-    #    if self._order:
-    #        return self._order
-    #    return 0
-    #@order.setter
-    #def order(self,val):
-    #    self._order = val
-
     @property
     def chain_id(self):
         if self._chain_id:
@@ -1113,6 +1104,8 @@ class NewResidue( molecules.Molecule ):
 
             for at in at_p + at_t + at_n + at_r1 + at_r2 + at_r3 + at_r4 + at_r5:
                 tmp_residue.add_atom( at )
+        for at in tmp_residue:
+            at.Molecule = tmp_residue
 
         if residue or r:
             self.ready = tmp_residue
