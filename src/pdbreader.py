@@ -26,6 +26,7 @@ res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
 chargeDict = {'ARG':1, "LYS" : 1, "ASP":-1, "GLU":-1,
             'R':1 , 'K':1 ,'H':0, 'H2':1 , 'E':-1 , 'D':-1, 'X2': 1}
 proline_dict = { "PRO" : "P", "HYP" : "PX" }
+custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
 
 color_dict = { "H" : (1, 1, 1),
         "C" : (0.5,0,0),
