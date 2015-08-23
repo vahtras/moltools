@@ -1564,7 +1564,7 @@ class Residue( molecules.Molecule ):
     def add_atom( self, atom):
         self.append( atom )
         self.label_dict[ atom.label ] = atom
-        atom.residue = self
+        atom.Molecule = self
 
     def get_dummy_h(self):
         """Return a list of dummy hydrogens that replaced heavy ones"""
@@ -1901,8 +1901,10 @@ class Chain( molecules.Cluster ):
             _file.write( res.get_mol( ) )
 
     def add_residue ( self, residue ):
-        self.append( residue )
-        self.res_count += 1
+        if isinstance( residue, Residue ):
+            self.append( residue )
+            residue.Chain = self
+            self.res_count += 1
 
     def connect_residues(self,):
 
