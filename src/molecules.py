@@ -2515,6 +2515,7 @@ class Water( Molecule ):
 """
 
     def __init__(self , *args, **kwargs):
+
         super(Water, self).__init__( *args, **kwargs )
         self.atoms = 0
 
@@ -2530,6 +2531,20 @@ class Water( Molecule ):
         self.in_qm = False
         self.in_mm = False
         self.in_qmmm = False
+
+#Since we added the atoms already, we need to define .o, .h1, and .h2
+#the element + index of occurance of atom in molecule must match here for proper
+#Water initialization from list of atoms
+        if args is not ():
+            for atom in args: 
+                if atom.name == 'O1':
+                    self.o = atom
+                if atom.name == 'H2':
+                    self.h1 = atom
+                if atom.name == 'H3':
+                    self.h2 = atom
+
+
 
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
