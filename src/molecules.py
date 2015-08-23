@@ -1201,9 +1201,9 @@ class Molecule( list ):
             return self.Cluster.snap
         return "0"
 
-    @freq.setter
-    def freq(self, val):
-        self._freq = val
+    @snap.setter
+    def snap(self, val):
+        self._snap = val
 
 
 #Scale bond
@@ -2992,6 +2992,9 @@ class Cluster(list):
 
         super(Cluster, self).__init__()
         self._chain_id = None
+        self._freq = None
+        self._snap = None
+        self._System = None
         self.Property = None
         self.atom_list = []
         if type(args) == tuple:
@@ -3004,6 +3007,42 @@ class Cluster(list):
             else:
                 for item in args:
                     self.add( item )
+#Cluster freq method
+    @property
+    def System(self):
+        return self._System
+#Cluster freq method
+    @System.setter
+    def System(self, val):
+        self._System = val
+
+
+#Cluster freq method
+    @property
+    def freq(self):
+        if self._freq is not None:
+            return self._freq
+        if self.System:
+            return self.System.freq
+        return "0.0000000"
+
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
+#Cluster snap method
+    @property
+    def snap(self):
+        if self._snap is not None:
+            return self._snap
+        if self.System:
+            return self.System.snap
+        return "0"
+
+    @snap.setter
+    def snap(self, val):
+        self._snap = val
+
+#Cluster method
     @property
     def chain_id(self):
         if self._chain_id:
