@@ -727,26 +727,20 @@ class NewResidue( molecules.Molecule ):
         self._Chain = None
         self._Cluster = None
         self._Bridge = None
+        self._Next = None
+        self._Prev = None
+
         super( NewResidue, self ).__init__( *args, **kwargs )
 
+        self.c_term = False
+        self.n_term = False
+
     @property
-    def o(self):
-        return self.OW
+    def Prev(self):
+        return self._Prev
     @property
-    def h1(self):
-        return self.HW1
-    @property
-    def h2(self):
-        return self.HW2
-    @property
-    def OW(self):
-        return self.get_atom_by_pdbname( 'OW' )
-    @property
-    def HW1(self):
-        return self.get_atom_by_pdbname( 'HW1' )
-    @property
-    def HW2(self):
-        return self.get_atom_by_pdbname( 'HW2' )
+    def Next(self):
+        return self._Next
 
     @property
     def Bridge(self):
@@ -820,6 +814,311 @@ class NewResidue( molecules.Molecule ):
             except AssertionError:
                 logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
         return tmp_ch
+
+#NewResidue Method
+    def copy_info(self):
+        new = Residue()
+        new.c_term = self.c_term
+        new.n_term = self.n_term
+        new.AA = self.AA
+
+        new.in_qm_region = self.in_qm
+        new.in_mm_region = self.in_mm
+
+        new._res_id = self._res_id
+        new._res_name = self._res_name
+        new._Next =  self._Next
+        new._Prev =  self._Prev
+        new._Bridge =self._Bridge
+        new._Chain = self._Chain
+        return  new
+
+
+
+#NewResidue Method
+    def gather_ready( self, 
+            residue = False, r = False,
+            concap = False, c = False,
+            bridge = False, b = False,
+            level = 1 ):
+        p = Pattern()
+        if residue or r:
+            tmp_residue = self.copy_info()
+            res_type = "res"
+        elif concap or c:
+            tmp_residue = self.copy_info()
+            tmp_residue = self.copy_info() 
+            tmp_residue.concap = True
+            res_type = "con"
+        elif bridge or b:
+            tmp_residue = self.copy_info() 
+            tmp_residue = Residue()
+            tmp_residue.AA = self.AA
+            tmp_residue.concap = True
+            tmp_residue.bridge = True
+            res_type = "bri"
+        else:
+            return
+        tmp_residue._level = level
+
+        p_rep_pp_p = p.get()
+        
+#To set defaults for pattern for this residue
+        if self.res_name in proline_dict:
+            res_name = "pro"
+        elif self.res_name in custom_dict:
+            res_name = "cus"
+        else:
+            res_name = "reg"
+
+        p_con_pp_p = {}
+        p_rep_pp_p = re.compile( r'(?!x)x' )
+# Patterns to just add atoms, previos depends on type of previous
+        if self.Prev:
+            if self.Prev.res_name in proline_dict:
+                p_add_p = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='p', 
+                        what_todo = 'add')
+                p_rep_pp = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'rep')
+                p_con_pp = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'con')
+                p_con_p_t = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='p_t', 
+                        what_todo = 'con')
+                p_rep_p_t = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='p_t', 
+                        what_todo = 'rep')
+
+                if self.Prev.Prev and not c:
+                    p_rep_pp_p = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='pp_p', 
+                        what_todo = 'rep')
+                    p_con_pp_p = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='pp_p', 
+                        what_todo = 'con')
+
+            elif self.Prev.res_name in custom_dict:
+                p_add_p = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='p', 
+                        what_todo = 'add')
+                p_rep_pp = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'rep')
+                p_con_pp = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'con')
+            else:
+                p_add_p = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='p', 
+                        what_todo = 'add')
+                p_rep_pp = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'rep')
+                p_con_pp = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='pp', 
+                        what_todo = 'con')
+                p_con_p_t = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='p_t', 
+                        what_todo = 'con')
+
+                p_rep_p_t = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='p_t', 
+                        what_todo = 'rep')
+
+                if self.Prev.Prev and not c:
+                    p_rep_pp_p = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='pp_p', 
+                        what_todo = 'rep')
+                    p_con_pp_p = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='pp_p', 
+                        what_todo = 'con')
+
+
+
+# Set adding for this residue, should depend on self
+        p_add_t = p.get( res_type = res_type, 
+                res_name = res_name,
+                level = level,
+                what_pos ='t', 
+                what_todo = 'add')
+        if self.Next:
+            if self.Next.res_name in proline_dict:
+                p_add_n = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='n', 
+                        what_todo = 'add')
+                p_rep_nn = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'rep')
+                p_con_nn = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'con')
+
+                if self.Next.Next:
+                    p_con_nn_n = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='nn_n', 
+                        what_todo = 'con')
+                    p_rep_nn_n = p.get( res_type = res_type, 
+                        res_name = "pro",
+                        level = level,
+                        what_pos ='nn_n', 
+                        what_todo = 'rep')
+
+            elif self.Next.res_name in custom_dict:
+                p_add_n = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='n', 
+                        what_todo = 'add')
+                p_rep_nn = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'rep')
+                p_con_nn = p.get( res_type = res_type, 
+                        res_name = "cus",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'con')
+            else:
+                p_add_n = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='n', 
+                        what_todo = 'add')
+                p_rep_nn = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'rep')
+                p_con_nn = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='nn', 
+                        what_todo = 'con')
+                if self.Next.Next:
+                    p_con_nn_n = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='nn_n', 
+                        what_todo = 'con')
+# Patterns to replace these atoms, e.g. the CA from previous residue at level = 1
+                    p_rep_nn_n = p.get( res_type = res_type, 
+                        res_name = "reg",
+                        level = level,
+                        what_pos ='nn_n', 
+                        what_todo = 'rep')
+# Patterns to replace these atoms, e.g. the CA from previous residue at level = 1
+#
+        p_rep_tt = p.get( res_type = res_type, 
+                res_name = res_name,
+                level = level,
+                what_pos ='tt', 
+                what_todo = 'rep')
+# Patterns to connect, governs which atoms to connect the H that replaced
+# The atom given in pattern replace above
+#
+# e.g. the H that replaced the CA at level 1 should connect to N, and scaled in 
+# distance
+        p_con_tt = p.get( res_type = res_type, 
+                res_name = res_name,
+                level = level,
+                what_pos ='tt', 
+                what_todo = 'con')
+
+        if self.n_term:
+            at_r3 = []
+            at_t = get_matching( self, p_add_t )
+            at_n = get_matching( self.Next, p_add_n )
+            at_r1 = get_replacement( self, p_rep_tt, p_con_tt, )
+            at_r2 = get_replacement( self.Next, p_rep_nn, p_con_nn, )
+            if self.Next.Next:
+                at_r3 = get_rep_2( self.Next, self.Next.Next, p_rep_nn_n, p_con_nn_n )
+            for at in at_t + at_n + at_r1 + at_r2 + at_r3:
+                tmp_residue.add_atom( at )
+
+        elif self.c_term:
+            if concap or c:
+                return 
+            at_r2 = []
+            at_p = get_matching( self.Prev, p_add_p )
+            at_t = get_matching( self, p_add_t )
+            at_r1 = get_replacement( self.Prev, p_rep_pp, p_con_pp, )
+            if self.Prev.Prev:
+                at_r2 = get_rep_2( self.Prev, self.Prev.Prev, p_rep_pp_p, p_con_pp_p )
+            for at in at_p + at_t + at_r1 + at_r2 :
+                tmp_residue.add_atom( at )
+        else:
+            at_r1, at_r2 = [], []
+            if concap or c:
+                at_r1 = get_replacement( self, p_rep_tt, p_con_tt, )
+                at_r2 = get_rep_2( self, self.Prev, p_rep_p_t, p_con_p_t, )
+            else:
+                at_r1 = get_replacement( self.Prev, p_rep_pp, p_con_pp, )
+
+            at_r4, at_r5 = [], []
+            at_p = get_matching( self.Prev, p_add_p )
+            at_t = get_matching( self, p_add_t )
+            at_n = get_matching( self.Next, p_add_n )
+            at_r3 = get_replacement( self.Next, p_rep_nn, p_con_nn, )
+            if self.Next.Next:
+                at_r4 = get_rep_2( self.Next, self.Next.Next, p_rep_nn_n, p_con_nn_n )
+            if self.Prev.Prev:
+                at_r5 = get_rep_2( self.Prev, self.Prev.Prev, p_rep_pp_p, p_con_pp_p )
+
+            for at in at_p + at_t + at_n + at_r1 + at_r2 + at_r3 + at_r4 + at_r5:
+                tmp_residue.add_atom( at )
+
+        if residue or r:
+            self.ready = tmp_residue
+        if concap or c:
+            self.con = tmp_residue
+        if bridge or b:
+            self.bri = tmp_residue
 
 class Residue( molecules.Molecule ):
     """Class designed to calculate MFCC procedure for proteins"""
@@ -1667,6 +1966,7 @@ class System( list ):
     def __init__(self):
         pdbfile = None
         pass
+
     @staticmethod
     def read_protein_from_file( FILE, in_AA = True ):
         pat = re.compile(r'^ATOM|^HETATM|^TER|^END')
@@ -2131,7 +2431,7 @@ class NewSystem( list ):
         self._freq = None
         super(NewSystem, self).__init__()
 
-        if args is not None:
+        if args != ():
             if type( args == list ):
                 for each in args[0]:
                     self.add( each )
@@ -2146,6 +2446,122 @@ class NewSystem( list ):
         for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
             cluster.System = self
             cluster.connect_everything()
+
+# To define N- /C- terminals and set Next/ Prev attributes
+    def connect_residues(self,):
+        for ch in self:
+            ch[0].n_term = True
+            ch[-1].c_term = True
+            for i, res in enumerate(ch):
+                if ch[i].n_term:
+                    ch[i]._Next = ch[i + 1]
+
+                elif ch[i].c_term:
+                    ch[i]._Prev = ch[i - 1]
+
+                else:
+                    ch[i]._Next = ch[i + 1]
+                    ch[i]._Prev = ch[i - 1]
+
+    @staticmethod
+    def get_full_protein_from_string( _string, in_AA = True ):
+        pat = re.compile(r'^ATOM|^HETATM|^TER|^END')
+        text = _string.split('\n')
+        """ 
+        return all Protein chains of the PDB file in a cla System
+        """
+        pat_element = re.compile( r'([A-Z])' )
+#tmp is tracking array used to keep track of res_name changing
+        tmp = []
+        firstEntry = True
+
+#Initiate a chain with chain_id corresponding to "A" usually in the PDB file
+        tmp_chain = Chain()
+        tmp_chain.chain_id = text[0][21:22].strip()
+
+#Add the chain to System
+        world = NewSystem()
+
+        world.append( tmp_chain )
+
+        tmp_residue = Residue( AA = in_AA )
+
+        for i in range(len( text )):
+#Have to define this here so that first and last amino acid has correct name
+            res_name = text[i][17:21].strip()
+            try:
+                res_id = int( text[i][22:26].strip() )
+            except ValueError:
+                pass
+#Initiate values for Atom,
+            chain_id = text[i][21:22].strip()
+            x = text[i][30:38].strip()
+            y = text[i][38:46].strip()
+            z = text[i][46:54].strip()
+            pdb_name = text[i][11:16].strip()
+
+            try:
+                element = pat_element.search( pdb_name ).group(1)
+#This will cause IndexError for TER when no other entries are there
+            except IndexError:
+                element = None
+            except AttributeError:
+                element = None
+
+#This is end of chain, need to put residue in chain and start at beginning for new chain
+            if text[i][0:3] == "TER" or text[i][0:3] == "END":
+
+                tmp_residue.c_term = True
+                tmp_chain.add_residue ( tmp_residue )
+                tmp_residue.Chain = tmp_chain
+                tmp_residue = Residue(AA = in_AA)
+                tmp = []
+                firstEntry = True
+                continue
+
+            if ( chain_id != tmp_chain.chain_id):
+
+                tmp_chain = Chain()
+                tmp_chain.chain_id = chain_id
+                world.append( tmp_chain )
+
+                tmp_residue = Residue(AA = in_AA)
+                tmp = []
+                firstEntry = True
+
+
+#Check to only make acids out of predefiend 4-letter keywords in global known_res dictionary
+            if text[i][17:21].strip() not in resDict:
+                continue
+# First residue added to tracking array
+            if firstEntry:
+                tmp_residue.n_term = True
+                tmp.append( int( text[i][22:26].strip() ) )
+                firstEntry = False
+                
+# If tracking arrays last element is not the same as current, means we have new residue
+            if tmp[-1] != res_id :
+                tmp_chain.add_residue( tmp_residue )
+                tmp_residue.Chain = tmp_chain
+                tmp_residue = Residue( AA = in_AA)
+                tmp.append( res_id )
+
+
+#Create an Atom here and add it to the residue
+            tmp_atom = Atom()
+            tmp_atom.x, tmp_atom.y, tmp_atom.z = map( float, [x, y, z] )
+            tmp_atom.element = element
+            tmp_atom.pdb_name = pdb_name
+            tmp_atom._res_name = res_name
+            tmp_atom._res_id = res_id
+            tmp_atom._label = "%d-%s-%s" %( res_id, res_name, pdb_name )
+
+            tmp_residue.add_atom( tmp_atom )
+            tmp_residue._res_id = res_id
+            tmp_residue._res_name = res_name
+        return world
+
+
 
 
     def find_sulfur_bridges(self):
@@ -2218,6 +2634,9 @@ class NewSystem( list ):
         system = cls( *chains )
         system.meta = meta
 
+        for ch in chains:
+            ch[0].n_term = True
+            ch[-1].c_term = True
         for ch in chains:
             ch.connect_everything()
             ch.System = system
