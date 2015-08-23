@@ -16,16 +16,15 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-resDict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
+res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
         'PHE':'F','TYR':'Y','TRP':'W','SER':'S','THR':'T','ASN':'N', 'CRO':'X1',
         'CRO1':'X1', 'CRO2':"X2",'CRO3':'X3','CRO4':'X4',
         'GLN':'Q','CYS':'C','CH6': 'X1' ,'GLY':'G','PRO':'P','ARG':'R','HIS':'H',
         'LYS':'K','ASP':'D','GLU':'E','SEC':'U','PYL':'U', 'HIP':'Z',
         'HIE':'H','CYX':'C','HSE':'H','HID':'H','HSD':'H','HSP':'H2',"TIP3": 'T3',
-        'HIP':'H2','HYP':'PX', 'MOL' : 'X', 'SOL' : 'W1' }
+        'HIP':'H2','HYP':'PX', 'MOL' : 'X', 'WAT' : 'W1', 'SOL' : 'W1' }
 chargeDict = {'ARG':1, "LYS" : 1, "ASP":-1, "GLU":-1,
             'R':1 , 'K':1 ,'H':0, 'H2':1 , 'E':-1 , 'D':-1, 'X2': 1}
-custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
 proline_dict = { "PRO" : "P", "HYP" : "PX" }
 
 color_dict = { "H" : (1, 1, 1),
@@ -1680,8 +1679,8 @@ class Residue( molecules.Molecule ):
                 charge += 1
             elif self.c_term:
                 charge -= 1
-            if resDict[ self.res_name ] in chargeDict:
-                charge += chargeDict[ resDict[ self.res_name] ]
+            if res_dict[ self.res_name ] in chargeDict:
+                charge += chargeDict[ res_dict[ self.res_name] ]
 #Temporary fix to give level 3 concaps negative and positive even if they are not
 #n or c terminal
         if self._level == 3:
@@ -2035,7 +2034,7 @@ class System( list ):
 
 
 #Check to only make acids out of predefiend 4-letter keywords in global known_res dictionary
-            if text[i][17:21].strip() not in resDict:
+            if text[i][17:21].strip() not in res_dict:
                 continue
 # First residue added to tracking array
             if firstEntry:
@@ -2119,8 +2118,8 @@ class System( list ):
         for ch in self:
             chainDict[ ch.chain_id ] = 0.0
             for res in ch:
-                if resDict[ res.res_name ] in chargeDict:
-                    chainDict[ ch.chain_id ] += chargeDict[ resDict[ res.res_name] ]
+                if res_dict[ res.res_name ] in chargeDict:
+                    chainDict[ ch.chain_id ] += chargeDict[ res_dict[ res.res_name] ]
         return chainDict
 
     def write_xyz(self, ind ):
@@ -2527,7 +2526,7 @@ class NewSystem( list ):
 
 
 #Check to only make acids out of predefiend 4-letter keywords in global known_res dictionary
-            if text[i][17:21].strip() not in resDict:
+            if text[i][17:21].strip() not in res_dict:
                 continue
 # First residue added to tracking array
             if firstEntry:
