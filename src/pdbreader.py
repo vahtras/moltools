@@ -1734,9 +1734,6 @@ class NewChain( molecules.Cluster):
         self._freq = None
         self._System = None
         super( NewChain, self ).__init__( *args, **kwargs )
-        if args is not ():
-            for each in args:
-                each.Chain = self
 
     @property
     def System(self):
@@ -2434,12 +2431,17 @@ class NewSystem( list ):
         self._freq = None
         super(NewSystem, self).__init__()
 
-        if args != ():
-            if type( args == list ):
-                for each in args[0]:
-                    self.add( each )
-            for each in args:
-                self.add( each )
+        if type(args) == tuple:
+            if len(args) == 1:
+                if type(args[0]) == list:
+                    for i in args[0]:
+                        self.add( i )
+                else:
+                    self.add( args[0] )
+            else:
+                for at in args:
+                    self.add( at )
+
     def connect_everything(self):
         for atom in self.atoms:
             atom.System = self
