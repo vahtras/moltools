@@ -2458,6 +2458,25 @@ class NewSystem( list ):
                 else:
                     ch[i]._Next = ch[i + 1]
                     ch[i]._Prev = ch[i - 1]
+    @property
+    def A(self):
+        return self.get_chain_by_char ('A')
+    @property
+    def B(self):
+        return self.get_chain_by_char ('B')
+    @property
+    def C(self):
+        return self.get_chain_by_char ('C')
+    @property
+    def X(self):
+        return self.get_chain_by_char ('X')
+    
+    def get_chain_by_char(self, char):
+        for ch in self:
+            if ch.chain_id == char:
+                return ch
+        print "No chain with identifier %s in %s" %(char, self )
+        return
 
     @staticmethod
     def get_full_protein_from_string( _string, in_AA = True ):
@@ -2610,10 +2629,15 @@ class NewSystem( list ):
         self._freq = val
 
 
+#NewSystem method of adding objects
     def add(self, item):
         if isinstance( item, molecules.Cluster):
             self.append( item )
             item.System = self
+        elif isinstance( item, molecules.Molecule):
+            c = NewChain( item )
+            c.System = self
+            self.append( c )
 
     @property
     def atoms(self):
