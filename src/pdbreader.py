@@ -720,6 +720,7 @@ class NewResidue( molecules.Molecule ):
         self._Bridge = None
         self._Next = None
         self._Prev = None
+        self.label_dict = {}
 
         super( NewResidue, self ).__init__( *args, **kwargs )
 
@@ -747,6 +748,13 @@ class NewResidue( molecules.Molecule ):
             return self._snapshot
         if self.Chain:
             return self.Chain.snapshot
+
+#NewResidue
+    def add_atom( self, atom):
+        if isinstance( atom, molecules.Atom ):
+            self.append( atom )
+            self.label_dict[ atom.label ] = atom
+            atom.Molecule = self
 
 #Property of NewResidue
     @property
@@ -809,7 +817,7 @@ class NewResidue( molecules.Molecule ):
 
 #NewResidue Method
     def copy_info(self):
-        new = Residue()
+        new = NewResidue()
         new.c_term = self.c_term
         new.n_term = self.n_term
         new.AA = self.AA
@@ -817,12 +825,12 @@ class NewResidue( molecules.Molecule ):
         new.in_qm_region = self.in_qm
         new.in_mm_region = self.in_mm
 
-        new._res_id = self._res_id
-        new._res_name = self._res_name
-        new._Next =  self._Next
-        new._Prev =  self._Prev
-        new._Bridge =self._Bridge
-        new._Chain = self._Chain
+        new._res_id = self.res_id
+        new._res_name = self.res_name
+        new._Next =  self.Next
+        new._Prev =  self.Prev
+        new._Bridge =self.Bridge
+        new._Chain = self.Chain
         return  new
 
 
@@ -1107,8 +1115,7 @@ class NewResidue( molecules.Molecule ):
                 tmp_residue.add_atom( at )
         for at in tmp_residue:
             at.Molecule = tmp_residue
-            print at.Molecule
-            raise SystemExit
+
 
         if residue or r:
             self.ready = tmp_residue
