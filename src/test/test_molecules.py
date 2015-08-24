@@ -59,10 +59,10 @@ H           -0.756950   0.000000   0.585882
 
 Atomtypes=2 Charge=0 Nosymm Angstrom
 Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
-O                 0.00000   0.00000   0.00000
+0-MOL-OW          0.00000   0.00000   0.00000
 Charge=1.0 Atoms=2 Basis=ano-1 2
-H                 0.75695   0.00000   0.58588
-H                -0.75695   0.00000   0.58588
+0-MOL-HW1         0.75695   0.00000   0.58588
+0-MOL-HW2        -0.75695   0.00000   0.58588
 """
         self.wat.to_AA()
         assert self.wat.get_mol_string() == st 
