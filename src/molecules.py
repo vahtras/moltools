@@ -710,6 +710,11 @@ AA       True     bool
             self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
 
+#Chain for this atom
+    @property
+    def Chain(self):
+        return self.Cluster
+
 #Molecule for this atom
     @property
     def Molecule(self):
@@ -722,11 +727,14 @@ AA       True     bool
     def Molecule(self, val):
         if isinstance( val, Molecule ):
             self._Molecule = val 
-#Molecule for this atom
+
+#Cluster for this atom
     @property
     def Cluster(self):
         if self._Cluster:
             return self._Cluster
+        elif self.Molecule:
+            return self.Molecule.Cluster
         return None
 
 #Molecule for this atom

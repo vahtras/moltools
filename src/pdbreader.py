@@ -748,6 +748,7 @@ class NewResidue( molecules.Molecule ):
         if self.Chain:
             return self.Chain.snapshot
 
+#Property of NewResidue
     @property
     def Chain(self):
         if self._Chain:
@@ -1106,6 +1107,8 @@ class NewResidue( molecules.Molecule ):
                 tmp_residue.add_atom( at )
         for at in tmp_residue:
             at.Molecule = tmp_residue
+            print at.Molecule
+            raise SystemExit
 
         if residue or r:
             self.ready = tmp_residue
@@ -1730,7 +1733,11 @@ class NewChain( molecules.Cluster):
         self._time = None
         self._freq = None
         self._System = None
-        super( NewChain, self).__init__( *args, **kwargs )
+        super( NewChain, self ).__init__( *args, **kwargs )
+        if args is not ():
+            for each in args:
+                each.Chain = self
+
     @property
     def System(self):
         if self._System:
