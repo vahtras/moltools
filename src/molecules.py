@@ -791,8 +791,10 @@ AA       True     bool
     def label(self):
         if self._label is not None:
             return self._label
-        self._label = self.element
-        return self._label
+        if self.Molecule:
+            m = self.Molecule
+            return '-'.join( [ str(m.res_id), m.res_name, self.pdb_name] )
+        return None
     @label.setter
     def label(self, val):
         self._label = val
