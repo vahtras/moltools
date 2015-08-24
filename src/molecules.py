@@ -1000,6 +1000,7 @@ Plot Atom in a 3D frame
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
+        a.label = self.label
         a._res_id = self.res_id
         a._atom_id = self.atom_id
         a.Property = self.Property.copy_property()

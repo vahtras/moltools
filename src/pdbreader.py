@@ -720,6 +720,10 @@ class NewResidue( molecules.Molecule ):
         self._Bridge = None
         self._Next = None
         self._Prev = None
+        self.is_concap = False
+        self.is_ready = False
+        self.is_bridge = False
+
         self.label_dict = {}
 
         super( NewResidue, self ).__init__( *args, **kwargs )
@@ -748,6 +752,15 @@ class NewResidue( molecules.Molecule ):
             return self._snapshot
         if self.Chain:
             return self.Chain.snapshot
+
+#NewResidue
+    def __str__(self):
+        base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
+        if self.is_concap:
+            base += '-con'
+        if self.is_ready:
+            base += '-ready'
+        return base
 
 #NewResidue
     def add_atom( self, atom):
@@ -827,10 +840,11 @@ class NewResidue( molecules.Molecule ):
 
         new._res_id = self.res_id
         new._res_name = self.res_name
-        new._Next =  self.Next
-        new._Prev =  self.Prev
-        new._Bridge =self.Bridge
-        new._Chain = self.Chain
+        new._Next =   self.Next
+        new._Prev =   self.Prev
+        new._Bridge = self.Bridge
+        new._Chain =  self.Chain
+        new._Cluster =  self.Cluster
         return  new
 
 
@@ -844,18 +858,18 @@ class NewResidue( molecules.Molecule ):
         p = Pattern()
         if residue or r:
             tmp_residue = self.copy_info()
+            tmp_residue.is_ready = True
             res_type = "res"
         elif concap or c:
             tmp_residue = self.copy_info()
             tmp_residue = self.copy_info() 
-            tmp_residue.concap = True
+            tmp_residue.is_concap = True
             res_type = "con"
         elif bridge or b:
             tmp_residue = self.copy_info() 
             tmp_residue = Residue()
             tmp_residue.AA = self.AA
-            tmp_residue.concap = True
-            tmp_residue.bridge = True
+            tmp_residue.is_bridge = True
             res_type = "bri"
         else:
             return
@@ -1517,6 +1531,7 @@ class Residue( molecules.Molecule ):
                 return True
         return False
 
+#Residue
     def __str__(self):
         base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
         if self.concap:
@@ -1685,7 +1700,7 @@ class Residue( molecules.Molecule ):
         if "S" in elem:
             s_atoms = [ x for x in self if x.element == "S" ]
 
-        if not self.concap:
+        if not self.is_concap:
             if self.n_term:
                 charge += 1
             elif self.c_term:
