@@ -1115,14 +1115,11 @@ class Molecule( list ):
 
 
 # This will be set True if Property is represented by a point on molecule
-        self._is_property = False
+        self._is_Property = False
         self._property_r = None
 
 # This will be set True if attaching LoProp properties
         self.LoProp = False
-
-# Used for printing template properties, defines which atoms are centered around zx plane
-        self._origo_z_x = None
 
 # For plotting different elements:
         self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'go',"P":'ko', "O":'ro',
@@ -1177,11 +1174,11 @@ class Molecule( list ):
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
-    def is_property(self):
-        return self._is_property
-    @is_property.setter
-    def is_property(self,val):
-        self._is_property = val
+    def is_Property(self):
+        return self._is_Property
+    @is_Property.setter
+    def is_Property(self,val):
+        self._is_Property = val
     @property
     def property_r(self):
         return self._property_r
@@ -1198,6 +1195,20 @@ class Molecule( list ):
         if self.Cluster:
             return self.Cluster.freq
         return "0.0000000"
+
+    def to_Property(self, r = None ):
+        """Will remove the property of individual atoms and put them in center of 
+        mass of molecule instead"""
+        if not self.LoProp and self.Property:
+            warnings.warning("Can't convert to Property, Property is set")
+        if r is None:
+            r = self.com
+        self.Property = self.sum_property
+        for at in self:
+            at.p = Property()
+        self.is_Property = True
+
+
 
     @freq.setter
     def freq(self, val):
@@ -1249,7 +1260,7 @@ class Molecule( list ):
             prop_point = None,
             ):
         string = ""
-        if self.is_property:
+        if self.is_Property:
 #can override molecules property location if we want by prop_point keyword
             center = self.com
             if prop_point is not None:
@@ -1326,19 +1337,6 @@ class Molecule( list ):
         else:
             return super(Molecule,self).__getitem__( item )
                 
-    #@property
-    #def origo_z_x(self):
-    #    if self._origo_z_x is None:
-    #        logging.error('Did not set orientation for molecule in xz plane!')
-    #        raise SystemExit
-    #    return self._origo_z_x
-
-    #def center_zx(self, p1, p2, p3):
-    #    """Given 3 atoms will set p1 as origo, p2 as z axis and p3 in zx-plane"""
-    #    assert isinstance( p1, Atom )
-    #    assert isinstance( p2, Atom )
-    #    assert isinstance( p3, Atom )
-    #    self._origo_z_x = (p1.r.copy,(),())
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
         for at in self :
@@ -1371,7 +1369,7 @@ class Molecule( list ):
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
                 at.p = at.p.rotate( t1, t2, t3 )
-        elif self.is_property:
+        elif self.is_Property:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             self.Property = self.Property.rotate( t1, t2, t3 )
@@ -1391,9 +1389,6 @@ class Molecule( list ):
         st_label = "_".join( label_func.func_code.co_names )
         st = "{\n"
         st += "'meta' : { 'label' : '%s', },\n" % st_label
-        #st += "'origo' : '%s',\n" % self.origo_z_x[0]
-        #st += "'z' : '%s',\n" % self.origo_z_x[1]
-        #st += "'x' : '%s',\n}" % self.origo_z_x[2]
 
         if centered:
             p = self.p
@@ -1598,6 +1593,7 @@ class Molecule( list ):
             centered = None,
             ):
         """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        self.Property = None
         if centered is None:
             centered = np.zeros(3,)
         if isinstance(self, Water) and not force_template:
@@ -1617,10 +1613,10 @@ class Molecule( list ):
         for at in self:
             at.p.transform_ut_properties( t1, t2, t3 )
         if loprop:
-            self.is_property = False
+            self.is_Property = False
             self.LoProp = True
         else:
-            self.is_property = True
+            self.is_Property = True
             self.property_r = centered
             self.Property.transform_ut_properties( t1, t2, t3 )
             self.LoProp = False
@@ -1911,7 +1907,7 @@ class Molecule( list ):
             for fil in [f for f in os.listdir(os.getcwd()) if "dalton_molecule" in f]:
                 os.remove( os.path.join( os.getcwd(), fil ) )
 
-        self.is_property = False
+        self.is_Property = False
         self.LoProp = True
 
     @classmethod
@@ -2060,12 +2056,10 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
-        assert val is not None
         if self.LoProp is None:
             logging.error("Can't set property, already set since LoProp is False")
             raise AssertionError
         self.LoProp = None
-
         self._Property = val
 
 #Wrapper func for Molecule
@@ -3544,14 +3538,14 @@ Plot Cluster a 3D frame in the cluster
 
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_property]), max_l, pol, 1 )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
-            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_property ] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_Property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
                     max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
-            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.is_property ] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.is_Property ] )
         return st
 
     def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
@@ -3587,7 +3581,7 @@ Plot Cluster a 3D frame in the cluster
             cnt += 1
     def order_mm_mols(self):
         cnt = 1
-        self.sort( key = lambda x:x.is_property )
+        self.sort( key = lambda x:x.is_Property )
         for mol in self:
             mol.cluster_order = cnt
             cnt += 1
@@ -4066,7 +4060,7 @@ Return the sum properties of all molecules in cluster
         dip = el_dip + nuc_dip
         dip_tot = (dip + dip_lop).sum(axis=0)
         p = Property()
-        for mol in [m for m in self if m.is_property]:
+        for mol in [m for m in self if m.is_Property]:
             p += mol.Property
         for mol in [m for m in self if m.LoProp]:
             for at in mol:
