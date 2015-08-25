@@ -728,6 +728,9 @@ class NewResidue( molecules.Molecule ):
 
         super( NewResidue, self ).__init__( *args, **kwargs )
 
+        self.concap = None
+        self.ready = None
+
         self.c_term = False
         self.n_term = False
 
@@ -1202,7 +1205,7 @@ class NewResidue( molecules.Molecule ):
         if residue or r:
             self.ready = tmp_residue
         if concap or c:
-            self.con = tmp_residue
+            self.concap = tmp_residue
         if bridge or b:
             self.bri = tmp_residue
 
