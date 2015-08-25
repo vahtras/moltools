@@ -2056,6 +2056,9 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
+        if val is None:
+            self._Property = val
+            return
         if self.LoProp is None:
             logging.error("Can't set property, already set since LoProp is False")
             raise AssertionError
