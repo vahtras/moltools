@@ -845,8 +845,8 @@ class NewResidue( molecules.Molecule ):
     def Chain(self):
         if self._Chain:
             return self._Chain
-        if self._Cluster:
-            return self._Cluster
+        if self.Cluster:
+            return self.Cluster
         return None
     @Chain.setter
     def Chain(self, val):
