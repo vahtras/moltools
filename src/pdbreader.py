@@ -939,6 +939,7 @@ class NewResidue( molecules.Molecule ):
             print "Finished with %s" %at.label
             print p.q
             at.Property = p
+        self.LoProp = True
 
 
 
