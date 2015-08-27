@@ -735,12 +735,21 @@ class NewResidue( molecules.Molecule ):
         self.c_term = False
         self.n_term = False
 
+#NexResidue setters
     @property
     def Prev(self):
         return self._Prev
     @property
     def Next(self):
         return self._Next
+    @Prev.setter
+    def Prev(self, val):
+        self._Prev = val
+    @Next.setter
+    def Next(self, val):
+        self._Next = val
+
+
 
     @property
     def Bridge(self):
@@ -839,6 +848,38 @@ class NewResidue( molecules.Molecule ):
                 string += '{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n'.format( *tuple([ k.label, float(k.x), float(k.y), float(k.z) ]) )
         return string.rstrip( '\n' )
 
+#NewResidue
+    def get_relevant_residues(self):
+        if self.n_term:
+            return [self.ready.copy(), self.Next.ready.copy()]
+        elif self.c_term:
+            return [self.ready.copy(), self.Prev.ready.copy()]
+        else:
+            return [self.ready.copy(), self.Next.ready.copy(), self.Prev.ready.copy()]
+
+    def get_relevant_concaps(self):
+        if self.n_term:
+            return [self.concap.copy()]
+        elif self.c_term:
+            return [self.Prev.concap.copy()]
+        else:
+            return [self.concap.copy(), self.Prev.concap.copy()]
+
+#NewResidue
+    def get_dummy_h(self):
+        """Return a list of dummy hydrogens that replaced heavy ones"""
+        ats = []
+        for i in self:
+            if i.label.split('-')[-1] == 'XH':
+                ats.append(i)
+        if len(ats) == 0:
+            print "Warning, no dummy hydrogens found in %s" % (self)
+            return
+        return ats
+
+
+
+#NewResidue
     def mfcc_props(self):
         """After this functions all atoms here have final properties.
         """
@@ -847,6 +888,7 @@ class NewResidue( molecules.Molecule ):
             print "\nStarting with %s" %at.label
             print "Property at %.2f" % p['beta'][9]
             for R in self.get_relevant_residues():
+                print R
                 R.populate_bonds()
                 for hx in R.get_dummy_h():
                     assert len ( hx.bonds ) == 1
@@ -1706,6 +1748,7 @@ class Residue( molecules.Molecule ):
             print "Warning, no dummy hydrogens found in %s" % (self)
             return
         return ats
+
     def get_atom_by_label(self, label):
         try:
             for i in self:
