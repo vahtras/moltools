@@ -1950,12 +1950,13 @@ class Molecule( list ):
                     a1.bonds[ a2.name ] = a2
                     a2.bonds[ a1.name ] = a1
         else:
-            for a1, a2 in itertools.product( self, self ):
-                if a1 == a2:
-                    continue
-                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    a1.bonds[ a2.name ] = a2
-                    a2.bonds[ a1.name ] = a1
+            for ind1, a1 in enumerate( self[:-1]  ):
+                for ind2, a2 in enumerate( self[ ind1 : ] ):
+                    if a1 == a2:
+                        continue
+                    if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                        a1.bonds[ a2.name ] = a2
+                        a2.bonds[ a1.name ] = a1
 
 
 
