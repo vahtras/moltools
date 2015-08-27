@@ -839,6 +839,40 @@ class NewResidue( molecules.Molecule ):
                 string += '{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n'.format( *tuple([ k.label, float(k.x), float(k.y), float(k.z) ]) )
         return string.rstrip( '\n' )
 
+    def mfcc_props(self):
+        """After this functions all atoms here have final properties.
+        """
+        for at in self:
+            p = molecules.Property()
+            print "\nStarting with %s" %at.label
+            print "Property at %.2f" % p['beta'][9]
+            for R in self.get_relevant_residues():
+                R.populate_bonds()
+                for hx in R.get_dummy_h():
+                    assert len ( hx.bonds ) == 1
+                    hx.bonds.values()[0].Property += hx.Property
+                    R.remove( hx )
+                for R_at in R:
+                    if R_at.label == at.label:
+                        p += R_at.Property
+                        print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
+                        print p.q
+            for C in self.get_relevant_concaps():
+                C.populate_bonds()
+                for hx in C.get_dummy_h():
+                    assert len ( hx.bonds ) == 1
+                    hx.bonds.values()[0].Property += hx.Property
+                    C.remove( hx )
+                for C_at in C:
+                    if C_at.label == at.label:
+                        p -= C_at.Property
+                        print "Subtracting charge from %s" %C_at.label
+                        print p.q
+            print "Finished with %s" %at.label
+            print p.q
+            at.Property = p
+
+
 
 
 #Property of NewResidue
@@ -1623,6 +1657,7 @@ class Residue( molecules.Molecule ):
             return [self.Prev.con.copy()]
         else:
             return [self.con.copy(), self.Prev.con.copy()]
+
     def mfcc_props(self):
         """After this functions all atoms here have final properties.
         """
