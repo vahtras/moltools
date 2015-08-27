@@ -768,7 +768,7 @@ class NewResidue( molecules.Molecule ):
 
 #NewResidue
     def __str__(self):
-        base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
+        base = "-".join( [self.chain_id, self.res_name + str(self.res_id)] )
         if self.is_concap:
             base += '-concap'
         if self.is_ready:
@@ -877,6 +877,32 @@ class NewResidue( molecules.Molecule ):
             return
         return ats
 
+#NewResidue
+    def copy( self):
+        """Copy NewResidue method"""
+        new = NewResidue()
+
+        [ new.add_atom( i.copy() ) for i in self ]
+
+        new.c_term = self.c_term
+        new.n_term = self.n_term
+        new._res_id = self._res_id
+        new._res_name = self.res_name
+        new.AA = self.AA
+#Keep information if this is concap
+        new.is_concap = self.is_concap
+        new._level = self._level
+
+
+        new._chain_id = self._chain_id
+
+        new.Next = self.Next
+        new.Prev = self.Prev
+        new.Bridge = self.Bridge
+
+        return  new
+
+
 
 
 #NewResidue
@@ -959,8 +985,11 @@ class NewResidue( molecules.Molecule ):
     @res_name.setter
     def res_name(self, val):
         self._res_name = val
+#NewResidue
     @property
     def chain_id(self):
+        if self._chain_id is not None:
+            return self._chain_id
         if self.Chain:
             return self.Chain.chain_id
         tmp_ch = self[0].chain_id
