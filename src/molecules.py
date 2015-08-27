@@ -121,11 +121,18 @@ class Property( dict ):
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
         return tmp
+
     def __sub__(self, other):
         assert isinstance( other, Property)
         tmp = Property()
         for i, prop in enumerate(self):
             tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
+        return tmp
+
+    def __div__(self, other):
+        tmp = Property()
+        for i, prop in enumerate(self):
+            tmp[prop] = np.array( self[prop] )/float(other)
         return tmp
 
     @property
@@ -814,6 +821,17 @@ AA       True     bool
     def disconnect(self, other):
         if other.name in self.bonds:
             del self.bonds[ other.name ]
+
+#In order to remove props to closest bonded neighbours
+    def transfer_props(self):
+        """docstring for transfer_props"""
+        self.Molecule.populate_bonds()
+
+        p = self.p / len( self.bonds )
+        for at in self.bonds.values():
+            at.p += p
+        self.p = Property()
+        
 
     @property
     def com(self):
