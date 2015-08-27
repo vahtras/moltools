@@ -761,7 +761,7 @@ class NewResidue( molecules.Molecule ):
     def __str__(self):
         base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
         if self.is_concap:
-            base += '-con'
+            base += '-concap'
         if self.is_ready:
             base += '-ready'
         return base
