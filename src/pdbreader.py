@@ -675,10 +675,6 @@ class Atom( molecules.Atom ):
     def __str__(self):
         return self.pdb_name
 
-    def transfer_props(self, other):
-        other.Props += self.Props
-        self.Props.set_to_zero()
-
     def get_closest( self, cutoff = 1.0, residues = 0 ):
         """Given cutoff and residues, returns a list of closest atoms
         to this one.
@@ -697,15 +693,6 @@ class Atom( molecules.Atom ):
         self.x = array[0]
         self.y = array[1]
         self.z = array[2]
-
-    def transfer_own_props_to_list(self, atm_list):
-        """ given a list atm_list, will evenly distribute properties
-        in self.Props to each atom in atm_list"""
-
-        self.Props /= len(atm_list)
-
-        for atm in atm_list:
-            atm.Props += self.Props
 
     def xyz(self):
         return " ".join( [self.element] + map( str, self.r() )  )
