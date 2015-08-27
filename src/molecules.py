@@ -3111,7 +3111,7 @@ class Cluster(list):
     def g_list_from_damped(self, 
             max_l = 1,
             pol = 22,
-            hyp = 2,
+            hyp = 1,
             rq = 1e-9,
             rp = 1e-9,
             AA_cutoff = 1.5,
