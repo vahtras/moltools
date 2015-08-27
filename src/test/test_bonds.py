@@ -16,6 +16,22 @@ class BondTestCase( unittest.TestCase ):
         assert len( w.h1.bonds ) == 1
         assert len( w.h2.bonds ) == 1
 
+    def test_transfer_props(self):
+        w = Water.get_standard()
+        w.attach_properties()
+        w.o.transfer_props()
+        np.testing.assert_allclose( w.o.p.b, np.zeros(10), atol = 1e-7 )
+
+    def test_transfer_props(self):
+        w = Water.get_standard()
+        w.attach_properties()
+        B = w.p.b.copy()
+        w.h1.transfer_props()
+        w.o.transfer_props()
+        np.testing.assert_allclose( w.p.b, B, atol = 1e-7 )
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
