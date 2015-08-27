@@ -3880,6 +3880,7 @@ Return a cluster of water molecules given file.
                     force_template = force_template,
                     centered = centered )
 
+#Add method for cluster
     def add(self, item ):
         if isinstance( item , Molecule ):
             self.add_mol( item )

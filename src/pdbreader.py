@@ -96,11 +96,12 @@ def all_residues_from_pdb_string( _string,
     res_ids = utilz.unique( res_ids )
     chain_ids = utilz.unique( chain_ids )
 
-    res = ([NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ])
+    res = [NewResidue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ]
 
     for each in res:
         each.res_id = each[0].res_id
         each.res_name = each[0].res_name
+        each._chain_id = each[0].chain_id
     
 
     if in_AA and not out_AA:
@@ -882,11 +883,6 @@ class NewResidue( molecules.Molecule ):
     @res_name.setter
     def res_name(self, val):
         self._res_name = val
-
-
-
-
-
     @property
     def chain_id(self):
         if self.Chain:
@@ -898,6 +894,9 @@ class NewResidue( molecules.Molecule ):
             except AssertionError:
                 logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
         return tmp_ch
+    @chain_id.setter
+    def chain_id(self, val ):
+        self._chain_id = val
 
 #NewResidue Method
     def copy_info(self):
@@ -1826,7 +1825,13 @@ class NewChain( molecules.Cluster):
         self._time = None
         self._freq = None
         self._System = None
+
+
         super( NewChain, self ).__init__( *args, **kwargs )
+#Temporary hack to get the chain ID of residue or list of residues
+        if args is not ():
+            self.chain_id = args[0][0]._chain_id
+
 
     @property
     def System(self):
@@ -1867,6 +1872,7 @@ class NewChain( molecules.Cluster):
     def freq(self, val):
         self._freq = val
 
+#setter for NewChain
     @property
     def chain_id(self):
         if self._chain_id is not None:
@@ -2752,6 +2758,7 @@ class NewSystem( list ):
         """Assuming the string is a pdb format, read in all chains and stuff"""
         res, meta = all_residues_from_pdb_string( _string )
 
+        nc =  NewChain( utilz.splitter(res, lambda x: x.chain_id)[0] )
         chains = [ NewChain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
 
         system = cls( *chains )
