@@ -7,7 +7,7 @@ This will replace read_dal.py as general functions module with no dependencies
 on other modules or files in this repository
 """
 
-import os,sys, re, argparse, ctypes, multiprocessing, functools
+import os,sys, re, argparse, ctypes, multiprocessing, functools, warnings
 import numpy as np
 import math as m
 
@@ -433,9 +433,7 @@ def read_dipole( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                 try:
                     element = lab.split('-')[2][0]
                 except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
-                    logging.warning( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
+                    warnings.warn( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
                     continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
@@ -557,9 +555,7 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
                 try:
                     element = lab.split('-')[2][0]
                 except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
-                    logging.warning( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
+                    warnings.warn( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
                     continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
