@@ -234,6 +234,15 @@ def get_euler( r1, r2 ):
     r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t3 ), x), [r1, r2 ] )
     return t3, t2, t1
 
+def b_para( b, p ):
+    """Given beta in either UT or full tensor form, and dipole moment
+    will return the projected beta vector, the rotationally invariant of the beta
+    tensor"""
+    b = ut2s( b )
+    assert p.shape == (3,)
+    assert b.shape == (3,3,3)
+    return np.einsum('ijj,i', b, p )/np.linalg.norm( d )
+
 def b_at_sphere( b, x, y, z ):
     """Given beta and 3 numpy arrays for meshed 3dgrid, 
     returns the beta dipole at each grid point """
