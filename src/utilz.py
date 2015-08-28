@@ -234,6 +234,17 @@ def get_euler( r1, r2 ):
     r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t3 ), x), [r1, r2 ] )
     return t3, t2, t1
 
+def alpha_iso( a ):
+    a = ut2s( a )
+    assert a.shape == (3,3,)
+    return a.trace()/3.0
+
+def alpha_aniso( a ):
+    a = ut2s( a )
+    assert a.shape == (3,3,)
+    return np.sqrt( (np.einsum('ij,ij', 3*a, a) - np.einsum('ii,jj', a, a )) /2 )
+
+
 def b_para( b, p ):
     """Given beta in either UT or full tensor form, and dipole moment
     will return the projected beta vector, the rotationally invariant of the beta
