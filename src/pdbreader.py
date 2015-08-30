@@ -34,8 +34,8 @@ color_dict = { "H" : (1, 1, 1),
         "O" : (1, 0, 0),
         "S" : (1,1,0) }
 
-scale_factor_dict = { "H" : 0.5 , "C" : 1.0 , "N" : 1.0 , "O" : 1.0 , "S" : 1.2 }
 
+scale_factor_dict = { "H" : 0.5 , "C" : 1.0 , "N" : 1.0 , "O" : 1.0 , "S" : 1.2 }
 mass_dict = { "H" : 1.0 , "C" : 12.0 , "N" : 14.0 , "O" : 16.0 , "S" : 32.0 }
 
 pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
@@ -2645,6 +2645,26 @@ class NewSystem( list ):
         for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
             cluster.System = self
             cluster.connect_everything()
+
+    @property
+    def p(self):
+        return self.sum_property
+
+    @property
+    def sum_property(self):
+        """
+Return the sum properties of all properties in NewSystem
+        """
+        el_dip = np.array([ (at.r-m.coc)*at.p.q for c in self for m in c for at in m])
+        nuc_dip = np.array([ (at.r-m.coc)*molecules.charge_dict[at.element] for c in self for m in c for at in m])
+        dip_lop = np.array([at.p.d for c in self for m in c for at in m])
+        dip = el_dip + nuc_dip
+        d = (dip + dip_lop).sum(axis=0)
+        p = molecules.Property()
+        for at in self.atoms:
+            p += at.Property
+        p.d = d
+        return p
 
 # To define N- /C- terminals and set Next/ Prev attributes
     def connect_residues(self,):
