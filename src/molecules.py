@@ -309,39 +309,6 @@ invoking dalton on a supercomputer.
         p.b = utilz.s2ut(np.einsum( 'ai,bj,ck,ijk', matrix, matrix, matrix, utilz.ut2s(self.b) ))
         return p
 
-
-    def transform_ut_properties( self, t1, t2, t3):
-        """
-Rotate all the properties of each atom by 3 euler angles.
-
-    >>> w = Water.get_standard()
-    >>> w.rotate( 0, np.pi/2, 0 )  #Rotate counter-clockwise by 90 degrees around y-axis
-    >>> temp = template.Template().get() #Default template
-    >>> Property.add_prop_from_template( w.o, temp )
-    >>> print w.o.Property[ "dipole" ]
-    array([ 0.   , -0.   ,  0.298])
-
-#Dipole moment of oxygen atom pointing in positive z-direction
-
-    >>> r1, r2, r3 = w.get_euler()
-    >>> w.o.Property.transform_ut_properties( r1, r2, r3 )
-    >>> print w.o.Property[ "dipole" ]
-    [ -2.98000000e-01   3.64944746e-17   1.82472373e-17]
-
-#Dipole moment of oxygen atom now pointing in negative x-direction
-
-"""
-
-
-        if self.has_key( "dipole" ):
-            self["dipole"] = Rotator.transform_1( self["dipole"] , t1, t2, t3 )
-        if self.has_key( "quadrupole" ):
-            self["quadrupole"] = self.transform_ut_2( self["quadrupole"], t1, t2, t3 )
-        if self.has_key( "alpha" ):
-            self["alpha"] = self.transform_ut_2( self["alpha"],t1, t2, t3 )
-        if self.has_key( "beta" ):
-            self["beta"] = self.transform_ut_3( self["beta"], t1, t2, t3 )
-
     def transform_ut_2( self, prop, t1, t2 ,t3 ):
         tmp = Rotator.ut_2_square( prop )
         tmp = Rotator.transform_2( tmp , t1 ,t2 ,t3 )
@@ -1331,7 +1298,7 @@ class Molecule( list ):
             at.p = at.p.transform_by_matrix( R2 )
             at.p = at.p.transform_by_matrix( R3_inv )
             at.p = at.p.transform_by_matrix( S )
-            at.p.transform_ut_properties( r1, r2, r3)
+            at.p.rotate( r1, r2, r3)
         self.t( origin )
 
     def t(self, *args):
@@ -1629,14 +1596,14 @@ class Molecule( list ):
 
         t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
-            at.p.transform_ut_properties( t1, t2, t3 )
+            at.p = at.p.rotate( t1, t2, t3 )
         if loprop:
             self.is_Property = False
             self.LoProp = True
         else:
             self.is_Property = True
             self.property_r = centered
-            self.Property.transform_ut_properties( t1, t2, t3 )
+            self.Property.rotate( t1, t2, t3 )
             self.LoProp = False
 
     def dist_to_point( self , point ):
@@ -3619,7 +3586,7 @@ Plot Cluster a 3D frame in the cluster
             t1, t2, t3 = wat.get_euler()
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
-                at.Property.transform_ut_properties( t1, t2, t3)
+                at.Property.rotate( t1, t2, t3)
 
     @staticmethod
     def get_water_cluster_from_string( _str, in_AA,
