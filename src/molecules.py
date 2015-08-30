@@ -2069,8 +2069,9 @@ Return the sum properties of all properties in molecules
         """
         if self.Property:
             return self.Property
-        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        coc = self.coc
+        el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
@@ -4047,8 +4048,9 @@ Return a cluster of water molecules given file.
         """
 Return the sum properties of all molecules in cluster
         """
-        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        coc = self.coc
+        el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
         dip = el_dip + nuc_dip
         dip_tot = (dip + dip_lop).sum(axis=0)
