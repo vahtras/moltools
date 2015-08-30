@@ -2662,6 +2662,13 @@ class NewSystem( list ):
                     ch[i]._Next = ch[i + 1]
                     ch[i]._Prev = ch[i - 1]
 
+#NewSystem
+    def get_xyz_string(self):
+        _string = "%d\n\n" %( len(self.atoms) )
+        for at in self.atoms:
+            _string += at.xyz_string()
+        return _string
+
     def min_dist_atoms_separate_res_chain(self, AA_cutoff = 1.5 ):
         """Return list of atoms which have an other atom closer than 1.5 AA to them
         and are not in the same residue and also different chains
@@ -2873,6 +2880,7 @@ class NewSystem( list ):
             c.System = self
             self.append( c )
 
+#NewSystem method of adding objects
     @property
     def atoms(self):
         return [a for chain in self for mol in chain for a in mol if isinstance(a , molecules.Atom ) ]
