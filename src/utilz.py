@@ -208,7 +208,7 @@ def get_euler( r1, r2 ):
     t3 = 0
 
     outputs vectors in order as they are needed to produce the input from
-    the z and x unit vectors
+    the [0,0,1 and [1,0,0] unit vectors
 
     """
     r1, r2 = map(lambda x: x.copy(), [r1, r2] )
