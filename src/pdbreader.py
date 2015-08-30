@@ -2647,17 +2647,21 @@ class NewSystem( list ):
             cluster.connect_everything()
 
     @property
+    def coc(self):
+        return sum( [at.r * molecules.charge_dict[at.element] for at in self.atoms])\
+                /sum( map(float,[molecules.charge_dict[at.element] for at in self.atoms]) )
+    @property
     def p(self):
         return self.sum_property
-
     @property
     def sum_property(self):
         """
 Return the sum properties of all properties in NewSystem
         """
-        el_dip = np.array([ (at.r-m.coc)*at.p.q for c in self for m in c for at in m])
-        nuc_dip = np.array([ (at.r-m.coc)*molecules.charge_dict[at.element] for c in self for m in c for at in m])
-        dip_lop = np.array([at.p.d for c in self for m in c for at in m])
+        coc = self.coc
+        el_dip = np.array([ (at.r- coc)*at.p.q for at in self.atoms])
+        nuc_dip = np.array([ (at.r-coc)*molecules.charge_dict[at.element] for at in self.atoms])
+        dip_lop = np.array([at.p.d for at in self.atoms])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
         p = molecules.Property()
