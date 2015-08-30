@@ -811,6 +811,10 @@ AA       True     bool
     def in_qm(self):
         return self.Molecule.in_qm
 
+    def xyz_string(self):
+        x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
+        return "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(self.element, self.x,  self.y, self.z )
+
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
         """Return pdb line as specified by the PDB standard"""
