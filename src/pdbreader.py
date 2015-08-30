@@ -2686,6 +2686,20 @@ Return the sum properties of all properties in NewSystem
                     ch[i]._Next = ch[i + 1]
                     ch[i]._Prev = ch[i - 1]
 
+# Slice solution for NewSystem, will return NewSystem when slicing object
+    def __add__(self, other):
+        return NewSystem(list.__add__(self, other))
+    def __getslice__(self, i, j):
+        return self.__getitem__(slice(i, j))
+    def __getitem__(self, item):
+        if isinstance( item, slice ):
+            result = list.__getitem__(self, item)
+            try:
+                return NewSystem(result)
+            except TypeError:
+                return result
+        else:
+            return super(NewSystem,self).__getitem__( item )
 #NewSystem
     def get_xyz_string(self):
         _string = "%d\n\n" %( len(self.atoms) )
