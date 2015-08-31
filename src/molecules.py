@@ -263,16 +263,20 @@ invoking dalton on a supercomputer.
                     p[ each ] = template[ (at_string, each ) ]
         return p
 
-    def inv_rotate( self, t1, t2, t3 ):
+    def inv_rotate( self, t1, t2, t3, plane = 'xz' ):
         """Rotate all properties by t1, t2, t3
         t1 negative rotation around Z-axis
         t2 positiv rotation around Y-axis
         t3 negative rotation around Z-axis
         """
+        rots = { 'xz' : (utilz.Rz_inv(t1), utilz.Ry(t2), utilz.Rz_inv(t3) ),
+                 'xy' : (utilz.Ry_inv(t1), utilz.Rz(t2), utilz.Ry_inv(t3) )
+            }
+
         p = Property()
-        r1 = utilz.Rz_inv(t1)
-        r2 = utilz.Ry(t2)
-        r3 = utilz.Rz_inv(t3)
+        r1 = rots[ plane ][0]
+        r2 = rots[ plane ][1]
+        r3 = rots[ plane ][2]
         p.q = self.q
         p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
         p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
@@ -1300,7 +1304,7 @@ class Molecule( list ):
         for a in self:
             a.Molecule = self
 
-    def reflect(self, key = lambda x:(x[0].r, x[1].r, x[2].r),
+    def reflect_mol_plane(self, key = lambda x:(x[0].r, x[1].r, x[2].r),
             plane = 'xz'):
         """docstring for reflect"""
         p1, p2, p3 = key( self )
@@ -1325,6 +1329,12 @@ class Molecule( list ):
             at.p = at.p.transform_by_matrix( S )
             at.p.rotate( r1, r2, r3)
         self.t( origin )
+
+    def reflect(self, plane = 'xz' ):
+        S = utilz.S( plane )
+        for at in self:
+            at.x, at.y, at.z = np.einsum( 'ij,j', S,  at.r)
+            at.p = at.p.transform_by_matrix( S )
 
     def t(self, *args):
         """Wrapper function for self.translate_by_r"""
@@ -1495,37 +1505,51 @@ class Molecule( list ):
         else:
             logging.warning('Passed %s instance to Molecule' %type(item) )
 
-    def plot_2d(self, key = None, ):
+    def plot_2d(self, copy = True, smart = False, key = None, ):
         """Plots the 2D projetion of the molecule onto the y plane,
         PLAN: TODO:
         Later implement internal plane projection on arbitray two-vector plane
         """
         fig, ax = plt.subplots()
         #norm  = self.get_internal_plane()
-        self.populate_bonds()
+        if copy:
+            copy = self.copy()
+        else:
+            copy = self
+        copy.populate_bonds()
 
-        norm = np.array( [0, 0, 1] )
+        if smart:
+            p1, p2, p3 = utilz.largest_triangle( [at.r for at in copy] )
+            t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+            v = np.cross( p3 - p1, p2 - p1 )
+            norm = v / np.linalg.norm( v )
+        else:
+            norm = np.array( [0, 0, 1] )
+
+        copy.t( t )
+        copy.inv_rotate( r1, r2, r3 )
+
 
         if key is None:
             key = lambda x: x.element
 
-        for at in self:
+        for at in copy:
             x, y = (at.r - np.einsum('i,i', norm, at.r)*norm)[:-1]
             ax.scatter( x, y, color = color_dict[at.element], linewidth=4 )
             ax.annotate(  key( at ) , (x, y ), (x, y+0.1) )
         
-        x = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[0], self)
-        y = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[1], self)
+        x = np.linspace( -5, 5, 100 )
+        y = np.linspace( -5, 5, 100 )
 
         #plot the bonds
 #Plot bonds
-        for each in self:
+        for each in copy:
             for key in each.bonds.values():
                 ax.plot( [key.x, each.x],
                          [key.y, each.y],
                          color = 'black', linewidth = 0.25 )
 
-        for at in self:
+        for at in copy:
             pass
         ax.set_title( 'Projection of molecule on yx-plane' )
         ax.set_xlabel( 'x-axis' )
