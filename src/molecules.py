@@ -1519,8 +1519,8 @@ class Molecule( list ):
 
         #plot the bonds
 #Plot bonds
-        for each in self.bond_dict:
-            for key in self.bond_dict[ each ]:
+        for each in self:
+            for key in each.bonds.values():
                 ax.plot( [key.x, each.x],
                          [key.y, each.y],
                          color = 'black', linewidth = 0.25 )
