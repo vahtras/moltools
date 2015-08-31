@@ -8,6 +8,7 @@ on other modules or files in this repository
 """
 
 import os,sys, re, argparse, ctypes, multiprocessing, functools, warnings
+import itertools
 import numpy as np
 import math as m
 
@@ -926,3 +927,25 @@ def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
                                     for z2 in range(3):
                                         b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
     return b_new[ car1, car2, car3 ]
+
+def largest_triangle( _l ):
+    """ Naive O( n^3 ) implementation of finding largest area triangle
+    list _l have points and are thus shapes( n, 3 )"""
+
+    largest = 0
+    points = (0, 0, 0,)
+    for p1, p2, p3 in itertools.product( _l, _l, _l ):
+        if (p1 == p2).all() or (p1 == p3).all() or (p2 == p3).all():
+            continue
+        tri = np.linalg.norm( np.cross((p2-p1),(p3-p1)) ) /2
+        if tri > largest:
+            points = ( p1, p2, p3 )
+            largest = tri
+    return points
+
+
+
+
+
+
+
