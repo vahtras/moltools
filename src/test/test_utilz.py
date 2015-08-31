@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from utilz import *
+from molecules import Water
 
 HF_FILE = """
 
@@ -1288,6 +1289,11 @@ class UtilzTestCase( unittest.TestCase ):
         p_out = rotate_point_around_cross(p1, p2, p3, theta)
         np.testing.assert_allclose( p_out, np.array( [ 0, 1, 0] ), atol=1e-10 )
 
+    def test_get_t_and_rho(self):
+        w = Water.get_standard() 
+
+        t, r1, r2, r3 = get_t_and_rho( w.o.r, (w.h1.r - w.h2.r)/2 + w.h2.r, w.h1.r,
+                plane = 'xy' )
 
 
 
