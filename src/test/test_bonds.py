@@ -25,6 +25,7 @@ class BondTestCase( unittest.TestCase ):
     def test_transfer_props(self):
         w = Water.get_standard()
         w.attach_properties()
+        w.populate_bonds()
         B = w.p.b.copy()
         w.h1.transfer_props()
         w.o.transfer_props()
