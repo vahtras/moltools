@@ -1845,7 +1845,7 @@ class Molecule( list ):
 
             of = "DALTON.OUT"
             tar = "dalton_molecule.tar.gz"
-#Need to do this since late dalton scripts appends the tmp with seperate PID
+#Need to do this since late dalton scripts appends the tmp with separate PID
             real_tmp = utilz.find_dir( of, tmpdir )
 
 #If smth happend to the dalton subprocess, the of will not exist and throw exception
@@ -2951,7 +2951,7 @@ Not yet implemented, only needs get_euler and z-matrix to be specific.
         super( Methanol, self).__init__(**kwargs)
 
     def append(self, atom):
-        """Typical append for each seperate molecule class"""
+        """Typical append for each separate molecule class"""
         if len(self) == 6:
             print "tried to add additional atoms to methanol, exiting"
             raise SystemExit
@@ -3150,16 +3150,14 @@ class Cluster(list):
         self.to_AU()
         g = opts[model].from_string( self.get_qmmm_pot_string(max_l = max_l,
             pol = pol, hyp = hyp) )
-        for atom, res in map( lambda x: [x, x.Molecule], self.min_dist_atoms_seperate_res(AA_cutoff) ):
-            ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
+        for atom, res in map( lambda x: [x, x.Molecule], self.min_dist_atoms_separate_res(AA_cutoff) ):
+            ind = reduce( lambda a, x: a + len(x), res.Chain[ : res.Chain.index(res) ] , 0) + atom.order
             g[ ind ]._R_q = rq
             g[ ind ]._R_p = rp
             if nullify:
                 g[ ind ]._q = 0.0
                 g[ ind ]._p0 = np.zeros( (3,) )
-                g[ ind ]._a0 = np.zeros( (3,3,) )
                 g[ ind ]._Q0 = np.zeros( (3,3,) )
-                g[ ind ]._b0 = np.zeros( (3,3,3,) )
         if aa:
             self.to_AA()
         return g
@@ -3232,11 +3230,11 @@ class Cluster(list):
         if in_AA :
             max_dist / a0
 
-        """Given pdb/mol/xyz  file return a Cluster with all seperate molecules"""
+        """Given pdb/mol/xyz  file return a Cluster with all separate molecules"""
         if fil.endswith('.xyz'):
             with open(fil,'r') as f_:
                 pass
-    def min_dist_atoms_seperate_res(self, AA_cutoff = 1.5 ):
+    def min_dist_atoms_separate_res(self, AA_cutoff = 1.5 ):
         """Return list of atoms which have an other atom closer than 1.5 AA to them
         and are not in the same residue
         
@@ -3539,7 +3537,7 @@ Plot Cluster a 3D frame in the cluster
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
 
-#make sure that each unique residue is in seperate residue in POT output
+#make sure that each unique residue is in separate residue in POT output
         self.order_mm_mols()
 
         if self.AA:
