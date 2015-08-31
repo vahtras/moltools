@@ -13,7 +13,7 @@ class MoleculesTestCase( unittest.TestCase ):
             True, "0.0"))
         for at in wat:
             at.p = Property.from_template( at.name, kw_dict )
-            at.Property.transform_ut_properties( t1, t2, t3 )
+            at.p = at.p.rotate( t1, t2, t3 )
 # will only test this quadrupole
             at.Property["quadrupole"] = np.arange( 6 )
         self.wat = wat
