@@ -1696,7 +1696,7 @@ class Residue( molecules.Molecule ):
 
 #Residue
     def __str__(self):
-        base = "-".join( [self.Chain.chain_id, self.res_name + str(self.res_id)] )
+        base = "-".join( [self.chain_id, self.res_name + str(self.res_id)] )
         if self.concap:
             base += '-con'
         return base
