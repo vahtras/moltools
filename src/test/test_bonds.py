@@ -27,9 +27,21 @@ class BondTestCase( unittest.TestCase ):
         w.attach_properties()
         w.populate_bonds()
         B = w.p.b.copy()
+
         w.h1.transfer_props()
         w.o.transfer_props()
         np.testing.assert_allclose( w.p.b, B, atol = 1e-7 )
+
+    def test_transfer_props(self):
+        w = Water.get_standard()
+        w.attach_properties()
+        w.populate_bonds()
+        B = w.p.b.copy()
+
+        w.transfer_props( [w.o, w.h1] )
+        np.testing.assert_allclose( w.p.b, B, atol = 1e-7 )
+
+
 
 
 
