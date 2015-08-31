@@ -191,9 +191,26 @@ def center_and_xz(p1 = np.array([0,0,0]),
     r1, r2, r3 = get_euler( v2, v3 )
     return t_v, r1, r2, r3
 
+def get_t_and_rho(p1 = np.array([0,0,0]),
+        p2 = np.array([0,0,1]),
+        p3 = np.array([1,0,0]),
+        plane = 'xz' ):
+    """Given three points, will return one translation vector
+    and 3 rotation matrices Rz**-1, Ry, and Rz**-1
+    Required to put p1 in origo, with p2 and p3 in the xz plane and
+    p2-p1 as the z axis.
+    """
+    t_v = -p1.copy()
+    v2 = p2 - p1
+    v3 = p3 - p1
+    r1, r2, r3 = get_euler( v2, v3, plane = plane )
+    return t_v, r1, r2, r3
 
 
-def get_euler( r1, r2 ):
+
+
+
+def get_euler( r1, r2, plane = 'xz' ):
     """Given two vectors, return 3 euler angles defined as follows
     
     1) Rotation around z axis clockwise,
@@ -212,27 +229,33 @@ def get_euler( r1, r2 ):
     the [0,0,1 and [1,0,0] unit vectors
 
     """
+
+    rots = { 'xz' : (Rz_inv, Ry, Rz_inv ),
+             'xy' : (Ry_inv, Rz, Ry_inv )
+        }
+
+
     r1, r2 = map(lambda x: x.copy(), [r1, r2] )
 # First angle
     t1 = np.arctan2( r1[1], r1[0] )
     if t1 < 0:
         t1 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t1 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][0]( t1 ), x), [r1, r2 ] )
 
 # Second angle
     t2 = np.arctan2( -r1[0], r1[2] )
     if t2 < 0:
         t2 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Ry( t2 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][1]( t2 ), x), [r1, r2 ] )
 
 # Third angle
     t3 = np.arctan2( r2[1], r2[0] )
     if t3 < 0:
         t3 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t3 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][2]( t3 ), x), [r1, r2 ] )
     return t3, t2, t1
 
 def alpha_iso( a ):
