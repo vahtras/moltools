@@ -1152,6 +1152,42 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+
+#Molecule method to transfer props from all atoms in at_list evenly to neighbours
+#In order to remove props to closest bonded neighbours
+    def transfer_props(self, at_list, center = None ):
+        """
+        The algorithm checks for edges, takes properties from there 
+        if they are also in the list, and then
+        distributes evenly to other neighbours
+        """
+
+        if center is not None:
+            if center.shape == (3,):
+                at_list = sorted( at_list, key = lambda x: (len(x.bonds), x.dist_to_point(center),) )
+            else:
+                logging.error('Provided center keyword in transfer props\
+                        without proper numpy array of shape 3!')
+        else:
+            at_list = sorted( at_list, key = lambda x: len(x.bonds) )
+
+#atoms and their neighbours should have a tmp copy of bonds
+        for each in at_list:
+            each.tmp_bonds = each.bonds.copy()
+            for at in each.bonds.values():
+                at.tmp_bonds = at.bonds.copy()
+
+#
+        for each in at_list:
+            p = each.p / len( each.tmp_bonds )
+            for at in each.tmp_bonds.values():
+                at.p += p
+                del at.tmp_bonds[ each.name ]
+            each.p = Property()
+            
+#So the side groups dont transfer props back to this atom
+
+
 #Properties for grabbing uniquely PDB named atoms
     @property
     def N(self):
