@@ -3159,6 +3159,30 @@ class Cluster(list):
             st += at.pdb_string()
         return st
 
+
+#Cluster level
+    def transfer_props(self, at_list, center = None ):
+        """
+        Convenient wrapper for clusters with several interconnected
+        Molecules.
+
+        splitter puts atoms in seperate lists belonging to same molecules
+
+        Make sure that these are not interconnected
+
+        Note: the populate_bonds method must be run before this 
+        in order to get correct transfering behaviour
+        """
+        
+
+        mol_arr = utilz.splitter( at_list, key = lambda x: x.Molecule )
+
+        for ind, ats in enumerate( mol_arr ):
+            mol_arr[ ind ][0].Molecule.transfer_props( ats, center = center )
+
+
+
+
     @property
     def density(self):
         """Return the density in SI units kg/m^3"""
