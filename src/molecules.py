@@ -1151,6 +1151,18 @@ class Molecule( list ):
 
 #Properties for grabbing uniquely PDB named atoms
     @property
+    def N(self):
+        return self.get_atom_by_pdbname( 'N' )
+    @property
+    def CA(self):
+        return self.get_atom_by_pdbname( 'CA' )
+    @property
+    def C(self):
+        return self.get_atom_by_pdbname( 'C' )
+    @property
+    def O(self):
+        return self.get_atom_by_pdbname( 'O' )
+    @property
     def CA(self):
         return self.get_atom_by_pdbname( 'CA' )
     @property
@@ -1159,6 +1171,17 @@ class Molecule( list ):
     @property
     def CD(self):
         return self.get_atom_by_pdbname( 'CD' )
+    @property
+    def CG(self):
+        return self.get_atom_by_pdbname( 'CG' )
+    @property
+    def H(self):
+        return self.get_atom_by_pdbname( 'H' )
+    @property
+    def HN(self):
+        return self.get_atom_by_pdbname( 'HN' )
+
+
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
