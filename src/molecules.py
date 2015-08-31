@@ -790,9 +790,8 @@ AA       True     bool
 
 #In order to remove props to closest bonded neighbours
     def transfer_props(self):
-        """docstring for transfer_props"""
-        self.Molecule.populate_bonds()
-
+        """Note: Before calling this method assert that the atom
+        has the proper bonds, be it within molecule or Cluster"""
         p = self.p / len( self.bonds )
         for at in self.bonds.values():
             at.p += p
