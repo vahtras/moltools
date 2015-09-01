@@ -633,14 +633,17 @@ AA       True     bool
 #Element one-key char
         self._element = "X"
 
-#Order in xyz files
+#order in xyz files
         self._order = None
 
-#Name is custom name, for water use O1, H2 (positive x ax), H3
+#name is custom name, for water use O1, H2 (positive x ax), H3
         self._name = None
 
-#Label is custom name, for water use O1, H2 (positive x ax), H3
+#label is custom name, to identify from different residues
         self._label = None
+
+#cabel is custom name to identify from different chains
+        self._clabel = None
 
         self.x = 0.0
         self.y = 0.0
@@ -697,6 +700,18 @@ AA       True     bool
     @property
     def Chain(self):
         return self.Cluster
+
+#Chain for this atom
+    @property
+    def clabel(self):
+        if self._clabel:
+            return self._clabel
+        m = self.Molecule
+        if m:
+            c = m.Cluster
+            if c:
+                return "{}-{}-{}-{}".format( c.chain_id, m.res_id,m.res_name,self.pdb_name )
+        return None
 
 #Molecule for this atom
     @property
@@ -4200,6 +4215,18 @@ Return the sum properties of all molecules in cluster
         if not self.AA:
             for i in self:
                 i.to_AA()
+    def get_atom_by_label(self, val):
+        for at in self.atoms:
+            if at.label == val:
+                return at
+        return None
+
+    def get_atom_by_clabel(self, val):
+        for at in self.atoms:
+            if at.clabel == val:
+                return at
+        return None
+     
 
     def to_AU(self):
         if self.AA:
