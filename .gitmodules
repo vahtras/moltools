@@ -3,4 +3,4 @@
 	url = git@github.com:fishstamp82/loprop.git
 [submodule "src/pd"]
 	path = src/pd
-	url = git@github.com:vahtras/pd.git
+	url = git@github.com:fishstamp82/pd.git
