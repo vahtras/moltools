@@ -1199,9 +1199,8 @@ class Molecule( list ):
             for at in each.tmp_bonds.values():
                 for prop in props:
                     at.p[prop] += p[prop]
+                    each.p[prop] -= p[prop]
                 del at.tmp_bonds[ each.name ]
-
-            each.p = Property()
             
 #So the side groups dont transfer props back to this atom
 
@@ -3182,6 +3181,7 @@ class Cluster(list):
 #Cluster level
     def transfer_props(self, at_list, 
             transfer = { 'charge' : 0,
+                'quadrupole' : 0,
                 'dipole' : 0,
                 'alpha' : 0,
                 'beta' :0},
