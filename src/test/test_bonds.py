@@ -38,7 +38,13 @@ class BondTestCase( unittest.TestCase ):
         w.populate_bonds()
         B = w.p.b.copy()
 
-        w.transfer_props( [w.o, w.h1] )
+        transfer = { 'charge' : 1,
+            'quadrupole' : 1,
+            'dipole' : 1,
+            'alpha' : 1,
+            'beta' : 1 }
+
+        w.transfer_props( [w.o, w.h1], transfer = transfer )
         np.testing.assert_allclose( w.p.b, B, atol = 1e-7 )
 
 
