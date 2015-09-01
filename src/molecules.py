@@ -1213,6 +1213,9 @@ class Molecule( list ):
     def CA(self):
         return self.get_atom_by_pdbname( 'CA' )
     @property
+    def HA(self):
+        return self.get_atom_by_pdbname( 'CA' )
+    @property
     def C(self):
         return self.get_atom_by_pdbname( 'C' )
     @property
@@ -1227,6 +1230,9 @@ class Molecule( list ):
     @property
     def CD(self):
         return self.get_atom_by_pdbname( 'CD' )
+    @property
+    def HD1(self):
+        return self.get_atom_by_pdbname( 'HD1' )
     @property
     def CG(self):
         return self.get_atom_by_pdbname( 'CG' )
