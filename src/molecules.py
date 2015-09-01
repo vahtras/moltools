@@ -36,27 +36,33 @@ mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
 color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O":'red', 'S' : 'yellow'}
 
 bonding_cutoff = { 
-        ('X','X') : 1.0,
+        ('X','X') : 0.0,
+        ('H','X') : 0.0,
         ('H','H') : 0.2,
         ('H','C') : 1.105,
         ('H','N') : 1.1,
         ('H','O') : 1.1,
         ('H','P') : 1.1,
         ('H','S') : 1.3,
+        ('C','X') : 0.0,
         ('C','C') : 1.66,
         ('C','N') : 1.60,
         ('C','O') : 1.5,
         ('C','P') : 2.0,
         ('C','S') : 2.0,
+        ('N','X') : 0.0,
         ('N','N') : 1.5,
         ('N','O') : 1.5,
         ('N','P') : 1.5,
         ('N','S') : 1.5,
+        ('O','X') : 0.0,
         ('O','O') : 1.5,
         ('O','P') : 2.0,
         ('O','S') : 1.75,
+        ('P','X') : 0.0,
         ('P','P') : 1.5,
         ('P','S') : 2.0,
+        ('S','X') : 0.0,
         ('S','S') : 2.1,
     }
 #Make permutations for later on
@@ -1179,6 +1185,9 @@ class Molecule( list ):
 
 #
         for each in at_list:
+            if len( each.tmp_bonds ) == 0:
+                logging.error('Tried to transfer props from non bonded atom')
+                raise SystemExit
             p = each.p / len( each.tmp_bonds )
             for at in each.tmp_bonds.values():
                 at.p += p
@@ -1221,6 +1230,9 @@ class Molecule( list ):
         return self.get_atom_by_pdbname( 'HN' )
 
 
+    @property
+    def X(self):
+        return self.get_atom_by_pdbname( 'X1' )
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
