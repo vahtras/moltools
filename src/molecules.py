@@ -748,7 +748,7 @@ AA       True     bool
             return self._chain_id
         if self.Molecule.Cluster:
             return self.Molecule.Cluster.chain_id
-        return "X"
+        return 'X'
     @chain_id.setter
     def chain_id(self, val ):
         self._chain_id = val
@@ -1116,6 +1116,7 @@ class Molecule( list ):
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
+        self._chain_id = None
         self._res_name = None
         self._freq = None
         self._res_id = 0
@@ -1172,6 +1173,21 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+#Molecule chain_id
+    @property
+    def chain_id(self):
+        if self._chain_id is not None:
+            return self._chain_id
+        if self.Cluster:
+            return self.Chain.chain_id
+        tmp_ch = self[0].chain_id
+        for at in self:
+            try:
+                assert tmp_ch == at.chain_id
+            except AssertionError:
+                logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
+        return tmp_ch
 
 
 #Molecule method to transfer props from all atoms in at_list evenly to neighbours
@@ -3116,6 +3132,7 @@ class Cluster(list):
         self._System = None
         self.Property = None
         self.atom_list = []
+
         if type(args) == tuple:
             if len(args) == 1:
                 if type(args[0]) == list:
@@ -3293,8 +3310,10 @@ class Cluster(list):
 # Slicing the cluster givees back a cluster, but only accessing one index gives molecule
     def __add__(self, other):
         return Cluster(list.__add__(self, other))
+
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
+
     def __getitem__(self, item):
         if isinstance( item, slice ):
             result = list.__getitem__(self, item)
@@ -4029,18 +4048,25 @@ Return a cluster of water molecules given file.
 
     def add_mol(self, mol, ):
         if isinstance( mol , Molecule ):
-            super( Cluster, self ).append( mol )
+            if mol.chain_id is not 'X':
+                self._chain_id = mol.chain_id
             mol.Cluster = self
+            super( Cluster, self ).append( mol )
         elif type( mol ) == list:
             for each in mol:
-                each.in_mm = in_mm
-                each.in_qm = in_qm
-                each.in_qmmm = in_qmmm
+                if each.chain_id is not 'X':
+                    self._chain_id = each.chain_id
                 super( Cluster, self ).append( each )
                 each.Cluster = each
 
     def add_atom(self, *at):
         for i, iat in enumerate(at):
+
+#If we create a slice of a cluster, retain the chain ID in the new one,solves a lot of problems
+            if iat.chain_id is not 'X':
+                print iat
+                self._chain_id = iat.chain_id
+                print self.chain_id
             self.append( iat )
             iat.Cluster = self
 

@@ -629,6 +629,7 @@ class NewAtom( molecules.Atom ):
     def res_name(self,val):
         self._res_name = val
 
+#NewAtom
     @property
     def chain_id(self):
         if self._chain_id:
