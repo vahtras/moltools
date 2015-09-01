@@ -1225,6 +1225,7 @@ class Molecule( list ):
         for each in at_list:
             if len( each.tmp_bonds ) == 0:
                 logging.error('Tried to transfer props from non bonded atom')
+                logging.error('Offending atom is : %s' %each )
                 raise SystemExit
             p = each.p / len( each.tmp_bonds )
             for at in each.tmp_bonds.values():
