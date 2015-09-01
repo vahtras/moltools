@@ -1155,7 +1155,7 @@ class Molecule( list ):
 
 #Molecule method to transfer props from all atoms in at_list evenly to neighbours
 #In order to remove props to closest bonded neighbours
-    def transfer_props(self, at_list, center = None ):
+    def transfer_props(self, at_list, keep_pol = True, center = None ):
         """
         The algorithm checks for edges, takes properties from there 
         if they are also in the list, and then
@@ -2020,14 +2020,12 @@ class Molecule( list ):
                     a1.bonds[ a2.name ] = a2
                     a2.bonds[ a1.name ] = a1
         else:
-            for ind1, a1 in enumerate( self[:-1]  ):
-                for ind2, a2 in enumerate( self[ ind1 : ] ):
-                    if a1 == a2:
-                        continue
-                    if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                        a1.bonds[ a2.name ] = a2
-                        a2.bonds[ a1.name ] = a1
-
+            for a1, a2 in itertools.product( self, self ):
+                if a1 == a2:
+                    continue
+                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                    a1.bonds[ a2.name ] = a2
+                    a2.bonds[ a1.name ] = a1
 
 
     def populate_angles(self):
@@ -3161,7 +3159,7 @@ class Cluster(list):
 
 
 #Cluster level
-    def transfer_props(self, at_list, center = None ):
+    def transfer_props(self, at_list, keep_pol = True, center = None ):
         """
         Convenient wrapper for clusters with several interconnected
         Molecules.
@@ -3178,7 +3176,9 @@ class Cluster(list):
         mol_arr = utilz.splitter( at_list, key = lambda x: x.Molecule )
 
         for ind, ats in enumerate( mol_arr ):
-            mol_arr[ ind ][0].Molecule.transfer_props( ats, center = center )
+            mol_arr[ ind ][0].Molecule.transfer_props( ats,
+                    keep_pol = keep_pol,
+                    center = center )
 
 
 
