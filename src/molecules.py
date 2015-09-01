@@ -1161,7 +1161,13 @@ class Molecule( list ):
 
 #Molecule method to transfer props from all atoms in at_list evenly to neighbours
 #In order to remove props to closest bonded neighbours
-    def transfer_props(self, at_list, keep_pol = True, center = None ):
+    def transfer_props(self, at_list, 
+            transfer = { 'charge' : 0,
+                'quadrupole' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' : 0 }, 
+            center = None ):
         """
         The algorithm checks for edges, takes properties from there 
         if they are also in the list, and then
@@ -1184,14 +1190,17 @@ class Molecule( list ):
                 at.tmp_bonds = at.bonds.copy()
 
 #
+        props = [k for k, v in transfer.iteritems() if v == 1]
         for each in at_list:
             if len( each.tmp_bonds ) == 0:
                 logging.error('Tried to transfer props from non bonded atom')
                 raise SystemExit
             p = each.p / len( each.tmp_bonds )
             for at in each.tmp_bonds.values():
-                at.p += p
+                for prop in props:
+                    at.p[prop] += p[prop]
                 del at.tmp_bonds[ each.name ]
+
             each.p = Property()
             
 #So the side groups dont transfer props back to this atom
@@ -3171,7 +3180,12 @@ class Cluster(list):
 
 
 #Cluster level
-    def transfer_props(self, at_list, keep_pol = True, center = None ):
+    def transfer_props(self, at_list, 
+            transfer = { 'charge' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' :0},
+            center = None ):
         """
         Convenient wrapper for clusters with several interconnected
         Molecules.
@@ -3189,11 +3203,8 @@ class Cluster(list):
 
         for ind, ats in enumerate( mol_arr ):
             mol_arr[ ind ][0].Molecule.transfer_props( ats,
-                    keep_pol = keep_pol,
+                    transfer = transfer,
                     center = center )
-
-
-
 
     @property
     def density(self):
