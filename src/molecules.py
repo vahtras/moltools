@@ -1274,7 +1274,13 @@ class Molecule( list ):
         return self.get_atom_by_pdbname( 'CA' )
     @property
     def HA(self):
-        return self.get_atom_by_pdbname( 'CA' )
+        return self.get_atom_by_pdbname( 'HA' )
+    @property
+    def HA1(self):
+        return self.get_atom_by_pdbname( 'HA1' )
+    @property
+    def HA2(self):
+        return self.get_atom_by_pdbname( 'HA2' )
     @property
     def C(self):
         return self.get_atom_by_pdbname( 'C' )
@@ -1294,6 +1300,9 @@ class Molecule( list ):
     def HD1(self):
         return self.get_atom_by_pdbname( 'HD1' )
     @property
+    def HD1(self):
+        return self.get_atom_by_pdbname( 'HD2' )
+    @property
     def CG(self):
         return self.get_atom_by_pdbname( 'CG' )
     @property
@@ -1305,7 +1314,7 @@ class Molecule( list ):
 
 
     @property
-    def X(self):
+    def X1(self):
         return self.get_atom_by_pdbname( 'X1' )
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
