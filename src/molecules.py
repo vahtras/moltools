@@ -802,8 +802,7 @@ AA       True     bool
         if self._order:
             return self._order
         if self.Molecule:
-            self._order = self.Molecule.index(self) + 1
-            return self._order
+            return self.Molecule.index(self) + 1
         return 0
     @order.setter
     def order(self, val):
@@ -1190,12 +1189,12 @@ class Molecule( list ):
             if len(args) == 1:
                 if type(args[0]) == list:
                     for i in args[0]:
-                        self.add( i )
+                        self.initiate( i )
                 else:
-                    self.add( args[0] )
+                    self.initiate( args[0] )
             else:
                 for at in args:
-                    self.add( at )
+                    self.initiate( at )
 
         if kwargs != {} :
             for i in kwargs:
@@ -1635,6 +1634,18 @@ class Molecule( list ):
             item.Molecule = self
         else:
             logging.warning('Passed %s instance to Molecule' %type(item) )
+
+    def initiate(self, item):
+        if isinstance( item, Atom ):
+#Small hack to set molecule to LoProp if initiated with atom that has Property on it
+            if item.p.q != 0.0 or ( item.p.d != np.zeros()).all():
+                self.LoProp = True
+            self.append( item )
+            item.Molecule = self
+        else:
+            logging.warning('Passed %s instance to Molecule' %type(item) )
+
+
 
     def plot_2d(self, copy = True, smart = False, key = None, ):
         """Plots the 2D projetion of the molecule onto the y plane,
