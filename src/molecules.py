@@ -2907,7 +2907,7 @@ class Cluster(list):
             min_ats.append( ats[xi] )
             min_ats.append( ats[zi] )
 
-        return read_dal.unique(min_ats)
+        return utilz.unique(min_ats)
 
 
     def min_dist_coo(self):

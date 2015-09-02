@@ -68,18 +68,6 @@ def o_filter(
         out.append( f )
     return out
 
-def unique(arr, key = lambda x: x, get_original = False ):
-    tmp = []
-    have = []
-    for i in arr:
-        inew = key( i )
-        if inew not in have:
-            tmp.append( i )
-            have.append( inew )
-    if get_original:
-        return tmp
-    return have
-
 def write_related( args ):
 
     if args.xyz.endswith(".pdb"):
