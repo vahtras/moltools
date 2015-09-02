@@ -121,6 +121,16 @@ class Property( dict ):
         p["beta"] =        self["beta"].copy()
         return p
 
+    def __getitem__(self, item):
+        new = { 'c' : 'charge', 'd' : 'dipole', 'Q' :'quadrupole',
+                'a' : 'alpha', 'b' : 'beta' }
+        try:
+            key = new [ item ]
+        except KeyError:
+            key = item
+        return super(Property, self).__getitem__( key )
+
+
     def __add__(self, other):
         tmp = Property()
         for i, prop in enumerate(self):
