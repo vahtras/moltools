@@ -2580,69 +2580,6 @@ Override list append method, will add up to 3 atoms,
         return string
 
 
-
-
-class Methanol(Molecule):
-    """
-Not yet implemented, only needs get_euler and z-matrix to be specific.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super( Methanol, self).__init__(**kwargs)
-
-    def append(self, atom):
-        """Typical append for each separate molecule class"""
-        if len(self) == 6:
-            print "tried to add additional atoms to methanol, exiting"
-            raise SystemExit
-
-        if not isinstance( atom, Atom ):
-            print "wront class passed to methanol append"
-            raise SystemExit
-
-        if atom.element == "H":
-            if self.no_hydrogens:
-                self.h1 = atom
-                self.no_hydrogens = False
-            else:
-                self.h2 = atom
-
-        if atom.element == "O":
-            self.o = atom
-#Add the atom
-        super( Molecule, self).append(atom)
-
-#Define methanol center, by default set it to center of C=O bond
-
-        if len(self) == 6:
-            self.center = sum([ i.r for i in self ] ) / len(self)
-            #hc = charge_dict[ self.h1.element ]
-            #oc = charge_dict[ self.h1.element ]
-            #self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
-            #    self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
-            #    self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
-        if self.res_id:
-            if self.res_id != atom.res_id:
-                print "Tried to add %s to %s, exiting" %(atom, self)
-                raise SystemExit
-        else:
-#Initialize res_id from atomic res_id
-            self._res_id = atom.res_id
-#Also calculate center now
-        if len(self) == 6:
-            h1, h2, h3, h4 = [i for i in self if i.element == "H" ]
-            #print "All hyds added for methanol %s" %str(self)
-            #raise SystemExit
-            #d1 = hyd1.dist_to_point( [1,1,1] )
-            #d2 = hyd2.dist_to_point( [1,1,1] )
-            #if d1 < d2:
-            #    self.h1 = hyd1
-            #    self.h2 = hyd2
-            #else:
-            #    self.h1 = hyd2
-            #    self.h2 = hyd1
-
-
 class Cluster(list):
     """
 **Molecule container which groups molecules into quantum mechanics, molecular mechanics, and qm/mm regions for easy in generating input files for QM/MM.**
