@@ -1300,7 +1300,7 @@ class Molecule( list ):
     def HD1(self):
         return self.get_atom_by_pdbname( 'HD1' )
     @property
-    def HD1(self):
+    def HD2(self):
         return self.get_atom_by_pdbname( 'HD2' )
     @property
     def CG(self):
