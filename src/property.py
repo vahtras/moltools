@@ -1,5 +1,6 @@
 import numpy as np
 import utilz 
+import logging
 
 
 class Property( dict ):
@@ -36,12 +37,15 @@ class Property( dict ):
         return p
 
     def __getitem__(self, item):
-        new = { 'c' : 'charge', 'd' : 'dipole', 'Q' :'quadrupole',
+
+
+        new = { 'c' : 'charge', 'd' : 'dipole', 'q' :'quadrupole',
                 'a' : 'alpha', 'b' : 'beta' }
         try:
-            key = new [ item ]
+            key = new[ item[0].lower() ]
         except KeyError:
-            key = item
+            logging.error("unknown command for getting item of Property")
+            raise SystemExit
         return super(Property, self).__getitem__( key )
 
 
