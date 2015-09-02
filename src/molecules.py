@@ -224,8 +224,9 @@ AA       True     bool
     def chain_id(self):
         if self._chain_id:
             return self._chain_id
-        if self.Molecule.Cluster:
-            return self.Molecule.Cluster.chain_id
+        if self.Molecule:
+            if self.Molecule.Cluster:
+                return self.Molecule.Cluster.chain_id
         return 'X'
     @chain_id.setter
     def chain_id(self, val ):
@@ -627,7 +628,7 @@ class Molecule( list ):
         self._res_id = 0
         self._r = None
         self._com = None
-        self.Cluster = None
+        self._Cluster = None
         self._cluster_order  = None
         self.no_hydrogens = True
 
@@ -685,7 +686,7 @@ class Molecule( list ):
         if self._chain_id is not None:
             return self._chain_id
         if self.Cluster:
-            return self.Chain.chain_id
+            return self.Cluster.chain_id
         tmp_ch = self[0].chain_id
         for at in self:
             try:
@@ -694,6 +695,17 @@ class Molecule( list ):
                 logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
         return tmp_ch
 
+#Molecule
+    @property
+    def Cluster(self):
+        if self._Cluster:
+            return self._Cluster
+        return None
+#Molecule
+    @Cluster.setter
+    def Cluster(self, val):
+        if isinstance( val, Cluster ):
+            self._Cluster = val 
 
 #Molecule method to transfer props from all atoms in at_list evenly to neighbours
 #In order to remove props to closest bonded neighbours
