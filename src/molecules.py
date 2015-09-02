@@ -813,14 +813,42 @@ AA       True     bool
         if other.name in self.bonds:
             del self.bonds[ other.name ]
 
-#In order to remove props to closest bonded neighbours
-    def transfer_props(self):
-        """Note: Before calling this method assert that the atom
-        has the proper bonds, be it within molecule or Cluster"""
-        p = self.p / len( self.bonds )
+#Atoms
+    def transfer_props(self, 
+            transfer = { 'charge' : 0,
+                'quadrupole' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' : 0 }, 
+            center = None ):
+        """
+        The algorithm checks for edges, takes properties from there 
+        if they are also in the list, and then
+        distributes evenly to other neighbours
+        """
+
+#atoms and their neighbours should have a tmp copy of bonds
+        self.tmp_bonds = self.bonds.copy()
         for at in self.bonds.values():
-            at.p += p
-        self.p = Property()
+            at.tmp_bonds = at.bonds.copy()
+
+#
+        props = [k for k, v in transfer.iteritems() if v == 1]
+
+        if len( self.tmp_bonds ) == 0:
+            logging.error('Tried to transfer props from non bonded atom')
+            logging.error('Offending atom is : %s' %self )
+            raise SystemExit
+        p = self.p / len( self.tmp_bonds )
+        for at in self.tmp_bonds.values():
+            for prop in props:
+                at.p[prop] += p[prop]
+                self.p[prop] -= p[prop]
+            del at.tmp_bonds[ self.name ]
+
+        del self.tmp_bonds
+
+
         
 
     @property
