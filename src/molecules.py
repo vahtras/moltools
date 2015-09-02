@@ -2871,7 +2871,7 @@ class Cluster(list):
                 if ats[i].dist_to_atom( ats[j] ) < AA_cutoff:
                     tmp.append( ats[i] )
                     tmp.append( ats[j] )
-        return read_dal.unique( tmp )
+        return utilz.unique( tmp )
 
 
 
