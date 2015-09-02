@@ -1,7 +1,9 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Property, Water, Rotator
+from molecules import Cluster, Water
+from property import Property
+from rotator import Rotator
 from use_generator import Generator
 from template import Template
 

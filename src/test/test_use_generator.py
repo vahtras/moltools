@@ -1,7 +1,7 @@
 import unittest, mock, os
 import numpy as np
 
-from molecules import Water, Molecule, Methanol
+from molecules import Water, Molecule
 from generator import Generator
 
 
@@ -25,7 +25,6 @@ class GeneratorTestCase( unittest.TestCase ):
     def test_get_mol(self):
         w = Water.get_standard() 
         self.assertIsInstance( w, Molecule )
-        self.assertNotIsInstance( w, Methanol )
 
     def test_vary_parameters(self):
 #Could modify in future this test todo

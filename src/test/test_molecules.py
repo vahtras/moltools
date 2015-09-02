@@ -2,7 +2,7 @@ import unittest, mock, os
 import numpy as np
 
 from use_generator import Generator
-from molecules import Water, Molecule, Methanol, Property
+from molecules import Water, Molecule, Property
 from template import Template
 
 class MoleculesTestCase( unittest.TestCase ):

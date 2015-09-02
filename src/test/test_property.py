@@ -2,7 +2,8 @@ import unittest, os
 import numpy as np
 
 import utilz
-from molecules import Property, Water
+from molecules import Water
+from property import Property
 
 class WaterTest( unittest.TestCase ):
 
