@@ -837,9 +837,17 @@ def find_file(name, path):
         if name in files:
             return os.path.join(root, name)
 
-# Functions related to transforming between upper triangular and square form
+
 def upper_triangular(n, start=0):
-    """Recursive generator for triangular looping of Carteesian tensor"""
+    """Recursive generator for triangular looping of Carteesian tensor
+
+Usage, form 2D-matrix from upper-triangular matrix represented by an array::
+
+    ref = np.arange( 6 ) # Non-zero elements in 2-dimensional UT-tensor
+    arr = np.zeros( (3, 3) ) # Target 
+    for ind, (i, ii) in enumerate( upper_triangular(2) ):
+        arr[ i, ii ] = ref[ ind ]
+"""
     if n > 2:
         for i in range(start, 3):
             for j in upper_triangular(n-1, start=i):
@@ -848,6 +856,7 @@ def upper_triangular(n, start=0):
         for i in range(start, 3):
             for j in range(i, 3):
                 yield i, j
+
 def ut_2_square( alpha ):
     assert len(alpha) == 6
     tmp_a = np.zeros( (3,3, ))
