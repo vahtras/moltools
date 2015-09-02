@@ -40,7 +40,8 @@ import numpy as np
 import math as m
 
 from template import Template
-from molecules import Molecule, Water, Methanol, Atom, Property, Cluster
+from molecules import Molecule, Water, Atom, Cluster
+from property import Property
 from generator import Generator
 
 a0 = 0.52917721092

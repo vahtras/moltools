@@ -1,3 +1,5 @@
+import numpy as np
+import utilz 
 
 
 class Property( dict ):

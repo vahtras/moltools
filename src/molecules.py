@@ -13,6 +13,8 @@ import numpy as np
 import cPickle as pickle
 import copy as copymod
 
+from property import Property
+
 
 import read_dal
 import utilz
@@ -1114,7 +1116,7 @@ class Molecule( list ):
     def initiate(self, item):
         if isinstance( item, Atom ):
 #Small hack to set molecule to LoProp if initiated with atom that has Property on it
-            if item.p.q != 0.0 or ( item.p.d != np.zeros()).all():
+            if item.p.q != 0.0 or ( item.p.d != np.zeros(3)).all():
                 self.LoProp = True
             self.append( item )
             item.Molecule = self

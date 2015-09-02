@@ -1,3 +1,6 @@
+import numpy as np
+import utilz 
+
 
 class Rotator(object):
     """
@@ -168,7 +171,7 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
     def square_2_ut(alpha):
         assert alpha.ndim == 2
         tmp_a = np.zeros( 6 )
-        for index, (i, j ) in enumerate( upper_triangular(2) ):
+        for index, (i, j ) in enumerate( utilz.upper_triangular(2) ):
             tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
         return tmp_a
 
@@ -217,7 +220,7 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
     def square_3_ut(beta):
         assert beta.ndim == 3
         tmp_b = np.zeros( 10 )
-        for index, (i, j, k ) in enumerate( upper_triangular(3) ):
+        for index, (i, j, k ) in enumerate( utilz.upper_triangular(3) ):
             tmp_b[ index ] = ( \
                     beta[i, j, k] + beta[i, k, j] + \
                     beta[j, i, k] + beta[j, k, i] + \
@@ -243,7 +246,7 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
     def ut_2_square( alpha):
         assert len(alpha) == 6
         tmp_a = np.zeros( (3,3, ))
-        for index, val in enumerate( upper_triangular(2) ) :
+        for index, val in enumerate( utilz.upper_triangular(2) ) :
             tmp_a[ val[0], val[1] ] = alpha[ index ]
             tmp_a[ val[1], val[0] ] = alpha[ index ]
         return tmp_a
@@ -252,7 +255,7 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
     def ut_3_square( beta ):
         assert len(beta) == 10
         tmp_b = np.zeros( (3,3,3, ))
-        for index, (i, j, k ) in enumerate( upper_triangular(3) ) :
+        for index, (i, j, k ) in enumerate( utilz.upper_triangular(3) ) :
             tmp_b[ i, j ,k] = beta[ index ]
             tmp_b[ i, k ,j] = beta[ index] 
             tmp_b[ j, i, k] = beta [ index ]
