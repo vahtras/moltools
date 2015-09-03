@@ -975,9 +975,16 @@ def largest_triangle( _l ):
             largest = tri
     return points
 
+def file_is_used( _f ):
+    """ Will return True if the file _f is open by an other process.
 
+    Does not work for files opened in vim"""
+    _f = os.path.realpath( _f )
+    procs = [p for p in os.listdir( '/proc' ) if p.isdigit() ]
+    all_fds = ["/proc/%s/fd" %p for p in procs ]
 
-
-
-
-
+    user_fds = filter( lambda x: os.stat(x).st_uid == 1000, all_fds )
+    all_files = map( lambda x: [ os.path.realpath(os.path.join(x, p)) for p in os.listdir(x) ] , user_fds )
+    open_fds = reduce( lambda a, x: a+x, all_files )
+    
+    return _f in open_fds
