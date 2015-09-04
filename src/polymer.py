@@ -438,7 +438,7 @@ class Monomer( pdbreader.Residue ):
             tmp_atom._res_id = res_id
             #tmp_atom.label = "%d-%s-%s" %( res_id, res_name, pdb_name )
             tmp_mono._res_name = res_name
-            tmp_mono.chain_id = chain_id
+            tmp_mono._chain_id = chain_id
             tmp_mono.add_atom( tmp_atom )
         if in_AA and not out_AA:
             tmp_mono.to_AU()
