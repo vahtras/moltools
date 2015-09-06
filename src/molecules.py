@@ -276,6 +276,7 @@ AA       True     bool
     def label(self, val):
         self._label = val
 
+#Atoms
     @property
     def order(self):
         if self._order:
@@ -561,6 +562,16 @@ Plot Atom in a 3D frame
 #Atom string method
     def __str__(self):
         return "%s %f %f %f" %(self.label, self.x, self.y, self.z)
+    def __repr__(self):
+        st = '"A%d' %self.order
+        if self.Molecule:
+            st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
+            if self.Molecule.Cluster:
+                st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
+                if self.Molecule.Cluster.System:
+                    st.rstrip('"')
+                    st += '-S"'
+        return st
 
     def __add__(self, other):
         return Molecule( self, other )
@@ -629,6 +640,7 @@ class Molecule( list ):
         self._r = None
         self._com = None
         self._Cluster = None
+        self._order  = None
         self._cluster_order  = None
         self.no_hydrogens = True
 
@@ -2605,6 +2617,7 @@ class Cluster(list):
         self._chain_id = None
         self._freq = None
         self._snap = None
+        self._system_order = None
         self._System = None
         self.Property = None
         self.atom_list = []
@@ -2619,15 +2632,26 @@ class Cluster(list):
             else:
                 for item in args:
                     self.add( item )
+
 #Cluster freq method
+    @property
+    def system_order(self):
+        if self._system_order:
+            return self._system_order
+        return 0
+#Cluster 
+    @system_order.setter
+    def system_order(self, val):
+        self._system_order = val
+
+#Cluster
     @property
     def System(self):
         return self._System
-#Cluster freq method
+#Cluster
     @System.setter
     def System(self, val):
         self._System = val
-
 
 #Cluster freq method
     @property
