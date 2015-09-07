@@ -3394,9 +3394,9 @@ Return a cluster of water molecules given file.
             for i in waters:
                 c.append(i)
         elif file_ending == '.pdb':
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
+#Find the box encompassing all atoms
+            xmin, ymin, zmin = np.inf, np.inf, np.inf
+            xmax, ymax, zmax = -np.inf, -np.inf, -np.inf
             for i in atoms:
                 if i.x < xmin:
                     xmin = i.x
@@ -3410,7 +3410,9 @@ Return a cluster of water molecules given file.
                     ymax = i.y
                 if i.z > zmax:
                     zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
+#Dead center of the box
+            center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
+
             wlist = []
             for i in atoms:
                 if i.element == "H":
