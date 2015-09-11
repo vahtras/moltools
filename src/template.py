@@ -15,20 +15,36 @@ Model:      TIP3P/SULACID/PNA                            string
 Method:     HF/B3LYP/CAMB3LYP                            string
 Basis:      PVDZ/ANOPVDZ/ANOPVTZ                         string
 LoProp:     True/False                                   bool
-Frequency:  Field :math:`\\omega`                        string
+Frequency:  Field :math:`\\omega` with %1.7f format      string
 =========== ============================================ ==========
 
 BASIS AVAILABLE
 
 
-=========== ======= ==========
-Basis       Element Basis sets
-=========== ======= ==========
-ANO631      H       2s
-            C/N/O   4s 3p 1d
-------------------------------
-
-=========== ======= ==========
+===========              ==============    ===============
+Basis                    Element           Basis sets
+===========              ==============    ===============
+ANOTINY                  H                 2s
+                         C/N/O             3s 2p 1d
+-----------              --------          -----------
+ANOPVDZ                  H                 2s 1s
+                         C/N/O             3s 2p 1d
+-----------              --------          -----------
+ANO631                   H                 2s
+                         C/N/O             4s 3p 1d
+-----------              --------          -----------
+ANO631PGS                H                 3s 1p
+                         C/N/O             4s 3p 1d
+-----------              --------          -----------
+ANOPVTZ                  H                 3s 2p 1d
+                         C/N/O             4s 3p 2d 1f
+-----------              --------          -----------
+ANOTHIRD                 H                 3s 2p 1d
+                         C/N/O             5s 4p 3d 2f
+-----------              --------          -----------
+ANOMAX                   H                 5s 4p 3d
+                         C/N/O             5s 4p 3d 2f
+===========              ==============    ===============
 
 
 .. code:: python
