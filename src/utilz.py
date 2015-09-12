@@ -258,6 +258,11 @@ def get_euler( r1, r2, plane = 'xz' ):
     r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][2]( t3 ), x), [r1, r2 ] )
     return t3, t2, t1
 
+
+def dipole_iso( d ):
+    assert d.shape == (3,)
+    return np.sqrt( (d**2).sum() )
+
 def alpha_iso( a ):
     a = ut2s( a )
     assert a.shape == (3,3,)
