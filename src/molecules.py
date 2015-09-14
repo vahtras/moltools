@@ -1273,7 +1273,7 @@ class Molecule( list ):
         """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
         self.Property = None
         if centered is None:
-            centered = np.zeros(3,)
+            centered = self.com
         if isinstance(self, Water) and not force_template:
             template_key = lambda x: x.element + str(x.order)
 
