@@ -3642,18 +3642,16 @@ Return a cluster of water molecules given file.
 Return the sum properties of all molecules in cluster
         """
         coc = self.coc
-        el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
-        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-        dip = el_dip + nuc_dip
-        dip_tot = (dip + dip_lop).sum(axis=0)
+        #el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        #nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
+        #dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        #dip = el_dip + nuc_dip
+        #dip_tot = (dip + dip_lop).sum(axis=0)
         p = Property()
+        for mol in [m for m in self if m.LoProp]:
+            p += mol.sum_property
         for mol in [m for m in self if m.is_Property]:
             p += mol.Property
-        for mol in [m for m in self if m.LoProp]:
-            for at in mol:
-                p += at.Property
-        p['dipole'] = dip_tot
         return p
 
     def to_AA(self):
