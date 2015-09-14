@@ -3336,152 +3336,69 @@ Return a cluster of water molecules given file.
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
         cnt = 1
-        if file_ending == '.mol' or file_ending == '.xyz' or file_ending == '.log':
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water( AA = in_AA)
-#Gaussian output seems to have Angstrom always
-                if file_ending == '.log':
-                    tmp.AA = True
-                i.in_water = True
-                tmp.add_atom( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
-#If in angstrom
-                    if in_AA:
-                        if i.dist_to_atom(j) < 1.1:
-                            tmp.add_atom ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist_to_atom(j) < 1.1/a0:
-                            tmp.add_atom ( j )
-                            j.in_water = True
-                tmp._res_id = cnt
-                cnt += 1
-                waters.append( tmp )
-            waters.sort( key = lambda x: x.dist_to_point( center ))
-            center_water = waters[0]
-            cent_wlist = waters[1:]
-            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
-
-            if N_waters < 1:
-                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
-                raise SystemExit
-# Ensure that cluster has ordered water structure from first index
-            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
-            for i in waters:
-                c.append(i)
-        elif file_ending == '.pdb':
 #Find the box encompassing all atoms
-            xmin, ymin, zmin = np.inf, np.inf, np.inf
-            xmax, ymax, zmax = -np.inf, -np.inf, -np.inf
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
+        xmin, ymin, zmin = np.inf, np.inf, np.inf
+        xmax, ymax, zmax = -np.inf, -np.inf, -np.inf
+        for i in atoms:
+            if i.x < xmin:
+                xmin = i.x
+            if i.y < ymin:
+                ymin = i.y
+            if i.z < zmin:
+                zmin = i.z
+            if i.x > xmax:
+                xmax = i.x
+            if i.y > ymax:
+                ymax = i.y
+            if i.z > zmax:
+                zmax = i.z
 #Dead center of the box
-            center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
+        center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
 
-            wlist = []
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water( AA = in_AA )
+        wlist = []
+        for i in atoms:
+            if i.element == "H":
+                continue
+            if i.in_water:
+                continue
+            tmp = Water( AA = in_AA )
 #__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
-                i.in_water= True
-                tmp.add_atom(i)
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
+            i.in_water= True
+            tmp.add_atom(i)
+            for j in atoms:
+                if j.element == "O":
+                    continue
+                if j.in_water:
+                    continue
 #1.05 because sometimes spc water lengths can be over 1.01
-                    if in_AA:
-                        if i.dist_to_atom(j) <= 1.05:
-                            j.in_water = True
-                            tmp.add_atom( j )
-                    else:
-                        if i.dist_to_atom(j) <= 1.05/a0:
-                            j.in_water = True
-                            tmp.add_atom( j )
-                tmp._res_id = cnt
-                cnt += 1
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.dist_to_point( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+                if in_AA:
+                    if i.dist_to_atom(j) <= 1.05:
+                        j.in_water = True
+                        tmp.add_atom( j )
+                else:
+                    if i.dist_to_atom(j) <= 1.05/a0:
+                        j.in_water = True
+                        tmp.add_atom( j )
+            tmp._res_id = cnt
+            cnt += 1
+            wlist.append( tmp )
+        wlist.sort( key = lambda x: x.dist_to_point( center ))
+        center_water = wlist[0]
+        cent_wlist = wlist[1:]
+        cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
 
 
-            if N_waters < 1:
-                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
-                raise SystemExit
+        if N_waters < 1:
+            print "WARNING ; chose too few waters in Cluster.get_water_cluster"
+            raise SystemExit
 
 # Ensure that cluster has ordered water structure from first index
-            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
-            for i in waters:
-                c.append(i)
-        elif file_ending == '.out':
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water()
-                i.in_water = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
+        waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
+        for i in waters:
+            c.append(i)
 #If in cartesian:
-                    if i.AA:
-                        if i.dist_to_atom(j) < 1.0:
-                            tmp.append ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist_to_atom(j) < 1.0/a0:
-                            tmp.append ( j )
-                            j.in_water = True
-                tmp.res_id = cnt
-                cnt += 1
-                waters.append( tmp )
         for wat in c:
             for atom in wat:
                 atom._res_id = wat.res_id
