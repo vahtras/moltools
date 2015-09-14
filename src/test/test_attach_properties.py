@@ -47,6 +47,25 @@ class AttachPropertyTest( unittest.TestCase ):
                 )
         np.testing.assert_allclose( w.p.q , 0.0, atol = 1e-4 )
 
+    def test_centered(self):
+
+        w = Molecule.from_xyz_string( WATER )
+        p1, p2, p3 = w[0].r, (w[1].r - w[2].r)/2.0 + w[2].r, w[1].r 
+        t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+        w.attach_properties( 
+                model = 'TIP3P',
+                method = 'B3LYP',
+                basis ='ANO631',
+                loprop = 0, 
+                template_key = lambda x: x.pdb_name,
+                force_template = True
+                )
+
+        np.testing.assert_equal( w.is_Property, True )
+        np.testing.assert_allclose( w.Property.q , 0.0, atol = 1e-4 )
+
+
+
 
 
 
