@@ -1296,7 +1296,7 @@ class Molecule( list ):
         else:
             self.is_Property = True
             self.property_r = centered
-            self.Property.rotate( t1, t2, t3 )
+            self.Property = self.Property.rotate( t1, t2, t3 )
             self.LoProp = False
 
     def dist_to_point( self , point ):
@@ -1758,8 +1758,11 @@ Return the sum properties of all properties in molecules
         if self.Property:
             return self.Property
         coc = self.coc
-        el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
+        conv = 1.0
+        if self.AA:
+            conv = 1/a0
+        el_dip = np.array([ conv*(at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ conv*(at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
@@ -3283,7 +3286,9 @@ Return a cluster of water molecules given file.
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     matched = pat_xyz.match(i).groups()
-                    kwargs = { "element" :  matched[0], "x" : matched[1],
+                    kwargs = { "element" :  matched[0],
+                            "AA": in_AA,
+                            "x" : matched[1],
                             "y" : matched[2], "z" : matched[3] }
                     tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
@@ -3407,10 +3412,8 @@ Return a cluster of water molecules given file.
             if not out_AA:
                 for wat in c:
                     wat.to_AU()
-        if not in_AA:
-            if out_AA:
-                for wat in c:
-                    wat.to_AA()
+        if not in_AA and out_AA:
+            c.to_AA()
         for wat in c:
             wat.o.order = 1
             wat.h1.order = 2
