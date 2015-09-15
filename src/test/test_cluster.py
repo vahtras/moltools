@@ -99,6 +99,7 @@ class WaterTest( unittest.TestCase ):
                 (dists[0] + dists[1])/2
 
     def test_sum_property(self):
+#Make sure that cluster total dipole moment is same weather molecular units are LoProp or Simple mode
         a1 = Atom(element='H', z = 1.   )
         a2 = Atom(element='H', z = 1.   )
         a3 = Atom(element='O', z = 0.0  )

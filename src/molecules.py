@@ -1737,10 +1737,10 @@ class Molecule( list ):
             self._Property = val
             return
         if self.LoProp is None:
-            logging.error("Can't set property, already set since LoProp is False")
-            raise AssertionError
+            warnings.warn("Setting property despite LoProp being False")
         self.LoProp = None
         self._Property = val
+        self.is_Property = True
 
 #Wrapper func for Molecule
     @property
