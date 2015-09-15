@@ -524,9 +524,8 @@ ZDIPLEN
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_mol( [0, 0, 0], 
-                                        mol = mol,
-                                        model = model, AA = AA)
+                                w1 = molecules.Water.get_standard( AA = AA)
+                                w1.t( -w1.o.r )
                                 if worst:
                                     w1 = self.get_mol( [0, 0, 0], 
                                             mol = mol,
@@ -537,9 +536,12 @@ ZDIPLEN
                                     w1.h1.scale_bond( 0.985 )
                                     w1.h2.scale_bond( 1.015 )
                                     w1.inv_rotate()
+                                w2 = molecules.Water.get_standard( AA = AA )
+                                w2.t( -w2.o.r )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
-                                w2 = self.get_mol( [x,y,z], mol, AA = AA)
+
                                 w2.rotate( l, m, n )
+                                w2.t( np.array( [x, y, z]) )
 
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )
