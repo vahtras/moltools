@@ -1295,9 +1295,9 @@ class Molecule( list ):
             self.LoProp = True
         else:
             self.is_Property = True
+            self.LoProp = False
             self.property_r = centered
             self.Property = self.Property.rotate( t1, t2, t3 )
-            self.LoProp = False
 
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))

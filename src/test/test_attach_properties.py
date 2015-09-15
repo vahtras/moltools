@@ -64,6 +64,51 @@ class AttachPropertyTest( unittest.TestCase ):
         np.testing.assert_equal( w.is_Property, True )
         np.testing.assert_allclose( w.Property.q , 0.0, atol = 1e-4 )
 
+    def test_centered_loprop(self):
+
+        w = Water.get_standard()
+
+        w.attach_properties()
+        w.rotate( *np.random.random( (3,) ))
+        w.t( np.random.uniform( 0, 5, (3,) ))
+        p_ref = w.p.copy()
+
+        w.attach_properties()
+        np.testing.assert_allclose( w.p.d, p_ref['dipole'], atol = 1e-7 )
+        np.testing.assert_allclose( w.p.b, p_ref['beta'], atol = 1e-7 )
+        np.testing.assert_allclose( w.p.a, p_ref['alpha'], atol = 1e-7 )
+
+    def test_centered_simple(self):
+
+        w = Water.get_standard()
+
+        w.attach_properties(loprop = 0)
+        w.rotate( *np.random.random( (3,) ))
+        w.t( np.random.uniform( 0, 5, (3,) ))
+        p_ref = w.p.copy()
+
+        w.attach_properties(loprop = 0)
+        np.testing.assert_allclose( w.p.d, p_ref['dipole'], atol = 1e-7 )
+        np.testing.assert_allclose( w.p.b, p_ref['beta'], atol = 1e-7 )
+        np.testing.assert_allclose( w.p.a, p_ref['alpha'], atol = 1e-7 )
+
+
+
+#
+#        w.attach_properties( 
+#                model = 'TIP3P',
+#                method = 'B3LYP',
+#                basis ='ANO631',
+#                loprop = 0, 
+#                template_key = lambda x: x.pdb_name,
+#                force_template = True
+#                )
+#
+#        np.testing.assert_equal( w.is_Property, True )
+#        np.testing.assert_allclose( w.Property.q , 0.0, atol = 1e-4 )
+#
+#
+
 
 
 
