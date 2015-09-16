@@ -494,7 +494,7 @@ ZDIPLEN
 
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
-            basis = ["ano-1 2 1", "ano-1 4 3 1"],
+            basis = ["ano-1 2", "ano-1 4 3 1"],
             AA = True,
             worst = False):
         r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,

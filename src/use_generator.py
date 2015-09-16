@@ -99,7 +99,7 @@ if __name__ == '__main__':
                 "methanol" , "ethane"] )
     A.add_argument( "-model", type = str, default = 'tip3p' )
     A.add_argument( "-basis", type = str, nargs = "*",
-            default =["ano-1 2 1", "ano-1 4 3 1" ] )
+            default =["ano-1 2", "ano-1 4 3 1" ] )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
 
 #########################
