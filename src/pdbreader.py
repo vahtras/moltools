@@ -979,8 +979,8 @@ class NewResidue( molecules.Molecule ):
     def chain_id(self):
         if self._chain_id is not None:
             return self._chain_id
-        if self.Chain:
-            return self.Chain.chain_id
+        if self.Cluster:
+            return self.Cluster.chain_id
         tmp_ch = self[0].chain_id
         for at in self:
             try:

@@ -1239,12 +1239,6 @@ class Molecule( list ):
     def in_mm(self, val):
         self._in_mm = val
 
-    @property
-    def label(self):
-        if self._label is not None:
-            return self._label
-        return self.element + self.order
- 
     def save(self, fname = "molecule.p"):
         pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
 
