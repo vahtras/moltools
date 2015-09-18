@@ -948,12 +948,15 @@ class NewResidue( molecules.Molecule ):
     def res_id(self):
         if self._res_id:
             return self._res_id
-        tmp_id = self[0].res_id
-        for at in self:
-            try:
-                assert tmp_id == at.res_id
-            except AssertionError:
-                logging.error( "No _res_id in NewResidue and not all atoms in same residue")
+        if self[0]:
+            tmp_id = self[0].res_id
+            for at in self:
+                try:
+                    assert tmp_id == at.res_id
+                except AssertionError:
+                    logging.error( "No _res_id in NewResidue and not all atoms in same residue")
+        else:
+            tmp_id = 0
         return tmp_id
 
     def get_atom(self, pdb_name):
@@ -966,6 +969,7 @@ class NewResidue( molecules.Molecule ):
     def res_id(self, val):
         self._res_id = val
 
+#NewResidue
     @property
     def res_name(self):
         if self._res_name:
@@ -981,12 +985,15 @@ class NewResidue( molecules.Molecule ):
             return self._chain_id
         if self.Cluster:
             return self.Cluster.chain_id
-        tmp_ch = self[0].chain_id
-        for at in self:
-            try:
-                assert tmp_ch == at.chain_id
-            except AssertionError:
-                logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
+        if self[0]:
+            tmp_ch = self[0].chain_id
+            for at in self:
+                try:
+                    assert tmp_ch == at.chain_id
+                except AssertionError:
+                    logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
+        else:
+            tmp_ch = "X"
         return tmp_ch
     @chain_id.setter
     def chain_id(self, val ):

@@ -987,7 +987,12 @@ class Molecule( list ):
             except TypeError:
                 return result
         else:
-            return super(Molecule,self).__getitem__( item )
+            try:
+                return super(Molecule,self).__getitem__( item )
+#Return False if looking up molecule that is empty
+            except IndexError:
+                warnings.warn("Looking up molecule that is empty")
+                return None
                 
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
