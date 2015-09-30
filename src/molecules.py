@@ -2616,6 +2616,11 @@ class Cluster(list):
         """ Can be a list of molecules or a list of clusters"""
 
         super(Cluster, self).__init__()
+
+        copy = False
+        if kwargs != {}:
+            copy = kwargs.get( "copy", False )
+
         self._chain_id = None
         self._freq = None
         self._snap = None
@@ -2628,12 +2633,12 @@ class Cluster(list):
             if len(args) == 1:
                 if type(args[0]) == list:
                     for i in args[0]:
-                        self.add( i )
+                        self.add( i, copy = copy )
                 else:
-                    self.add( args[0] )
+                    self.add( args[0], copy = copy )
             else:
                 for item in args:
-                    self.add( item )
+                    self.add( item, copy = copy )
 
 #Cluster freq method
     @property
@@ -3459,31 +3464,36 @@ Return a cluster of water molecules given file.
                     centered = centered )
 
 #Add method for cluster
-    def add(self, item ):
+    def add(self, item, copy = False ):
         if isinstance( item , Molecule ):
-            self.add_mol( item )
+            self.add_mol( item, copy = copy )
         elif isinstance( item, Atom) :
-            self.add_atom( item )
+            self.add_atom( item, copy = copy )
         else:
             logging.warning( 'Tried to pass other instance than Atom or Molecule to Cluster' )
 
-    def add_mol(self, mol, ):
+    def add_mol(self, mol, copy = False ):
         if isinstance( mol , Molecule ):
+            if copy:
+                mol = copymod.deepcopy( mol )
             if mol.chain_id is not 'X':
                 self._chain_id = mol.chain_id
             mol.Cluster = self
             super( Cluster, self ).append( mol )
         elif type( mol ) == list:
             for each in mol:
+                if copy:
+                    each = copymod.deepcopy( each )
                 if each.chain_id is not 'X':
                     self._chain_id = each.chain_id
                 super( Cluster, self ).append( each )
                 each.Cluster = each
 
-    def add_atom(self, *at):
+    def add_atom(self, at, copy = False ):
         for i, iat in enumerate(at):
-
 #If we create a slice of a cluster, retain the chain ID in the new one,solves a lot of problems
+            if copy:
+                iat = copymod.deepcopy( iat )
             if iat.chain_id is not 'X':
                 print iat
                 self._chain_id = iat.chain_id
