@@ -1255,8 +1255,7 @@ class Molecule( list ):
     
     @property
     def b_proj(self):
-        b, p = Rotator.ut_3_square(self.sum_property['beta']), self.sum_property['dipole']
-        return np.einsum( 'ijj,i', b, p )/np.linalg.norm( p )
+        return utilz.b_para( self.b, self.p )
 
     def attach_properties(self, 
             model = "TIP3P_PDB",
