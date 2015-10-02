@@ -281,7 +281,7 @@ def b_para( b, p ):
     b = ut2s( b )
     assert p.shape == (3,)
     assert b.shape == (3,3,3)
-    return np.einsum('ijj,i', b, p )/np.linalg.norm( p )
+    return 3.0/5.0*np.einsum('ijj,i', b, p )/np.linalg.norm( p )
 
 def b_at_sphere( b, x, y, z ):
     """Given beta and 3 numpy arrays for meshed 3dgrid, 

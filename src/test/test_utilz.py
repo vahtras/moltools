@@ -3,6 +3,7 @@ import numpy as np
 
 from utilz import *
 from molecules import Water
+import utilz
 
 HF_FILE = """
 
@@ -1299,6 +1300,18 @@ class UtilzTestCase( unittest.TestCase ):
         d = np.array( [ -1, 2, -2 ] )
         d_iso = dipole_iso( d )
         np.testing.assert_allclose( d_iso, 3, atol = 1e-7 )
+
+    def test_beta_par(self):
+        w = Water.get_standard()
+        w.attach_properties()
+        d = w.p.d
+        b = ut2s( w.p.b )
+
+        b_para1 = utilz.b_para( b, d ) 
+        b_para2 = 1.0/5.0*( (np.einsum( 'ijj', b ) + np.einsum( 'jij', b ) +  np.einsum( 'jji', b )).sum() )
+        np.testing.assert_allclose( b_para1, b_para2 )
+
+
 
 
 
