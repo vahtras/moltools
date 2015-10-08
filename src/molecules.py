@@ -453,8 +453,8 @@ Plot Atom in a 3D frame
         if len(self.angles) > 1:
             warnings.warn("Did not scale %s since it had %d angles" %(self,len(self.angles)), Warning)
             return
-        Rz, Rzi = Rotator.get_Rz, Rotator.get_Rz_inv
-        Ry, Ryi = Rotator.get_Ry, Rotator.get_Ry_inv
+        Rz, Rzi = utilz.Rz, utilz.Rz_inv
+        Ry, Ryi = utilz.Ry, utilz.Ry_inv
 
         for at2, at3 in self.angles:
             r3 = self.bonds[at2].bonds[at3].r - self.bonds[at2].r 
@@ -508,7 +508,7 @@ Plot Atom in a 3D frame
             warnings.warn("Did not scale %s since it had %d bonds" %(self,len(self.bonds)), Warning)
             return
         for at in self.bonds:
-            self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
+            self.x, self.y, self.z = self.bonds[at].r + (self.r - self.bonds[at].r)*scale
 
 #Atom method
     def copy(self):
@@ -1013,7 +1013,7 @@ class Molecule( list ):
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
-    def rotate(self, t1, t2, t3):
+    def rotate(self, t1, t2, t3, inplace = False):
         """Rotate atomss and properties by t1, t2, t3
         t1 positive rotation around Z-axis
         t2 negative rotation around Y-axis
@@ -1022,6 +1022,10 @@ class Molecule( list ):
         r1 = utilz.Rz(t1)
         r2 = utilz.Ry_inv(t2)
         r3 = utilz.Rz(t3)
+
+        com = self.com.copy()
+        if inplace:
+            self.t( -com )
         if self.LoProp:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
@@ -1033,6 +1037,8 @@ class Molecule( list ):
         else:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+        if inplace:
+            self.t( com )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name,
@@ -2329,7 +2335,7 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
             w.h1.scale_angle( 0.988 )
             w.h1.scale_bond( 0.985 )
             w.h2.scale_bond( 1.015 )
-            w.inv_rotate()
+            w.inv_rotate( *w.get_euler() )
         return w
 
     def is_worst(self):
