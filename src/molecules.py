@@ -169,7 +169,7 @@ AA       True     bool
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
             self.in_qmmm = kwargs.get( "in_qmmm", False )
-            self._pdb_name = kwargs.get( "pdb_name", 'X1' )
+            self._pdb_name = kwargs.get( "pdb_name", None )
             self._res_id = kwargs.get( "res_id", None )
             self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
@@ -238,7 +238,7 @@ AA       True     bool
     @property
     def pdb_name(self):
         if self._pdb_name is None:
-            return 'X1'
+            return '%s' %(self.element)
         return self._pdb_name
     @pdb_name.setter
     def pdb_name(self, val):
