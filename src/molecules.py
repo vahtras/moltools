@@ -3675,6 +3675,7 @@ Return the sum properties of all molecules in cluster
         if not self.AA:
             for i in self:
                 i.to_AA()
+        return self
     def get_atom_by_label(self, val):
         for at in self.atoms:
             if at.label == val:
