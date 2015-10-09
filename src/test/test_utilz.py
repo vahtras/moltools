@@ -1296,6 +1296,10 @@ class UtilzTestCase( unittest.TestCase ):
         t, r1, r2, r3 = get_t_and_rho( w.o.r, (w.h1.r - w.h2.r)/2 + w.h2.r, w.h1.r,
                 plane = 'xy' )
 
+    def test_converged(self):
+        ret = utilz.converged( HF_FILE )
+        assert ret == True
+
     def test_dipole_iso(self):
         d = np.array( [ -1, 2, -2 ] )
         d_iso = dipole_iso( d )
