@@ -1121,6 +1121,43 @@ def read_beta_ccsd( fstr ):
 
     return atoms, mol_dip, alpha , beta
 
+
+def read_beta( fstr, freq = "0.0",  in_AA = False, out_AA = False ):
+    nuc_dip = np.zeros(3)
+    el_dip = np.zeros(3)
+    alpha = np.zeros([3,3])
+    beta = np.zeros([3,3,3])
+    tmp = []
+    atoms = []
+    missing = {}
+    exists = {}
+
+# Reading in Beta tensor
+    fre = str("%.5f" % float(freq))
+    lab = ['X', 'Y', 'Z', ]
+    pat_beta = re.compile(r'@ B-freq')
+    lines = fstr.split('\n')
+    for i in lines:
+        if pat_beta.match(i):
+            try:
+                if i.split()[7].lstrip("beta") in exists:
+                    continue
+                exists[ i.split()[7].lstrip("beta") ] = float(i.split()[9] )
+            except ValueError:
+                a, b, c = i.split()[9].lstrip("beta").strip("()").split(",")
+                if i.split()[7].lstrip("beta") in missing:
+                    continue
+                missing[ i.split()[7].lstrip("beta") ] =  "(%s;%s,%s)"%(a,b,c)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                try:
+                    beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
+                except KeyError:
+                    beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
+    return beta
+
+
 def read_beta_hf( fstr, freq = "0.0",  in_AA = False, out_AA = False ):
     nuc_dip = np.zeros(3)
     el_dip = np.zeros(3)
