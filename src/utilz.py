@@ -286,16 +286,10 @@ def b_para( b, p = None ):
         b_p = 3.0/5.0*np.einsum('ijj,i', b, p )/np.linalg.norm( p )
     else:
         b_p = 0.0
-        for i,j,k in itertools.permutations( range(3)):
+        for i in range(3):
             b_p += b[2, i, i]
-            b_p += b[2, j, j]
-            b_p += b[2, k, k]
             b_p += b[i, 2, i]
-            b_p += b[j, 2, j]
-            b_p += b[k, 2, k]
             b_p += b[i, i, 2]
-            b_p += b[j, j, 2]
-            b_p += b[k, k, 2]
         b_p *= 1.0/5.0
     return b_p
 
