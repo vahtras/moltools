@@ -274,14 +274,30 @@ def alpha_aniso( a ):
     return np.sqrt( (np.einsum('ij,ij', 3*a, a) - np.einsum('ii,jj', a, a )) /2 )
 
 
-def b_para( b, p ):
+def b_para( b, p = None ):
     """Given beta in either UT or full tensor form, and dipole moment
     will return the projected beta vector, the rotationally invariant of the beta
     tensor"""
     b = ut2s( b )
-    assert p.shape == (3,)
     assert b.shape == (3,3,3)
-    return 3.0/5.0*np.einsum('ijj,i', b, p )/np.linalg.norm( p )
+
+    if p is not None:
+        assert p.shape == (3,)
+        b_p = 3.0/5.0*np.einsum('ijj,i', b, p )/np.linalg.norm( p )
+    else:
+        b_p = 0.0
+        for i,j,k in itertools.permutations( range(3)):
+            b_p += b[2, i, i]
+            b_p += b[2, j, j]
+            b_p += b[2, k, k]
+            b_p += b[i, 2, i]
+            b_p += b[j, 2, j]
+            b_p += b[k, 2, k]
+            b_p += b[i, i, 2]
+            b_p += b[j, j, 2]
+            b_p += b[k, k, 2]
+        b_p *= 1.0/5.0
+    return b_p
 
 def b_at_sphere( b, x, y, z ):
     """Given beta and 3 numpy arrays for meshed 3dgrid, 
@@ -639,6 +655,13 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
                     else:
                         frac = float( i.split()[2].strip(":"))
                 el_dip[2] += frac
+    remove = []
+    for ind, at in enumerate(atoms[:-1]):
+        for other in atoms[ind+1:]:
+            if at.equal( other ):
+                remove.append( other )
+    for each in remove:
+        atoms.remove( each )
 
 
 #Set center of nuceli charge to 0
