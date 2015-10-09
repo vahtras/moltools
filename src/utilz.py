@@ -727,6 +727,14 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
 
     return atoms, tot_dip, alpha , beta
 
+def converged( _str, ):
+    pat = re.compile( r'Total wall time used in DALTON:' )
+    for line in _str.split('\n'):
+        if pat.search( line ):
+            return True
+    return False
+
+
 def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
     """ Same as read_beta_hf but skips coordinates not in allowd_elements
     """
