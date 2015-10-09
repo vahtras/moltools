@@ -174,6 +174,13 @@ AA       True     bool
             self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
 
+#Check if atom has same coordinate and element as other
+    def equal(self, other):
+        if np.allclose( self.r, other.r, atol = 1e-5 ) and self.element == other.element:
+            return True
+        return False
+
+
 #Chain for this atom
     @property
     def Chain(self):
