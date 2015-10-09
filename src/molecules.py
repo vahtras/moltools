@@ -2293,6 +2293,12 @@ class Water( Molecule ):
 Return water molecule from specified template with :math:`r=0.9572` Angstrom and 
 :math:`\\theta=104.52` degrees.
 
+other models:
+    sign_change : 
+    r = 0.958019
+    theta = 104.50
+
+
 .. code:: python
 
     >>> m = Water.get_standard()
@@ -2307,6 +2313,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         elif model == 'spc':
             r_oh = 1.00
             a_hoh =  109.47
+        elif model == 'sign_change':
+            r_oh = 0.958019
+            a_hoh =  104.50
         r_oh = r_oh / a0
         d = (90 - a_hoh/2 ) * np.pi / 180
         origin = np.array( [ 0, 0, 0] )
