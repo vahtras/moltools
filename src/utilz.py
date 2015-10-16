@@ -293,6 +293,23 @@ def b_para( b, p = None ):
         b_p *= 1.0/5.0
     return b_p
 
+
+def beta_vec( b ):
+    b = ut2s( b )
+    assert b.shape == (3,3,3)
+    b_x =   b[0, 0, 0] +\
+            b[0, 1, 1] + b[1, 0, 1] + b[1, 1, 0] +\
+            b[0, 2, 2] + b[2, 0, 2] + b[2, 2, 0]
+
+    b_y =   b[1, 1, 1] +\
+            b[1, 0, 0] + b[0, 1, 0] + b[0, 0, 1] +\
+            b[1, 2, 2] + b[2, 1, 2] + b[2, 2, 1]
+
+    b_z =   b[2, 2, 2] +\
+            b[2, 0, 0] + b[0, 2, 0] + b[0, 0, 2] +\
+            b[2, 1, 1] + b[1, 2, 1] + b[1, 1, 2]
+    return np.array( [b_x, b_y, b_z] )
+
 def b_at_sphere( b, x, y, z ):
     """Given beta and 3 numpy arrays for meshed 3dgrid, 
     returns the beta dipole at each grid point """
