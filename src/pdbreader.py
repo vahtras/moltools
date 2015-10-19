@@ -2935,7 +2935,7 @@ Return the sum properties of all properties in NewSystem
     def molecules(self):
         return [m for chain in self for m in chain if isinstance(m , molecules.Molecule ) ]
     @classmethod
-    def from_pdb_string( cls, _string ):
+    def from_pdb_string( cls, _string, detect_term = False ):
         """Assuming the string is a pdb format, read in all chains and stuff"""
         res, meta = all_residues_from_pdb_string( _string )
 
@@ -2945,9 +2945,11 @@ Return the sum properties of all properties in NewSystem
         system = cls( *chains )
         system.meta = meta
 
-        for ch in chains:
-            ch[0].n_term = True
-            ch[-1].c_term = True
+        if detect_term:
+            for ch in chains:
+                ch[0].n_term = True
+                ch[-1].c_term = True
+
         for ch in chains:
             ch.connect_everything()
             ch.System = system
