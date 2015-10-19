@@ -712,6 +712,7 @@ class NewResidue( molecules.Molecule ):
         self.is_concap = False
         self.is_ready = False
         self.is_bridge = False
+        self._level = None
 
         self.label_dict = {}
 
