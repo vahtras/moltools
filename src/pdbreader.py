@@ -794,8 +794,9 @@ class NewResidue( molecules.Molecule ):
                 charge += 1
             elif self.c_term:
                 charge -= 1
-            if res_dict[ self.res_name ] in chargeDict:
-                charge += chargeDict[ res_dict[ self.res_name] ]
+            if self.res_name in res_dict:
+                if res_dict[ self.res_name ] in chargeDict:
+                    charge += chargeDict[ res_dict[ self.res_name] ]
 #Temporary fix to give level 3 concaps negative and positive even if they are not
 #n or c terminal
         if self._level == 3:
