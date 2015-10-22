@@ -1270,6 +1270,48 @@ class Molecule( list ):
     def b_proj(self):
         return utilz.b_para( self.b, self.p )
 
+    def attach_properties2(self, 
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
+            loprop = True,
+            freq = "0.0",
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
+            force_template = False,
+            centered = None,
+            ):
+        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        self.Property = None
+        if centered is None:
+            centered = self.com
+        if isinstance(self, Water) and not force_template:
+            template_key = lambda x: x.element + str(x.order)
+
+        if isinstance(self, Water):
+            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
+
+        templ = Template().get( *(model, method, basis, loprop, freq) )
+        if loprop:
+            for at in self:
+                at.p = Property.from_template( template_key(at), templ )
+        else:
+            self.Property = Property.from_template( 'X', templ )
+
+        t1, t2, t3 = self.get_euler( key = euler_key )
+        for at in self:
+            at.p = at.p.rotate( t1, t2, t3 )
+        if loprop:
+            self.is_Property = False
+            self.LoProp = True
+        else:
+            self.is_Property = True
+            self.LoProp = False
+            self.property_r = centered
+            self.Property = self.Property.rotate( t1, t2, t3 )
+
+
+
     def attach_properties(self, 
             model = "TIP3P_PDB",
             method = "B3LYP",
@@ -3289,7 +3331,8 @@ Plot Cluster a 3D frame in the cluster
 
     @staticmethod
     def get_water_cluster_from_string( _str, in_AA,
-            out_AA, N_waters = 1000, file_ending = '.mol'):
+            out_AA, N_waters = 1000, file_ending = '.mol',
+            md_type = None ):
 
         """
 Return a cluster of water molecules given file.
@@ -3444,14 +3487,19 @@ Return a cluster of water molecules given file.
             wat.h1.order = 2
             wat.h2.order = 3
         c.set_qm_mm(100)
+        if md_type == 'xinli':
+            for wat in c:
+                wat.o.pdb_name = 'OW'
+                wat.h1.pdb_name = 'HW1'
+                wat.h2.pdb_name = 'HW2'
         return c
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000, md_type = None ):
         file_ending = '.' + fname.split('.')[-1]
         return Cluster.get_water_cluster_from_string( open(fname).read(),
                 in_AA = in_AA, out_AA = out_AA, N_waters = N_waters,
-                file_ending = file_ending)
+                file_ending = file_ending, md_type = md_type)
 
     def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
@@ -3461,6 +3509,28 @@ Return a cluster of water molecules given file.
                         return True
         return False
 
+    def attach_properties2(self, 
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
+            loprop = True,
+            freq = "0.0",
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
+            force_template = False,
+            centered = None,
+            ):
+        """Attach properties to all molecules in this cluster"""
+        for mol in self:
+            mol.attach_properties2( model = model,
+                    method = method,
+                    basis = basis,
+                    loprop = loprop,
+                    freq = freq,
+                    euler_key = euler_key,
+                    template_key = template_key,
+                    force_template = force_template,
+                    centered = centered )
     def attach_properties(self, 
             model = "TIP3P_PDB",
             method = "B3LYP",
