@@ -1937,6 +1937,21 @@ class NewChain( molecules.Cluster):
         if args is not ():
             self.chain_id = args[0][0]._chain_id
 
+    def connect_residues(self,):
+        for i in range( len(self) ):
+
+            if self[i].n_term:
+                self[i].Next = self[i + 1]
+
+            elif self[i].c_term:
+                self[i].Prev = self[i - 1]
+
+            else:
+                self[i].Next = self[i + 1]
+                self[i].Prev = self[i - 1]
+
+
+
 
     @property
     def System(self):
