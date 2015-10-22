@@ -209,6 +209,15 @@ def get_t_and_rho(p1 = np.array([0,0,0]),
 
 
 
+def get_euler2( p1, p2, p3 ):
+    r1 = p2 - p1
+    r2 = p3 - p1
+
+    ez = r1/ np.linalg.norm( r1 )
+    y = np.cross( r1, r2 )
+    ey = y / np.linalg.norm( y )
+    ex = np.cross( ey, ez )
+    return np.array( [ ex, ey, ez ] )
 
 def get_euler( r1, r2, plane = 'xz' ):
     """Given two vectors, return 3 euler angles defined as follows
