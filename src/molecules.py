@@ -3428,8 +3428,14 @@ Return a cluster of water molecules given file.
 #Dead center of the box
         center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
 
+        from dstruct import Cell
+        cell = Cell( [xmin, ymin, zmin], [xmax, ymax, zmax], 3 )
+        for at in atoms:
+            cell.add_atom(at )
+
+        
         wlist = []
-        for i in atoms:
+        for i in cell:
             if i.element == "H":
                 continue
             if i.in_water:
@@ -3440,7 +3446,7 @@ Return a cluster of water molecules given file.
 #Right now NOT center-of-mass
             i.in_water= True
             tmp.add_atom(i)
-            for j in atoms:
+            for j in cell.get_closest(i):
                 if j.element == "O":
                     continue
                 if j.in_water:
