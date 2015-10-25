@@ -2703,6 +2703,10 @@ class Cluster(list):
                 for item in args:
                     self.add( item, copy = copy )
 
+    def dump_xyz(self):
+        """Quickl;y wrote xyz file for fancier visualization in avogadro/vmd"""
+        open( 'tmp.xyz', 'w' ).write( self.get_xyz_string() )
+
 #Cluster freq method
     @property
     def system_order(self):
