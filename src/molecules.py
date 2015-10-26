@@ -4,7 +4,7 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
-import re, os, itertools, warnings, subprocess, shutil, logging, string
+import re, os, itertools, functools, warnings, subprocess, shutil, logging, string
 import h5py
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -2862,7 +2862,9 @@ class Cluster(list):
             rp = 1e-9,
             AA_cutoff = 1.5,
             nullify = False,
-            model = 'thole'
+            model = 'thole',
+            cell = False,
+            cell_cutoff = 25.0, 
             ):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
@@ -2883,8 +2885,12 @@ class Cluster(list):
 
         aa = self.AA
         self.to_AU()
-        g = opts[model].from_string( self.get_qmmm_pot_string(max_l = max_l,
-            pol = pol, hyp = hyp) )
+        if cell:
+            init_f = functools.partial( opts[model].cell_from_string, co = float(cell_cutoff) ) 
+        else:
+            init_f = opts[model].from_string
+        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp))
+
         for atom, res in map( lambda x: [x, x.Molecule], self.min_dist_atoms_separate_res(AA_cutoff) ):
             ind = reduce( lambda a, x: a + len(x), res.Chain[ : res.Chain.index(res) ] , 0) + atom.order
             g[ ind ]._R_q = rq
