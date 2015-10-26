@@ -209,7 +209,12 @@ def get_t_and_rho(p1 = np.array([0,0,0]),
 
 
 
-def get_euler2( p1, p2, p3 ):
+def get_rotation( p1 = [0, 0, 0], p2 = [0, 0, 1], p3 = [1, 0, 0] ):
+    """Give the rotation vector necessary to place points p1, p2, p3
+    in cannonical cartesian unit basis
+    
+    with line p2-p1 as z axis, and line p3-p1 in the positive x-axis in zx-plane"""
+    p1, p2, p3 = map( np.array, [p1, p2, p3] )
     r1 = p2 - p1
     r2 = p3 - p1
 
