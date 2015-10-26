@@ -1,11 +1,12 @@
 import numpy as np
 import molecules
-import copy
+import copy, itertools
 
 import particles
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
+
 class Cell( np.ndarray ):
 
     def __new__(cls, 
@@ -184,17 +185,47 @@ to iterate not over whole cell box but closest
         """
         x_ind, y_ind, z_ind = self.get_index( item )
         tmp_list = []
-        for i in range( x_ind -1, x_ind + 2 ):
-            for j in range( y_ind -1, y_ind + 2 ):
-                for k in range( z_ind -1, z_ind + 2 ):
-                    try:
-                        for at in self[i][j][k]:
-                            if at == item or at in tmp_list:
-                                continue
-                            tmp_list.append( at )
-                    except IndexError:
-                        pass
-        return tmp_list
+        new =  []
+
+        if x_ind == 0:
+            if (self.shape[0] - 1 ) == x_ind:
+                xmin, xmax = 0, 1
+            else:
+                xmin, xmax = 0, 2
+        else:
+            if (self.shape[0] - 1) == x_ind:
+                xmin, xmax = x_ind - 1, x_ind + 1
+            else:
+                xmin, xmax = x_ind - 1, x_ind + 2
+
+        if y_ind == 0:
+            if (self.shape[1] - 1 ) == y_ind:
+                ymin, ymax = 0, 1
+            else:
+                ymin, ymax = 0, 2
+        else:
+            if (self.shape[1] - 1) == y_ind:
+                ymin, ymax = y_ind - 1, y_ind + 1
+            else:
+                ymin, ymax = y_ind - 1, y_ind + 2
+
+        if z_ind == 0:
+            if (self.shape[2] - 1 ) == z_ind:
+                zmin, zmax = 0, 1
+            else:
+                zmin, zmax = 0, 2
+        else:
+            if (self.shape[2] - 1) == z_ind:
+                zmin, zmax = z_ind - 1, z_ind + 1
+            else:
+                zmin, zmax = z_ind - 1, z_ind + 2
+
+        for i, j, k in itertools.product( range( xmin, xmax ), range( ymin, ymax ), range( zmin, zmax )):
+                    new += self[i, j, k] 
+                    print i,j ,k
+
+        new.remove( item )
+        return new
 
     def update(self):
 
