@@ -1247,7 +1247,7 @@ class UtilzTestCase( unittest.TestCase ):
         p2 = np.array( [5, 5, 6] )
         p3 = np.array( [6, 5, 5] )
         t_v, r1, r2, r3 = center_and_xz( p1, p2, p3 )
-        np.testing.assert_allclose( t_v, np.full( (3,), -5 ) , atol =1e-10 )
+        np.testing.assert_allclose( t_v, np.full( (3,), -5.0 ) , atol =1e-10 )
         np.testing.assert_allclose( r1, 0.0 , atol =1e-10 )
         np.testing.assert_allclose( r2, 0.0 , atol =1e-10 )
         np.testing.assert_allclose( r3, 0.0 , atol =1e-10 )
@@ -1316,6 +1316,14 @@ class UtilzTestCase( unittest.TestCase ):
         np.testing.assert_allclose( b_para1, b_para2 )
 
 
+    def test_get_rotation(self):
+        p1 = np.array( [ 0, 0, 0] )
+        p2 = np.array( [ 0, 0, 1] )
+        p3 = np.array( [ 0, 1, 0] )
+        R = utilz.get_rotation( p1, p2, p3 )
+        R = np.einsum( 'ij->ji', R )
+        Rz = utilz.Rz( np.pi/2.0 )
+        np.testing.assert_allclose( Rz, R, atol =1e-7 )
 
 
 
