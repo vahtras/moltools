@@ -2854,6 +2854,42 @@ class Cluster(list):
 #kg m**-3 = g cm**-3
         return m/v
 
+    def get_pdlist(self, 
+            max_l = 1,
+            pol = 22,
+            hyp = 1,
+            model = 'pointdipole',
+            cell = False,
+            cell_cutoff = 25.0, 
+            ):
+        """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
+        where atomic within AA_cutoff between different interacting segments
+        
+        has a damped gaussian """
+        from pd.particles import PointDipoleList
+        from pd.gaussian import GaussianQuadrupoleList
+        from pd.thole import TholeList
+
+        opts = { 'pointdipole' : PointDipoleList,
+                'point' :PointDipoleList,
+                'thole' : TholeList,
+                'gaussian' :GaussianQuadrupoleList,
+                'p' : PointDipoleList,
+                't' : TholeList,
+                'g' :GaussianQuadrupoleList,
+                }
+
+        aa = self.AA
+        self.to_AU()
+        if cell:
+            init_f = functools.partial( opts[model].cell_from_string, co = float(cell_cutoff) ) 
+        else:
+            init_f = opts[model].from_string
+        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp))
+        if aa:
+            self.to_AA()
+        return g
+
     def g_list_from_damped(self, 
             max_l = 1,
             pol = 22,
