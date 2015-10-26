@@ -222,8 +222,6 @@ to iterate not over whole cell box but closest
 
         for i, j, k in itertools.product( range( xmin, xmax ), range( ymin, ymax ), range( zmin, zmax )):
                     new += self[i, j, k] 
-                    print i,j ,k
-
         new.remove( item )
         return new
 
