@@ -1289,7 +1289,7 @@ class Molecule( list ):
             template_key = lambda x: x.element + str(x.order)
 
         if isinstance(self, Water):
-            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
+            R = np.einsum('ij->ji', utilz.get_rotation( self.o.r, (self.h1.r - self.h2.r)/2 + self.h2.r, self.h1.r) )
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         if loprop:
@@ -1300,7 +1300,11 @@ class Molecule( list ):
 
         t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
-            at.p = at.p.rotate( t1, t2, t3 )
+            at.p.d = np.einsum('ij,j', R, at.p.d )
+            at.p.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.a) ) )
+            at.p.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.Q) ) )
+            at.p.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(at.p.b) ) )
+
         if loprop:
             self.is_Property = False
             self.LoProp = True
@@ -1308,7 +1312,11 @@ class Molecule( list ):
             self.is_Property = True
             self.LoProp = False
             self.property_r = centered
-            self.Property = self.Property.rotate( t1, t2, t3 )
+
+            self.Property.d = np.einsum('ij,j', R, self.Property.d )
+            self.Property.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.a) ) )
+            self.Property.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.Q) ) )
+            self.Property.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(self.Property.b) ) )
 
 
 
