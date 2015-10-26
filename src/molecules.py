@@ -2703,6 +2703,22 @@ class Cluster(list):
                 for item in args:
                     self.add( item, copy = copy )
 
+    @staticmethod
+    def rand_water_cluster(N = 10):
+        c = Cluster()
+        cnt = 0 
+        while cnt < N:
+            w = Water.get_standard()
+            w.rotate( *np.random.uniform( 0, 2*np.pi, 3) )
+            w.t( np.random.uniform( -25, 25, 3) )
+            if c.mol_too_close( w ):
+                continue
+            c.add( w )
+            cnt += 1
+        return c
+
+
+
     def dump_xyz(self):
         """Quickl;y wrote xyz file for fancier visualization in avogadro/vmd"""
         open( 'tmp.xyz', 'w' ).write( self.get_xyz_string() )
