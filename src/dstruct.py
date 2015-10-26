@@ -2,10 +2,10 @@ import numpy as np
 import molecules
 import copy
 
+import particles
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
-
 class Cell( np.ndarray ):
 
     def __new__(cls, 
@@ -70,13 +70,32 @@ class Cell( np.ndarray ):
             return
 
     @staticmethod
+    def from_PointDipoleList( pdl, co = 25 ):
+        """By default, the cutoff box is 25 Angstroms"""
+
+        co /= a0
+        x, y, z = [], [], []
+        for p in pdl:
+            x.append( p._r[0] )
+            y.append( p._r[1] )
+            z.append( p._r[2] )
+
+        cell = Cell( my_min = [ np.min(x), np.min(y), np.min(z )],
+                    my_max = [ np.max(x), np.max(y), np.max(z )],
+              my_cutoff = co,
+              )
+        for pd in pdl:
+            cell.add(pd)
+
+        return cell
+
+    @staticmethod
     def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
 
         ats = []
 
         if not in_AA:
             co /= a0
-
         for f_ in open(fil ).readlines()[2:]:
             el, x, y, z = f_.split()
             x, y, z = map(float, [x,y,z] )
@@ -97,8 +116,9 @@ class Cell( np.ndarray ):
             cell.add(at)
 
         for at in cell:
-            if len(at.Molecule) == 0:
-                at.Molecule.append( at )
+            if at.Molecule is None:
+                m = molecules.Molecule()
+                m.add( at )
             cell.build_molecules( current = at, closeby = cell.get_closest(at) )
         return cell
 
@@ -126,6 +146,7 @@ class Cell( np.ndarray ):
     def add_atom( self, atom ):
         assert type( atom ) == molecules.Atom
         self.add( atom )
+
     def add_molecule( self, mol ):
         assert isinstance( mol, molecules.Molecule )
         for at in mol:
@@ -245,6 +266,12 @@ Return the x, y, and z index for cell for this item,
             assert self.my_ymin <= y <= self.my_ymax
             assert self.my_zmin <= z <= self.my_zmax
 
+        if isinstance( item, particles.PointDipole ):
+            x, y, z = item._r
+            assert self.my_xmin <= x <= self.my_xmax
+            assert self.my_ymin <= y <= self.my_ymax
+            assert self.my_zmin <= z <= self.my_zmax
+
         tmp_xmin = x - self.my_xmin
         tmp_ymin = y - self.my_ymin
         tmp_zmin = z - self.my_zmin
@@ -254,5 +281,3 @@ Return the x, y, and z index for cell for this item,
         z_ind = int( np.floor( tmp_zmin /  self.my_cutoff))
         
         return (x_ind, y_ind, z_ind)
-
-
