@@ -167,8 +167,8 @@ invoking dalton on a supercomputer.
         if pol == 1:
             iso = st.pop(0)
             p['alpha'][0] = iso
-            p['alpha'][4] = iso
-            p['alpha'][6] = iso
+            p['alpha'][3] = iso
+            p['alpha'][5] = iso
         elif pol%10 == 2:
             for i in range(6):
                 p['alpha'][i] = st.pop(0)

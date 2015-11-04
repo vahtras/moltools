@@ -36,8 +36,14 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
 allowed_elements = ( 'H', 'O' )
 
 def nm_to_au( val ):
-    au_to_nm = 45.563352491687866
-    return "%.7f" %( au_to_nm / float(val) )
+    conv = 45.563352491687866
+    return "%.7f" %( conv / float(val) )
+
+def au_to_nm( val ):
+    conv = 45.563352491687866
+    if np.allclose( 0.0, float(val), atol=1e-7 ):
+        return 'inf'
+    return "%d" % int( "%.0f" % ( conv/float(val) ))
 
 def angle( p1, p2 ,p3 ):
     """Return the angle between 3 points"""

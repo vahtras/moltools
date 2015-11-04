@@ -699,6 +699,16 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+#Unique identifier which will produce molfile name string
+    def molfile_label( self, freq = True ):
+        if freq:
+            f = utilz.au_to_nm( self.freq )
+            return "_".join( map(str, [self.res_name, self.res_id, f]) )
+        else:
+            return "_".join( map(str, [self.res_name, self.res_id ]) )
+
+
+
 #Molecule chain_id
     @property
     def chain_id(self):
@@ -1099,7 +1109,6 @@ class Molecule( list ):
     def reorder(self):
         for at in self:
             at.order = self.index(at)
-
     @property
     def res_id(self):
         if self._res_id is not None:
@@ -1111,8 +1120,7 @@ class Molecule( list ):
     def res_name(self):
         if self._res_name is not None:
             return self._res_name
-        self._res_name = "MOL"
-        return self._res_name
+        return "MOL"
     
     def exclists(self, max_len = None):
         """Gives the exclusion string for each atom/bond in molecule for dalton PE
@@ -1420,17 +1428,27 @@ class Molecule( list ):
                             hyper = hyper,
                             decimal = decimal,
                             )
-        except:
+        except IOError:
             print tmpdir
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         if not len(lines) == len(self):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
             raise SystemExit
-        for at, prop in zip(self, lines):
+
+        f_at = lambda x: map(float,x.get_mol_line().split()[1:])
+        f_prop = lambda x: map(float,x.split()[1:4])
+        try:
+            assert len( self ) == len( lines )
+        except:
+            logging.error("Some error went undetected despite creating .tar.gz and .out files")
+            return
+        for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
                     hyper = hyper )
+        self.LoProp = True
+        self.Property = False
 
     def props_from_qm(self,
             tmpdir = None,
@@ -1446,6 +1464,7 @@ class Molecule( list ):
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
             keep_outfile = False,
+            keep_targzfile = False,
             freq = None
             ):
         """
@@ -1483,8 +1502,8 @@ class Molecule( list ):
             if not os.path.isdir( tmpdir ):
                 os.mkdir( tmpdir )
 
-        dal = 'dalton.dal'
-        mol = 'molecule.mol'
+        dal = method + '.dal'
+        mol = self.molfile_label() + '.mol'
         dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
         if method == 'hfqua':
             open( dal, 'w').write( Generator.get_hfqua_dal( ) )
@@ -1571,6 +1590,14 @@ class Molecule( list ):
                 logging.debug( line ) 
             out, err = p.communicate()
 
+
+            dal = 'dalton.dal'
+            mol = 'molecule.mol'
+            wrkdir = os.getcwd()
+            targz = os.path.join( wrkdir, "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
+            print wrkdir, targz
+            raise SystemExit
+            dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
 
             of = "DALTON.OUT"
             tar = "dalton_molecule.tar.gz"
