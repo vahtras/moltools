@@ -37,6 +37,8 @@ allowed_elements = ( 'H', 'O' )
 
 def nm_to_au( val ):
     conv = 45.563352491687866
+    if 'inf' in val:
+        return "%.7f" % 0
     return "%.7f" %( conv / float(val) )
 
 def au_to_nm( val ):
