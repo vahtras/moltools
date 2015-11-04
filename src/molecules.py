@@ -699,7 +699,17 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
-#Unique identifier which will produce molfile name string
+#Unique identifier which will produce file name string unique to this residue
+    def file_label( self, freq = True ):
+        if freq:
+            f = utilz.au_to_nm( self.freq )
+            return "_".join( map(str, [self.res_name, self.res_id, f]) )
+        else:
+            return "_".join( map(str, [self.res_name, self.res_id ]) )
+
+
+
+#Unique identifier which will produce file name string unique to this residue
     def molfile_label( self, freq = True ):
         if freq:
             f = utilz.au_to_nm( self.freq )
