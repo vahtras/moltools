@@ -1590,7 +1590,7 @@ class Molecule( list ):
         else:
 #Run as dalton script
             p = subprocess.Popen([dalton, 
-                '-N', str(procs), '-noarch', '-D', '-t', tmpdir,
+                '-N', str(procs), '-D', '-t', tmpdir,
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
@@ -1601,22 +1601,22 @@ class Molecule( list ):
             out, err = p.communicate()
 
 
-            dal = 'dalton.dal'
-            mol = 'molecule.mol'
             wrkdir = os.getcwd()
-            targz = os.path.join( wrkdir, "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
-            print wrkdir, targz
-            raise SystemExit
-            dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
+            out_wrk = os.path.join( wrkdir, "%s_%s.out" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
+            tar_wrk = os.path.join( wrkdir, "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
+            mol_wrk, dal_wrk = map( lambda x: os.path.join( wrkdir, x), [mol, dal] )
+            mol_tmp, dal_tmp = map( lambda x: os.path.join( tmpdir, x ), [mol, dal])
 
-            of = "DALTON.OUT"
-            tar = "dalton_molecule.tar.gz"
+            tar_tmp = "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol]))
+            of_tmp = "DALTON.OUT"
+
+
 #Need to do this since late dalton scripts appends the tmp with separate PID
-            real_tmp = utilz.find_dir( of, tmpdir )
+            real_tmp = utilz.find_dir( of_tmp, tmpdir )
 
 #If smth happend to the dalton subprocess, the of will not exist and throw exception
             try:
-                of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+                of_tmp, tar_tmp = map( lambda x: os.path.join( real_tmp, x ), [of_tmp, tar_tmp ] )
             except AttributeError:
                 logging.error( "Some internal HPC specific error occured" )
                 logging.error( "Will dump the .mol file of botched calculation" )
@@ -1673,15 +1673,17 @@ class Molecule( list ):
 
         try:
             for f_ in [f for f in os.listdir(real_tmp) if os.path.isfile(f) ]:
-                print os.path.join(real_tmp, f_) 
+                print os.path.join(real_tmp, f_)
+                raise SystemExit
+                os.remove( os.path.join(real_tmp, f_))
             for f_ in [mol, dal]:
-                print f_
                 os.remove( f_ )
         except OSError:
             logging.error('Something wrint in trying to remove files in real_tmp')
         if not keep_outfile:
-            for fil in [f for f in os.listdir(os.getcwd()) if "dalton_molecule" in f]:
-                os.remove( os.path.join( os.getcwd(), fil ) )
+            os.remove( out_wrk )
+        if not keep_targzfile:
+            os.remove( tar_wrk )
 
         self.is_Property = False
         self.LoProp = True
