@@ -1417,6 +1417,7 @@ class Molecule( list ):
             pol = 22,
             hyper = 2,
             decimal = 7,
+            freqs = None,
             ):
         if tmpdir is None:
             tmpdir = "/tmp"
@@ -1430,8 +1431,9 @@ class Molecule( list ):
             outpot = MolFrag( tmpdir = tmpdir,
                     max_l = maxl,
                     pol = pol,
+                    hyp = hyper,
                     pf = penalty_function( 2.0 ),
-                    freqs = None,
+                    freqs = freqs,
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
