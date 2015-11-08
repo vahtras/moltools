@@ -1415,7 +1415,7 @@ class Molecule( list ):
             tmpdir = None,
             maxl = 2,
             pol = 22,
-            hyper = 2,
+            hyp = 2,
             decimal = 7,
             freqs = None,
             ):
@@ -1431,13 +1431,12 @@ class Molecule( list ):
             outpot = MolFrag( tmpdir = tmpdir,
                     max_l = maxl,
                     pol = pol,
-                    hyp = hyper,
                     pf = penalty_function( 2.0 ),
-                    freqs = freqs,
+                    freqs = (freqs,)
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
-                            hyper = hyper,
+                            hyper = hyp,
                             decimal = decimal,
                             )
         except IOError:
@@ -1458,7 +1457,8 @@ class Molecule( list ):
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
-                    hyper = hyper )
+                    hyper = hyp )
+        self.freq = freqs
         self.LoProp = True
         self.Property = False
 
