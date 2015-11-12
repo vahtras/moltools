@@ -2260,17 +2260,23 @@ Angstrom [ out_AA = True ]
                 m.to_AU()
         return m
 
+    def AA(self):
+        AA = self[0].AA
+        for at in self:
+            try:
+                assert AA == at
+            except AssertionError:
+                logging.error("Not all atoms same unit in molecule %s" %self)
+        return AA
+
+
     def to_AU(self):
-        if self.AA:
-            for at in self:
-                at.to_AU()
-            self.AA = False
+        for at in self:
+            at.to_AU()
 
     def to_AA(self):
-        if not self.AA:
-            for at in self:
-                at.to_AA()
-            self.AA = True
+        for at in self:
+            at.to_AA()
 
     def byname(self,label ):
         return self.get_atom_by_name( label.upper() )
@@ -3893,9 +3899,8 @@ Return the sum properties of all molecules in cluster
      
 
     def to_AU(self):
-        if self.AA:
-            for i in self:
-                i.to_AU()
+        for i in self:
+            i.to_AU()
 
     def translate(self, r):
         """
