@@ -2772,13 +2772,12 @@ Return the sum properties of all properties in NewSystem
 
     @property
     def AA(self):
-        AA = True
+        AA = self[0].AA
         for chain in self:
             try:
-                assert chain.AA
-            except:
-                AA = False
-                break
+                AA == chain.AA
+            except AssertionError:
+                logging.error("All chains in system %s are not of same unit" %self)
         return AA
 
     @staticmethod
