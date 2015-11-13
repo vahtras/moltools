@@ -3865,7 +3865,8 @@ Return a cluster of water molecules given file.
     @property
     def sum_property(self):
         """
-Return the sum properties of all molecules in cluster
+        Return the sum properties of all molecules in cluster
+        Now it is dead wrong, need to adjust dipoles and quadrupoles to coc
         """
         coc = self.coc
         #el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
