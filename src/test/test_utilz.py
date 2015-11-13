@@ -1326,6 +1326,36 @@ class UtilzTestCase( unittest.TestCase ):
         np.testing.assert_allclose( Rz, R, atol =1e-7 )
 
 
+    def test_center_of_nuclei_charge(self):
+        _type = np.float
+        p_n = np.array( [ [0, 0, -1], [0, 0, 1] ], dtype = _type )
+        q_n = np.array( [ 1, 1 ], dtype = _type )
+        coc = center_of_nuclei_charge( p_n, q_n )
+        np.testing.assert_allclose( coc, np.zeros( (3,) ) )
+
+    def test_monopole_moment(self):
+        _type = np.float
+        q_e = np.array( [ -1, -0.5 -0.5 ], dtype = _type )
+        m = electric_monopole_moment( q_e )
+        np.testing.assert_allclose( -2, m )
+
+    def test_dipole_moment_inv(self):
+        """Same dipole moment should be obtained after translating 
+        coordinate frame """
+        _type = np.float
+        p_n = np.random.random( (5, 3,) )
+        q_n = np.random.random( (5, ) )
+        p_e = np.random.random( (5, 3,) )
+        q_e = np.random.random( (5, ) )
+
+        m1 = electric_dipole_moment( p_n, q_n, p_e, q_e )
+        t_vector = np.random.random( (3,) ) 
+
+        p_n += t_vector
+        p_e += t_vector
+
+        m2 = electric_dipole_moment( p_n, q_n, p_e, q_e )
+        np.testing.assert_allclose( m1, m2 )
 
 
 if __name__ == '__main__':

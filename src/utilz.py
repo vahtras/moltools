@@ -167,6 +167,26 @@ def scale_vec_to_abs( vec, value = 1.0 ):
     assert isinstance( vec, np.ndarray )
     return vec * value / np.linalg.norm( vec )
 
+def center_of_nuclei_charge( p_n, q_n ):
+    assert isinstance( p_n, np.ndarray)
+    assert isinstance( q_n, np.ndarray)
+    coc = np.einsum( 'ij,i', p_n , q_n ) / np.sum(q_n )
+    return coc
+
+def electric_monopole_moment( q_e ):
+    """given arrays"""
+    return np.sum( q_e )
+
+def electric_dipole_moment( p_n, q_n, p_e, q_e ):
+    """given arrays """
+    assert isinstance( p_e, np.ndarray)
+    assert isinstance( q_e, np.ndarray)
+    coc = center_of_nuclei_charge( p_n, q_n )
+    return np.einsum('ij,i', (p_e - coc), q_e )
+
+def electric_quadrupole_moment( p_n, q_n, p_e, q_e ):
+    pass
+
 def dipole( r, r_n, r_e ):
     """Return the total dipole moment given vector r,
     the positive charges at each point, and negative charges at each point
