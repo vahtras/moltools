@@ -64,11 +64,14 @@ def all_residues_from_pdb_string( _string,
     res_ids = []
     chain_ids = []
     chain_dict = {}
+    pat_element = re.compile( r'([A-Z]|[a-z])' )
+
     for i, line in enumerate( text ):
         res_name = text[i][17:21].strip()
         res_id = int( text[i][22:26].strip() )
         pdb_name = text[i][11:16].strip()
-        element = pdb_name[0]
+#If some digits used in specific pdb naming like gromacs/avogadro
+        element = pat_element.search( pdb_name ).groups()[0]
         chain_id = text[i][21:22].strip()
         if chain_id == "":
             chain_id = "X"
@@ -292,7 +295,7 @@ class Pattern( dict ):
         self[ ( 'reg', 'res', 't', 'add', 2 ) ] = re.compile(r'.*')
         self[ ( 'cus', 'res', 't', 'add', 2 ) ] = re.compile(r'.*')
         self[ ( 'pro', 'res', 't', 'add', 2 ) ] = re.compile(r'.*')
-        self[ ( 'reg', 'res', 'n', 'add', 2 ) ] = re.compile(r'N$|H$|HN$|CA$|HA$|HA1$|HA2$')
+        self[ ( 'reg', 'res', 'n', 'add', 2 ) ] = re.compile(r'N$|H$|HN$|2HN$|CA$|HA$|HA1$|HA2$')
         self[ ( 'cus', 'res', 'n', 'add', 2 ) ] = re.compile(r'N1$|HN$|CA1$|HA1$|HA2$')
         self[ ( 'pro', 'res', 'n', 'add', 2 ) ] = re.compile(r'N$|H$|HN$|CA$|HA$|HA1$|HA2$')
         self[ ( 'reg', 'res', 'b', 'add', 2 ) ]= re.compile(r'SG$|CB$|HB1$|HB2$')
@@ -512,7 +515,7 @@ class Pattern( dict ):
         self[ ( 'reg', 'res', 'tt', 'rep', 2 ) ] = re.compile(r'BALLONY')
         self[ ( 'cus', 'res', 'tt', 'rep', 2 ) ] = re.compile(r'BALLONY')
         self[ ( 'pro', 'res', 'tt', 'rep', 2 ) ] = re.compile(r'BALLONY')
-        self[ ( 'reg', 'res', 'nn', 'rep', 2 ) ] = re.compile(r'C$')
+        self[ ( 'reg', 'res', 'nn', 'rep', 2 ) ] = re.compile(r'C$|CB$')
         self[ ( 'cus', 'res', 'nn', 'rep', 2 ) ] = re.compile(r'C2$|CB1')
         self[ ( 'pro', 'res', 'nn', 'rep', 2 ) ] = re.compile(r'CB$|CD$|CD2$|C$')
         self[ ( 'reg', 'res', 'bb', 'rep', 2 ) ] = re.compile(r'CA$')
@@ -573,7 +576,7 @@ class Pattern( dict ):
         self[ ( 'reg', 'con', 'tt', 'rep', 2 ) ] = re.compile(r'N$')
         self[ ( 'cus', 'con', 'tt', 'rep', 2 ) ] = re.compile(r'N3$')
         self[ ( 'pro', 'con', 'tt', 'rep', 2 ) ] = re.compile(r'N$|CB$')
-        self[ ( 'reg', 'con', 'nn', 'rep', 2 ) ] = re.compile(r'C$')
+        self[ ( 'reg', 'con', 'nn', 'rep', 2 ) ] = re.compile(r'C$|CB$')
         self[ ( 'cus', 'con', 'nn', 'rep', 2 ) ] = re.compile(r'C2$|CB1')
         self[ ( 'pro', 'con', 'nn', 'rep', 2 ) ] = re.compile(r'CB$|CD$|CD2$|C$')
         self[ ( 'reg', 'con', 'bb', 'rep', 2 ) ] = re.compile(r'CA$')
@@ -1035,7 +1038,6 @@ class NewResidue( molecules.Molecule ):
             res_type = "res"
         elif concap or c:
             tmp_residue = self.copy_info()
-            tmp_residue = self.copy_info() 
             tmp_residue.is_concap = True
             res_type = "con"
         elif bridge or b:
@@ -1268,7 +1270,7 @@ class NewResidue( molecules.Molecule ):
                 at_r3 = get_rep_2( self.Next, self.Next.Next, p_rep_nn_n, p_con_nn_n )
             for at in at_t + at_n + at_r1 + at_r2 + at_r3:
                 tmp_residue.add_atom( at )
-
+            
         elif self.c_term:
             if concap or c:
                 return 
