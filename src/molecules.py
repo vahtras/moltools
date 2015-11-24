@@ -4,7 +4,7 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
-import re, os, itertools, warnings, subprocess, shutil, logging, string
+import re, os, itertools, functools, warnings, subprocess, shutil, logging, string
 import h5py
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -12,6 +12,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import cPickle as pickle
 import copy as copymod
+
+from property import Property
 
 
 import read_dal
@@ -27,8 +29,7 @@ a0 = 0.52917721092
 au_nm_conv = 45.563352491
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
 
-charge_dict = {"H": 1.0, "He" :2.0, "Li" : 3.0,  "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
-        "P" : 15, "X" : 0.0 }
+charge_dict = {"H": 1.0, "He" :2.0, "Li" : 3.0,  "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0, "P" : 15, "X" : 0.0 }
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
@@ -36,550 +37,39 @@ mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
 
 color_dict = { "X": 'black' ,"H":'brown', "N":'blue',"C":'green',"P":'black', "O":'red', 'S' : 'yellow'}
 
-def upper_triangular(n, start=0):
-    """Recursive generator for triangular looping of Carteesian tensor
-
-Usage, form 2D-matrix from upper-triangular matrix represented by an array::
-
-    ref = np.arange( 6 ) # Non-zero elements in 2-dimensional UT-tensor
-    arr = np.zeros( (3, 3) ) # Target 
-    for ind, (i, ii) in enumerate( upper_triangular(2) ):
-        arr[ i, ii ] = ref[ ind ]
-"""
-    if n > 2:
-        for i in range(start, 3):
-            for j in upper_triangular(n-1, start=i):
-                yield (i,) + j
-    else:
-        for i in range(start, 3):
-            for j in range(i, 3):
-                yield i, j
-
-class Property( dict ):
-    """
-**An object representing properties as numpy.ndarray types mapped to by python dictionaries.**
-
-**Supports up to quadrupoles, upper triangular polarizability and upper trianguler hyperpolarizability**
-
-.. code:: python
-    
-    >>> p = Property()
-    >>> print p["charge"]
-    [0.0]
-
-    >>> print p["dipole"]
-    [0.0, 0.0, 0.0]
-
-"""
-    def __init__(self):
-
-        self["charge"] = 0.0
-        self["dipole"] = np.zeros( 3 )
-        self["quadrupole"] = np.zeros( 6 )
-        self["alpha"] =  np.zeros( 6 ) 
-        self["beta"] =  np.zeros( 10 ) 
-
-    def copy_property(self):
-        p = Property()
-        p["charge"] =      self["charge"]
-        p["dipole"] =      self["dipole"].copy()
-        p["quadrupole"] =  self["quadrupole"].copy()
-        p["alpha"] =       self["alpha"].copy()
-        p["beta"] =        self["beta"].copy()
-        return p
-
-    def __add__(self, other):
-        tmp = Property()
-        for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) + np.array(other[prop] )
-        return tmp
-    def __sub__(self, other):
-        assert isinstance( other, Property)
-        tmp = Property()
-        for i, prop in enumerate(self):
-            tmp[prop] = np.array( self[prop] ) - np.array(other[prop] )
-        return tmp
-
-    @property
-    def q(self):
-        return self['charge']
-    @property
-    def d(self):
-        return self['dipole']
-    @property
-    def Q(self):
-        return self['quadrupole']
-    @property
-    def a(self):
-        return self['alpha']
-    @property
-    def b(self):
-        return self['beta']
-    @q.setter
-    def q(self, val):
-        self['charge'] = val
-    @d.setter
-    def d(self, val):
-        assert val.shape == (3,)
-        self['dipole'] = val
-    @Q.setter
-    def Q(self, val):
-        assert val.shape == (6,)
-        self['quadrupole'] = val
-    @a.setter
-    def a(self, val):
-        assert val.shape == (6,)
-        self['alpha'] = val
-    @b.setter
-    def b(self, val):
-        assert val.shape == (10,)
-        self['beta'] = val
-
-    @property
-    def b_proj(self):
-        """
-        Rotationally invariant property
-
-        Beta projected on the dipole moment vector for a whole molecule / segment.
-        Should not be used if only for an atom
-        """
-        return np.einsum('ijj,i', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
-
-#Method of Property
-    def potline(self, max_l =2 , pol= 22, hyper=1, fmt = "%.5f "):
-        string = ""
-        if 0  <= max_l :
-            string += fmt % self["charge"]
-        if max_l >= 1 :
-            string += fmt*3 %( self["dipole"][0], self["dipole"][1], self["dipole"][2] )
-        if max_l >= 2 :
-            string += fmt*6  %( 
-                    self["quadrupole"][0], self["quadrupole"][1], self["quadrupole"][2] ,
-                    self["quadrupole"][3], self["quadrupole"][4], self["quadrupole"][5] )
-        if pol == 1:
-            string += fmt %( 
-                    float(self["alpha"][0] + self["alpha"][3] + self["alpha"][5])/3,
-                    )
-        elif pol %10 == 2 :
-            string += fmt * 6 %( 
-                    self["alpha"][0], self["alpha"][1], self["alpha"][2] ,
-                    self["alpha"][3], self["alpha"][4], self["alpha"][5] )
-        if hyper == 1:
-            string += fmt*10 %( 
-                    self["beta"][0], self["beta"][1], self["beta"][2] ,
-                    self["beta"][3], self["beta"][4], self["beta"][5] ,
-                    self["beta"][6], self["beta"][7], self["beta"][8] ,
-                    self["beta"][9])
-        return string
-
-
-    @staticmethod
-    def from_propline( st, maxl = 2, pol = 22, hyper = 2 ):
-        """
-Given dalton POT, returns class Property that can be attached to Atom.
-
-Convinience function for generating properties for the class Molecule directly by 
-invoking dalton on a supercomputer.
-
-    >>> p = Property.from_propline( "1 0.0 0.0 0.0 -0.25", maxl = 0 )
-    >>> at.Property = p
-        """
-        st = map( float, st.split()[4:] )
-        p = Property()
-
-        p['charge'] = st.pop(0)
-        if maxl > 0:
-            for i in range(3):
-                p['dipole'][i] = st.pop(0)
-        if maxl > 1:
-            for i in range(6):
-                p['quadrupole'][i] = st.pop(0)
-
-        if pol == 1:
-            iso = st.pop(0)
-            p['alpha'][0] = iso
-            p['alpha'][4] = iso
-            p['alpha'][6] = iso
-        elif pol%10 == 2:
-            for i in range(6):
-                p['alpha'][i] = st.pop(0)
-        if hyper == 2:
-            for i in range(10):
-                p['beta'][i] = st.pop(0)
-        return p
-
-    @staticmethod
-    def from_template( at_string, template ):
-        """Given string for atomic label, and dictionary template for the
-        molecule,
-        will return all properties found in template.py for this template
-        """
-        all_props = [ 'charge', 'dipole', 'quadrupole', 'alpha', 'beta' ]
-
-
-        for p in all_props:
-            if (at_string, p ) not in template:
-                raise RuntimeWarning("'( %s, %s )' not found in provided template" %(at_string,p))
-
-        p = Property() 
-        for key in template:
-            if key[0] == at_string:
-                for each in all_props:
-                    p[ each ] = template[ (at_string, each ) ]
-        return p
-
-    def inv_rotate( self, t1, t2, t3 ):
-        """Rotate all properties by t1, t2, t3
-        t1 negative rotation around Z-axis
-        t2 positiv rotation around Y-axis
-        t3 negative rotation around Z-axis
-        """
-        p = Property()
-        r1 = utilz.Rz_inv(t1)
-        r2 = utilz.Ry(t2)
-        r3 = utilz.Rz_inv(t3)
-        p.q = self.q
-        p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
-        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
-        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
-        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
-        return p
-
-    def rotate( self, t1, t2, t3 ):
-        """Rotate all properties by t1, t2, t3
-        t1 positive rotation around Z-axis
-        t2 negative rotation around Y-axis
-        t3 positive rotation around Z-axis
-        """
-        p = Property()
-        r1 = utilz.Rz(t1)
-        r2 = utilz.Ry_inv(t2)
-        r3 = utilz.Rz(t3)
-        p.q = self.q
-        p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
-        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
-        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
-        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
-        return p
-
-    def transform_by_matrix(self, matrix):
-        """docstring for by_matrix"""
-        assert matrix.shape == (3,3,)
-        p = Property()
-        p.q = self.q
-        p.d = np.einsum( 'ij,j', matrix, self.d )
-        p.a = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.a) ))
-        p.Q = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.Q) ))
-        p.b = utilz.s2ut(np.einsum( 'ai,bj,ck,ijk', matrix, matrix, matrix, utilz.ut2s(self.b) ))
-        return p
-
-
-    def transform_ut_properties( self, t1, t2, t3):
-        """
-Rotate all the properties of each atom by 3 euler angles.
-
-    >>> w = Water.get_standard()
-    >>> w.rotate( 0, np.pi/2, 0 )  #Rotate counter-clockwise by 90 degrees around y-axis
-    >>> temp = template.Template().get() #Default template
-    >>> Property.add_prop_from_template( w.o, temp )
-    >>> print w.o.Property[ "dipole" ]
-    array([ 0.   , -0.   ,  0.298])
-
-#Dipole moment of oxygen atom pointing in positive z-direction
-
-    >>> r1, r2, r3 = w.get_euler()
-    >>> w.o.Property.transform_ut_properties( r1, r2, r3 )
-    >>> print w.o.Property[ "dipole" ]
-    [ -2.98000000e-01   3.64944746e-17   1.82472373e-17]
-
-#Dipole moment of oxygen atom now pointing in negative x-direction
-
-"""
-
-
-        if self.has_key( "dipole" ):
-            self["dipole"] = Rotator.transform_1( self["dipole"] , t1, t2, t3 )
-        if self.has_key( "quadrupole" ):
-            self["quadrupole"] = self.transform_ut_2( self["quadrupole"], t1, t2, t3 )
-        if self.has_key( "alpha" ):
-            self["alpha"] = self.transform_ut_2( self["alpha"],t1, t2, t3 )
-        if self.has_key( "beta" ):
-            self["beta"] = self.transform_ut_3( self["beta"], t1, t2, t3 )
-
-    def transform_ut_2( self, prop, t1, t2 ,t3 ):
-        tmp = Rotator.ut_2_square( prop )
-        tmp = Rotator.transform_2( tmp , t1 ,t2 ,t3 )
-        tmp = Rotator.square_2_ut( tmp )
-        return tmp
-
-    def transform_ut_3( self, prop, t1, t2 ,t3 ):
-        tmp = Rotator.ut_3_square( prop )
-        tmp = Rotator.transform_3( tmp, t1 ,t2 ,t3 )
-        tmp = Rotator.square_3_ut( tmp )
-        return  tmp 
-
-
-class Rotator(object):
-    """
-**Container class for rotational operations on points, vectors, and tensors.**
-"""
-
-    def __init__(self):
-        pass
-
-    class RotatorError( Exception ):
-        def __init__(self):
-            pass
-
-    @staticmethod
-    def b_hrs( b):
-        if b.shape == (10,):
-            b = Rotator.ut_3_square(b)
-        elif b.shape != (3,3,3,):
-            print "supplied wrong beta"
-            raise RotatorError
-
-        zzz = Rotator.rot_avg( b )
-        xzz = Rotator.rot_avg( b, car1=0 )
-        return np.sqrt( zzz + xzz )
-
-    @staticmethod
-    def dr( b ):
-        if b.shape == (10,):
-            b = Rotator.ut_3_square(b)
-        elif b.shape != (3,3,3,):
-            print "supplied wrong beta"
-            raise SystemExit
-
-        zzz = Rotator.rot_avg( b )
-        xzz = Rotator.rot_avg( b, car1=0 )
-        return zzz / xzz
-
-    @staticmethod
-    def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
-        """
-        Requires euler.h5 binary file containing rotational angle products
-        Define it as in current script directory + euler.h5
-        """
-        b_new = np.zeros( (3,3,3,) )
-        """given beta in molecular frame, convert to exp. reference"""
-        vec = h5py.File( os.path.join(os.path.dirname( os.path.realpath( __file__ )), 'euler.h5' ), 'r')['data'].value
-        for X in range(3):
-            if X != car1:
-                continue
-            for Y in range(3):
-                if Y != car2:
-                    continue
-                for Z in range(3):
-                    if Z != car3:
-                        continue
-                    for x1 in range(3):
-                        for y1 in range(3):
-                            for z1 in range(3):
-                                for x2 in range(3):
-                                    for y2 in range(3):
-                                        for z2 in range(3):
-                                            b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
-        return b_new[ car1, car2, car3 ]
-
-    @staticmethod
-    def transform_1( qm_dipole, t1, t2, t3 ):
-        """
-Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis counter-clockwise by :math:`\\rho_2`, and finally clockwise around the z-axis by :math:`\\rho_3`.
-
-.. code:: python
-
-    >>> import numpy as np
-    >>> d = np.array( [ 1, 0, 0] )
-    >>> print Rotator.transform_1( d, 0, numpy.pi/2, 0 )
-    [ 0.0, 0.0, 1.0 ]
-"""
-        d_new1 = np.zeros([3]) #will be returned
-        d_new2 = np.zeros([3]) #will be returned
-        d_new3 = np.zeros([3]) #will be returned
-
-        rz  = Rotator.get_Rz( t1 )
-        ryi = Rotator.get_Ry_inv( t2 )
-        rz2 = Rotator.get_Rz( t3 )
-
-        for i in range(3):
-            for x in range(3):
-                d_new1[i] += rz[i][x] * qm_dipole[x]
-        for i in range(3):
-            for x in range(3):
-                d_new2[i] += ryi[i][x] * d_new1[x]
-        for i in range(3):
-            for x in range(3):
-                d_new3[i] += rz2[i][x] * d_new2[x]
-        return d_new3
-    @staticmethod
-    def transform_2( qm_alpha, t1, t2 , t3 ):
-        a_new1 = np.zeros([3,3]) #will be calculated
-        a_new2 = np.zeros([3,3]) #will be calculated
-        a_new3 = np.zeros([3,3]) #will be calculated
-
-        rz  = Rotator.get_Rz( t1 )
-        ryi = Rotator.get_Ry_inv( t2 )
-        rz2 = Rotator.get_Rz( t3 )
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new1[i][j] += rz[i][x] * rz[j][y] * qm_alpha[x][y]
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new2[i][j] += ryi[i][x] * ryi[j][y] * a_new1[x][y]
-
-        for i in range(3):
-            for j in range(3):
-                for x in range(3):
-                    for y in range(3):
-                        a_new3[i][j] += rz2[i][x] * rz2[j][y] * a_new2[x][y]
-
-        return a_new3
-
-    @staticmethod
-    def inv_3( beta, t1, t2, t3):
-        """Will inversely rotate tensor """
-        assert beta.shape == (3,3,3)
-        r1 = Rotator.get_Rz_inv( t1 )
-        r2 = Rotator.get_Ry( t2 )
-        r3 = Rotator.get_Rz_inv( t3 )
-        return reduce(lambda a,x: np.einsum('ia,jb,kc,abc', x, x, x, a), [r1,r2,r3], beta )
-
-    @staticmethod
-    def transform_3( qm_beta, t1, t2, t3 ):
-        b_new1 = np.zeros([3,3,3]) #will be calculated
-        b_new2 = np.zeros([3,3,3]) #will be calculated
-        b_new3 = np.zeros([3,3,3]) #will be calculated
-
-        rz =  Rotator.get_Rz( t1 )
-        ryi = Rotator.get_Ry_inv( t2 )
-        rz2 = Rotator.get_Rz( t3 )
-
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new1[i][j][k] += rz[i][x] * rz[j][y] * rz[k][z] * qm_beta[x][y][z]
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new2[i][j][k] += ryi[i][x] * ryi[j][y] * ryi[k][z] * b_new1[x][y][z]
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    for x in range(3):
-                        for y in range(3):
-                            for z in range(3):
-                                b_new3[i][j][k] += rz2[i][x] * rz2[j][y] * rz2[k][z] * b_new2[x][y][z]
-        return b_new3
-
-    @staticmethod
-    def square_2_ut(alpha):
-        assert alpha.ndim == 2
-        tmp_a = np.zeros( 6 )
-        for index, (i, j ) in enumerate( upper_triangular(2) ):
-            tmp_a[ index ] = (alpha[i, j] + alpha[ j, i]) / 2
-        return tmp_a
-
-    @staticmethod
-    def get_Rz( theta ):
-        vec = np.array(    [[ np.cos(theta),-np.sin(theta), 0],
-                            [ np.sin(theta), np.cos(theta), 0],
-                            [ 0,    0,  1]])
-        return vec
-    @staticmethod
-    def get_Rz_inv( theta ):
-        vec = np.array(     [[ np.cos(theta), np.sin(theta), 0],
-                            [ -np.sin(theta), np.cos(theta), 0],
-                            [ 0,             0,            1]])
-        return vec
-    @staticmethod
-    def get_Ry( theta ):
-        vec = np.array(    [[ np.cos(theta),0, np.sin(theta)],
-                            [ 0,    1,  0],
-                            [ -np.sin(theta), 0, np.cos(theta)]])
-        return vec
-    @staticmethod
-    def get_Ry_inv( theta ):
-        vec = np.array(    [[ np.cos(theta),0, -np.sin(theta)],
-                            [ 0,    1,  0],
-                            [ np.sin(theta), 0, np.cos(theta)]])
-        return vec
-
-    @staticmethod
-    def tensor_to_ut( beta ):
-# naive solution, transforms matrix B[ (x,y,z) ][ (xx, xy, xz, yy, yz, zz) ] into array
-# Symmtrized UT array    B[ (xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz) ]
-        new = np.zeros( (10) )
-        new[ 0 ] = beta[0,0]
-        new[ 1 ] = (beta[0,1] + beta[1,0] ) /2
-        new[ 2 ] = (beta[0,2] + beta[2,0] ) /2
-        new[ 3 ] = (beta[0,3] + beta[1,1] ) /2
-        new[ 4 ] = (beta[0,4] + beta[1,2] + beta[2,1] ) /3
-        new[ 5 ] = (beta[0,5] + beta[2,2] ) /2
-        new[ 6 ] = beta[1,3]
-        new[ 7 ] = (beta[1,4] + beta[2,3] ) /2
-        new[ 8 ] = (beta[1,5] + beta[2,4] ) /2
-        new[ 9 ] = beta[2,5]
-        return new
-    @staticmethod
-    def square_3_ut(beta):
-        assert beta.ndim == 3
-        tmp_b = np.zeros( 10 )
-        for index, (i, j, k ) in enumerate( upper_triangular(3) ):
-            tmp_b[ index ] = ( \
-                    beta[i, j, k] + beta[i, k, j] + \
-                    beta[j, i, k] + beta[j, k, i] + \
-                    beta[k, i, j] + beta[k, j, i] )/ 6
-        return tmp_b
-
-    @staticmethod
-    def ut2s( vec ):
-        if len( vec ) == 6:
-            return Rotator.ut_2_square( vec )
-        elif len( vec ) == 10:
-            return Rotator.ut_3_square( vec )
-
-    @staticmethod
-    def s2ut( vec ):
-        if vec.shape == (3,3,):
-            return Rotator.square_2_ut( vec )
-        elif vec.shape == (3,3,3,):
-            return Rotator.square_3_ut( vec )
-
-
-    @staticmethod
-    def ut_2_square( alpha):
-        assert len(alpha) == 6
-        tmp_a = np.zeros( (3,3, ))
-        for index, val in enumerate( upper_triangular(2) ) :
-            tmp_a[ val[0], val[1] ] = alpha[ index ]
-            tmp_a[ val[1], val[0] ] = alpha[ index ]
-        return tmp_a
-
-    @staticmethod
-    def ut_3_square( beta ):
-        assert len(beta) == 10
-        tmp_b = np.zeros( (3,3,3, ))
-        for index, (i, j, k ) in enumerate( upper_triangular(3) ) :
-            tmp_b[ i, j ,k] = beta[ index ]
-            tmp_b[ i, k ,j] = beta[ index] 
-            tmp_b[ j, i, k] = beta [ index ]
-            tmp_b[ j, k, i] = beta [ index ]
-            tmp_b[ k, i, j] = beta [ index ]
-            tmp_b[ k, j, i] = beta [ index ]
-        return tmp_b
+bonding_cutoff = { 
+        ('X','X') : 0.0,
+        ('H','X') : 0.0,
+        ('H','H') : 0.2,
+        ('H','C') : 1.105,
+        ('H','N') : 1.1,
+        ('H','O') : 1.1,
+        ('H','P') : 1.1,
+        ('H','S') : 1.3,
+        ('C','X') : 0.0,
+        ('C','C') : 1.66,
+        ('C','N') : 1.60,
+        ('C','O') : 1.5,
+        ('C','P') : 2.0,
+        ('C','S') : 2.0,
+        ('N','X') : 0.0,
+        ('N','N') : 1.5,
+        ('N','O') : 1.5,
+        ('N','P') : 1.5,
+        ('N','S') : 1.5,
+        ('O','X') : 0.0,
+        ('O','O') : 1.5,
+        ('O','P') : 2.0,
+        ('O','S') : 1.75,
+        ('P','X') : 0.0,
+        ('P','P') : 1.5,
+        ('P','S') : 2.0,
+        ('S','X') : 0.0,
+        ('S','S') : 2.1,
+    }
+#Make permutations of all bonding pair tuples 
+for key1, key2 in bonding_cutoff.keys():
+    bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
 
 
 class Atom(object):
@@ -621,14 +111,17 @@ AA       True     bool
 #Element one-key char
         self._element = "X"
 
-#Order in xyz files
+#order in xyz files
         self._order = None
 
-#Name is custom name, for water use O1, H2 (positive x ax), H3
+#name is custom name, for water use O1, H2 (positive x ax), H3
         self._name = None
 
-#Label is custom name, for water use O1, H2 (positive x ax), H3
+#label is custom name, to identify from different residues
         self._label = None
+
+#cabel is custom name to identify from different chains
+        self._clabel = None
 
         self.x = 0.0
         self.y = 0.0
@@ -638,7 +131,7 @@ AA       True     bool
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
         self.bonds = {}
         self.angles = {}
-        self.dihedral = {}
+        self.dihedrals = {}
 
         self._q = None
 
@@ -646,12 +139,15 @@ AA       True     bool
         self._number = None
         self._res_id = 0
         self._atom_id = None
+        self._chain_id = None
 
         self.in_water = False
 
 #Connectivity
-        self.Molecule = False
-        self.Cluster = None
+        self._Molecule = None
+        self._Cluster = None
+        self._System = None
+        self._World = None
 
 #QM border settings
         self._in_qm = False
@@ -669,19 +165,87 @@ AA       True     bool
             self.z = float( kwargs.get( "z", 0.0 ))
             self.element = kwargs.get( "element", "X" )
             self.number = kwargs.get( "number", 0 )
-            self._pdb_name = kwargs.get( "pdb_name", 'X1' )
             self.order = kwargs.get( "order", 0 )
             self.in_qm = kwargs.get( "in_qm", False )
             self.in_mm = kwargs.get( "in_mm", False )
             self.in_qmmm = kwargs.get( "in_qmmm", False )
-            self._res_id = kwargs.get( "res_id", 0 )
+            self._pdb_name = kwargs.get( "pdb_name", None )
+            self._res_id = kwargs.get( "res_id", None )
+            self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
+
+#Check if atom has same coordinate and element as other
+    def equal(self, other):
+        if np.allclose( self.r, other.r, atol = 1e-5 ) and self.element == other.element:
+            return True
+        return False
+
+
+#Chain for this atom
+    @property
+    def Chain(self):
+        return self.Cluster
+
+#Chain for this atom
+    @property
+    def clabel(self):
+        if self._clabel:
+            return self._clabel
+        m = self.Molecule
+        if m:
+            c = m.Cluster
+            if c:
+                return "{}-{}-{}-{}".format( c.chain_id, m.res_id,m.res_name,self.pdb_name )
+        return None
+
+#Molecule for this atom
+    @property
+    def Molecule(self):
+        if self._Molecule:
+            return self._Molecule
+        return None
+
+#Molecule for this atom
+    @Molecule.setter
+    def Molecule(self, val):
+        if isinstance( val, Molecule ):
+            self._Molecule = val 
+
+#Cluster for this atom
+    @property
+    def Cluster(self):
+        if self._Cluster:
+            return self._Cluster
+        elif self.Molecule:
+            return self.Molecule.Cluster
+        return None
+
+#Molecule for this atom
+    @Cluster.setter
+    def Cluster(self, val):
+        if isinstance( val, Cluster ):
+            self._Cluster = val 
+
+#Chain ID property of Atom
+    @property
+    def chain_id(self):
+        if self._chain_id:
+            return self._chain_id
+        if self.Molecule:
+            if self.Molecule.Cluster:
+                return self.Molecule.Cluster.chain_id
+        return 'X'
+    @chain_id.setter
+    def chain_id(self, val ):
+        self._chain_id = val
+
+
 
 # property setters and getters for pdb_name
     @property
     def pdb_name(self):
         if self._pdb_name is None:
-            return 'X1'
+            return '%s' %(self.element)
         return self._pdb_name
     @pdb_name.setter
     def pdb_name(self, val):
@@ -701,6 +265,8 @@ AA       True     bool
             return self._name
         if self._element and self._order:
             return self._element + str(self._order)
+        if self.Molecule and self._element:
+            return self._element + str(self.order)
         return 'X'
     @name.setter
     def name(self,val):
@@ -709,20 +275,67 @@ AA       True     bool
     def label(self):
         if self._label is not None:
             return self._label
-        self._label = self.element
-        return self._label
+        if self.Molecule:
+            m = self.Molecule
+            return '-'.join( [ str(m.res_id), m.res_name, self.pdb_name] )
+        return None
     @label.setter
     def label(self, val):
         self._label = val
 
+#Atoms
     @property
     def order(self):
         if self._order:
             return self._order
+        if self.Molecule:
+            return self.Molecule.index(self) + 1
         return 0
     @order.setter
     def order(self, val):
         self._order = val
+
+    def disconnect(self, other):
+        if other.name in self.bonds:
+            del self.bonds[ other.name ]
+
+#Atoms
+    def transfer_props(self, 
+            transfer = { 'charge' : 0,
+                'quadrupole' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' : 0 }, 
+            center = None ):
+        """
+        The algorithm checks for edges, takes properties from there 
+        if they are also in the list, and then
+        distributes evenly to other neighbours
+        """
+
+#atoms and their neighbours should have a tmp copy of bonds
+        self.tmp_bonds = self.bonds.copy()
+        for at in self.bonds.values():
+            at.tmp_bonds = at.bonds.copy()
+
+#
+        props = [k for k, v in transfer.iteritems() if v == 1]
+
+        if len( self.tmp_bonds ) == 0:
+            logging.error('Tried to transfer props from non bonded atom')
+            logging.error('Offending atom is : %s' %self )
+            raise SystemExit
+        p = self.p / len( self.tmp_bonds )
+        for at in self.tmp_bonds.values():
+            for prop in props:
+                at.p[prop] += p[prop]
+                self.p[prop] -= p[prop]
+            del at.tmp_bonds[ self.name ]
+
+        del self.tmp_bonds
+
+
+        
 
     @property
     def com(self):
@@ -735,6 +348,10 @@ AA       True     bool
     def in_qm(self):
         return self.Molecule.in_qm
 
+    def xyz_string(self):
+        x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
+        return "{0:10s} {1:10f} {2:10f} {3:10f}\n".format(self.element, self.x,  self.y, self.z )
+
     def pdb_string(self):
         x, y, z = map( lambda x: string.rjust( "%.3f"%x, 8)[:8], self.r )
         """Return pdb line as specified by the PDB standard"""
@@ -744,7 +361,7 @@ AA       True     bool
                 self.pdb_name,
                 "",
                 self.Molecule.res_name,
-                self.Molecule.Cluster._chain_id,
+                self.chain_id,
                 string.rjust( str(self.Molecule.res_id), 4),
                 "",
                 "",
@@ -803,8 +420,32 @@ Plot Atom in a 3D frame
         plt.xlim(-5,5)
         plt.ylim(-5,5)
         plt.show()
+    def get_async_bond(self, alist = [], first = None ):
+        """By specifying the first atom, will recursively
+        grab all atoms in that direction until the tree stops
+        
+        useful when rotating coordinates around the cross vector of an angle
+        in order to rotate whole molecule about that angle"""
 
-
+        if first:
+            self.Molecule.populate_bonds()
+            alist = []
+        if first is not None:
+            alist.append( self )
+            return first.get_async_bond( alist = alist )
+        else:
+            visit = []
+            for a in self.bonds.values():
+                if a in alist:
+                    continue
+                visit.append( a )
+            alist.append( self )
+            if visit == []:
+                return alist
+            for a in visit:
+                alist = a.get_async_bond( alist = alist )
+            return alist
+            
 
     def __len__( self ):
         return 1
@@ -819,8 +460,8 @@ Plot Atom in a 3D frame
         if len(self.angles) > 1:
             warnings.warn("Did not scale %s since it had %d angles" %(self,len(self.angles)), Warning)
             return
-        Rz, Rzi = Rotator.get_Rz, Rotator.get_Rz_inv
-        Ry, Ryi = Rotator.get_Ry, Rotator.get_Ry_inv
+        Rz, Rzi = utilz.Rz, utilz.Rz_inv
+        Ry, Ryi = utilz.Ry, utilz.Ry_inv
 
         for at2, at3 in self.angles:
             r3 = self.bonds[at2].bonds[at3].r - self.bonds[at2].r 
@@ -874,8 +515,9 @@ Plot Atom in a 3D frame
             warnings.warn("Did not scale %s since it had %d bonds" %(self,len(self.bonds)), Warning)
             return
         for at in self.bonds:
-            self.translate( self.bonds[at].r + (self.r - self.bonds[at].r)*scale )
+            self.x, self.y, self.z = self.bonds[at].r + (self.r - self.bonds[at].r)*scale
 
+#Atom method
     def copy(self):
         return self.copy_atom()
     def copy_self(self):
@@ -884,6 +526,7 @@ Plot Atom in a 3D frame
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
+        a.label = self.label
         a._res_id = self.res_id
         a._atom_id = self.atom_id
         a.Property = self.Property.copy_property()
@@ -909,12 +552,13 @@ Plot Atom in a 3D frame
         self._mass = mass_dict[ self.element ]
         return self._mass
 
+#Atom method
     @property
     def res_id(self):
-        if self.Molecule:
-            return self.Molecule.res_id
         if self._res_id:
             return self._res_id
+        if self.Molecule:
+            return self.Molecule.res_id
         return 0
 
 #Method of Atom
@@ -925,6 +569,16 @@ Plot Atom in a 3D frame
 #Atom string method
     def __str__(self):
         return "%s %f %f %f" %(self.label, self.x, self.y, self.z)
+    def __repr__(self):
+        st = '"A%d' %self.order
+        if self.Molecule:
+            st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
+            if self.Molecule.Cluster:
+                st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
+                if self.Molecule.Cluster.System:
+                    st.rstrip('"')
+                    st += '-S"'
+        return st
 
     def __add__(self, other):
         return Molecule( self, other )
@@ -942,7 +596,7 @@ Return the distance between two atoms
    1.0
 
 """
-        return np.sqrt( (self.x - other.x)**2 + (self.y -other.y)**2 + (self.z -other.z)**2 )
+        return np.sqrt( ((self.r - other.r)**2).sum() )
 
 
 
@@ -957,7 +611,7 @@ Return the distance to a point
    5.0
 
 """
-        return np.sqrt( (self.x - other[0])**2 + (self.y -other[1])**2 + (self.z -other[2])**2 )
+        return np.sqrt( ((self.r - other)**2).sum() )
 
     def to_AU(self):
         if self.AA:
@@ -980,58 +634,30 @@ class Molecule( list ):
 
     def __init__(self , *args, **kwargs):
         super( Molecule, self).__init__()
-#Bond dict defined in angstromg, if molecule is in AU will be different later
-        self.bonding_cutoff = { 
-                ('X','X') : 1.0,
-                ('H','H') : 0.8,
-                ('H','C') : 1.101,
-                ('H','N') : 1.1,
-                ('H','O') : 1.1,
-                ('H','P') : 1.1,
-                ('H','S') : 1.3,
-                ('C','C') : 1.66,
-                ('C','N') : 1.60,
-                ('C','O') : 1.5,
-                ('C','P') : 2.0,
-                ('C','S') : 2.0,
-                ('N','N') : 1.5,
-                ('N','O') : 1.5,
-                ('N','P') : 1.5,
-                ('N','S') : 1.5,
-                ('O','O') : 1.5,
-                ('O','P') : 2.0,
-                ('O','S') : 1.75,
-                ('P','P') : 1.5,
-                ('P','S') : 2.0,
-                ('S','S') : 2.1,
-            }
-        for key1, key2 in self.bonding_cutoff.keys():
-            self.bonding_cutoff[ (key2, key1)] = self.bonding_cutoff[ (key1, key2) ]
 
 # Dictionary with bonds
         self.bond_dict = {}
 
 #center will be defined for all molecules after all atoms are added
 #depends on which molecule
+        self._chain_id = None
         self._res_name = None
         self._freq = None
         self._res_id = 0
         self._r = None
         self._com = None
-        self.Cluster = None
+        self._Cluster = None
+        self._order  = None
         self._cluster_order  = None
         self.no_hydrogens = True
 
 
 # This will be set True if Property is represented by a point on molecule
-        self._is_property = False
+        self._is_Property = False
         self._property_r = None
 
 # This will be set True if attaching LoProp properties
         self.LoProp = False
-
-# Used for printing template properties, defines which atoms are centered around zx plane
-        self._origo_z_x = None
 
 # For plotting different elements:
         self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'go',"P":'ko', "O":'ro',
@@ -1061,26 +687,171 @@ class Molecule( list ):
             if len(args) == 1:
                 if type(args[0]) == list:
                     for i in args[0]:
-                        self.add( i )
+                        self.initiate( i )
                 else:
-                    self.add( args[0] )
+                    self.initiate( args[0] )
             else:
                 for at in args:
-                    self.add( at )
+                    self.initiate( at )
 
         if kwargs != {} :
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+#Unique identifier which will produce file name string unique to this residue
+    def file_label( self, freq = True ):
+        if freq:
+            f = utilz.au_to_nm( self.freq )
+            return "_".join( map(str, [self.res_name, self.res_id, f]) )
+        else:
+            return "_".join( map(str, [self.res_name, self.res_id ]) )
+
+
+
+#Unique identifier which will produce file name string unique to this residue
+    def molfile_label( self, freq = True ):
+        if freq:
+            f = utilz.au_to_nm( self.freq )
+            return "_".join( map(str, [self.res_name, self.res_id, f]) )
+        else:
+            return "_".join( map(str, [self.res_name, self.res_id ]) )
+
+
+
+#Molecule chain_id
+    @property
+    def chain_id(self):
+        if self._chain_id is not None:
+            return self._chain_id
+        if self.Cluster:
+            return self.Cluster.chain_id
+        tmp_ch = self[0].chain_id
+        for at in self:
+            try:
+                assert tmp_ch == at.chain_id
+            except AssertionError:
+                logging.error( "No Chain object or _chain_id in NewResidue and not all atoms have same chain_id")
+        return tmp_ch
+
+#Molecule
+    @property
+    def Cluster(self):
+        if self._Cluster:
+            return self._Cluster
+        return None
+#Molecule
+    @Cluster.setter
+    def Cluster(self, val):
+        if isinstance( val, Cluster ):
+            self._Cluster = val 
+
+#Molecule method to transfer props from all atoms in at_list evenly to neighbours
+#In order to remove props to closest bonded neighbours
+    def transfer_props(self, at_list, 
+            transfer = { 'charge' : 0,
+                'quadrupole' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' : 0 }, 
+            center = None ):
+        """
+        The algorithm checks for edges, takes properties from there 
+        if they are also in the list, and then
+        distributes evenly to other neighbours
+        """
+
+        if center is not None:
+            if center.shape == (3,):
+                at_list = sorted( at_list, key = lambda x: (len(x.bonds), x.dist_to_point(center),) )
+            else:
+                logging.error('Provided center keyword in transfer props\
+                        without proper numpy array of shape 3!')
+        else:
+            at_list = sorted( at_list, key = lambda x: len(x.bonds) )
+
+#atoms and their neighbours should have a tmp copy of bonds
+        for each in at_list:
+            each.tmp_bonds = each.bonds.copy()
+            for at in each.bonds.values():
+                at.tmp_bonds = at.bonds.copy()
+
+#
+        props = [k for k, v in transfer.iteritems() if v == 1]
+        for each in at_list:
+            if len( each.tmp_bonds ) == 0:
+                logging.error('Tried to transfer props from non bonded atom')
+                logging.error('Offending atom is : %s' %each )
+                raise SystemExit
+            p = each.p / len( each.tmp_bonds )
+            for at in each.tmp_bonds.values():
+                for prop in props:
+                    at.p[prop] += p[prop]
+                    each.p[prop] -= p[prop]
+                del at.tmp_bonds[ each.name ]
+            
+#So the side groups dont transfer props back to this atom
+
+
+#Properties for grabbing uniquely PDB named atoms
+    @property
+    def N(self):
+        return self.get_atom_by_pdbname( 'N' )
+    @property
+    def CA(self):
+        return self.get_atom_by_pdbname( 'CA' )
+    @property
+    def HA(self):
+        return self.get_atom_by_pdbname( 'HA' )
+    @property
+    def HA1(self):
+        return self.get_atom_by_pdbname( 'HA1' )
+    @property
+    def HA2(self):
+        return self.get_atom_by_pdbname( 'HA2' )
+    @property
+    def C(self):
+        return self.get_atom_by_pdbname( 'C' )
+    @property
+    def O(self):
+        return self.get_atom_by_pdbname( 'O' )
+    @property
+    def CA(self):
+        return self.get_atom_by_pdbname( 'CA' )
+    @property
+    def CB(self):
+        return self.get_atom_by_pdbname( 'CB' )
+    @property
+    def CD(self):
+        return self.get_atom_by_pdbname( 'CD' )
+    @property
+    def HD1(self):
+        return self.get_atom_by_pdbname( 'HD1' )
+    @property
+    def HD2(self):
+        return self.get_atom_by_pdbname( 'HD2' )
+    @property
+    def CG(self):
+        return self.get_atom_by_pdbname( 'CG' )
+    @property
+    def H(self):
+        return self.get_atom_by_pdbname( 'H' )
+    @property
+    def HN(self):
+        return self.get_atom_by_pdbname( 'HN' )
+
+
+    @property
+    def X1(self):
+        return self.get_atom_by_pdbname( 'X1' )
 
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
-    def is_property(self):
-        return self._is_property
-    @is_property.setter
-    def is_property(self,val):
-        self._is_property = val
+    def is_Property(self):
+        return self._is_Property
+    @is_Property.setter
+    def is_Property(self,val):
+        self._is_Property = val
     @property
     def property_r(self):
         return self._property_r
@@ -1098,6 +869,20 @@ class Molecule( list ):
             return self.Cluster.freq
         return "0.0000000"
 
+    def to_Property(self, r = None ):
+        """Will remove the property of individual atoms and put them in center of 
+        mass of molecule instead"""
+        if not self.LoProp and self.Property:
+            warnings.warning("Can't convert to Property, Property is set")
+        if r is None:
+            r = self.com
+        self.Property = self.sum_property
+        for at in self:
+            at.p = Property()
+        self.is_Property = True
+
+
+
     @freq.setter
     def freq(self, val):
         self._freq = val
@@ -1111,18 +896,44 @@ class Molecule( list ):
             return self.Cluster.snap
         return "0"
 
-    @freq.setter
-    def freq(self, val):
-        self._freq = val
+    @snap.setter
+    def snap(self, val):
+        self._snap = val
 
 
+#Scale bond
+    def scale_bond(self, at1, at2, scale = 1.0):
+        """Bend bond from at1 to at2 by a factor scale = 1.0"""
+        self.populate_bonds()
+        assert at2 in at1.bonds.values()
+        ats = at1.get_async_bond( first = at2 )[1:]
+        dr = ( at2.r - at1.r ) * scale - ( at2.r - at1.r )
+        for at in ats:
+            at.x, at.y, at.z = at.r + dr
+
+#Bend angle in Molecule
+    def bend(self, at1, at2, at3, theta = 0.0):
+        """Bend angle between at1 and at2 by theta"""
+        self.populate_angles()
+        
+#So we only rotate atoms, not the one in middle of angle bond
+        ats = at2.get_async_bond( first = at1 )[1:]
+
+        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+
+        for at in ats:
+            at.x, at.y, at.z = at.r + trans
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
     def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
             prop_point = None,
             ):
         string = ""
-        if self.is_property:
+        if self.is_Property:
 #can override molecules property location if we want by prop_point keyword
             center = self.com
             if prop_point is not None:
@@ -1148,12 +959,11 @@ class Molecule( list ):
         self._cluster_order = val
 
 
-
     def connect_everything(self):
         for a in self:
             a.Molecule = self
 
-    def reflect(self, key = lambda x:(x[0].r, x[1].r, x[2].r),
+    def reflect_mol_plane(self, key = lambda x:(x[0].r, x[1].r, x[2].r),
             plane = 'xz'):
         """docstring for reflect"""
         p1, p2, p3 = key( self )
@@ -1176,8 +986,14 @@ class Molecule( list ):
             at.p = at.p.transform_by_matrix( R2 )
             at.p = at.p.transform_by_matrix( R3_inv )
             at.p = at.p.transform_by_matrix( S )
-            at.p.transform_ut_properties( r1, r2, r3)
+            at.p.rotate( r1, r2, r3)
         self.t( origin )
+
+    def reflect(self, plane = 'xz' ):
+        S = utilz.S( plane )
+        for at in self:
+            at.x, at.y, at.z = np.einsum( 'ij,j', S,  at.r)
+            at.p = at.p.transform_by_matrix( S )
 
     def t(self, *args):
         """Wrapper function for self.translate_by_r"""
@@ -1198,21 +1014,13 @@ class Molecule( list ):
             except TypeError:
                 return result
         else:
-            return super(Molecule,self).__getitem__( item )
+            try:
+                return super(Molecule,self).__getitem__( item )
+#Return False if looking up molecule that is empty
+            except IndexError:
+                warnings.warn("Looking up molecule that is empty")
+                return None
                 
-    #@property
-    #def origo_z_x(self):
-    #    if self._origo_z_x is None:
-    #        logging.error('Did not set orientation for molecule in xz plane!')
-    #        raise SystemExit
-    #    return self._origo_z_x
-
-    #def center_zx(self, p1, p2, p3):
-    #    """Given 3 atoms will set p1 as origo, p2 as z axis and p3 in zx-plane"""
-    #    assert isinstance( p1, Atom )
-    #    assert isinstance( p2, Atom )
-    #    assert isinstance( p3, Atom )
-    #    self._origo_z_x = (p1.r.copy,(),())
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
         for at in self :
@@ -1232,7 +1040,7 @@ class Molecule( list ):
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
-    def rotate(self, t1, t2, t3):
+    def rotate(self, t1, t2, t3, inplace = False):
         """Rotate atomss and properties by t1, t2, t3
         t1 positive rotation around Z-axis
         t2 negative rotation around Y-axis
@@ -1241,17 +1049,23 @@ class Molecule( list ):
         r1 = utilz.Rz(t1)
         r2 = utilz.Ry_inv(t2)
         r3 = utilz.Rz(t3)
+
+        com = self.com.copy()
+        if inplace:
+            self.t( -com )
         if self.LoProp:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
                 at.p = at.p.rotate( t1, t2, t3 )
-        elif self.is_property:
+        elif self.is_Property:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             self.Property = self.Property.rotate( t1, t2, t3 )
         else:
             for at in self:
                 at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
+        if inplace:
+            self.t( com )
 
     def template(self, max_l = 0, pol = 1, hyp = 0,
             label_func = lambda x: x.pdb_name,
@@ -1265,9 +1079,6 @@ class Molecule( list ):
         st_label = "_".join( label_func.func_code.co_names )
         st = "{\n"
         st += "'meta' : { 'label' : '%s', },\n" % st_label
-        #st += "'origo' : '%s',\n" % self.origo_z_x[0]
-        #st += "'z' : '%s',\n" % self.origo_z_x[1]
-        #st += "'x' : '%s',\n}" % self.origo_z_x[2]
 
         if centered:
             p = self.p
@@ -1284,6 +1095,7 @@ class Molecule( list ):
             tmp = "( 'X', {0:8s}) : [%s],\n"%(reduce(lambda a,x:a+x,map(lambda x: " {%d:.%df}, " %(x,decimal), range(1,11) )))
 
             st += tmp.format( "'beta'", *p.b )
+            st += '}'
             return st
 
         for at in self:
@@ -1307,7 +1119,6 @@ class Molecule( list ):
     def reorder(self):
         for at in self:
             at.order = self.index(at)
-
     @property
     def res_id(self):
         if self._res_id is not None:
@@ -1319,8 +1130,7 @@ class Molecule( list ):
     def res_name(self):
         if self._res_name is not None:
             return self._res_name
-        self._res_name = "MOL"
-        return self._res_name
+        return "MOL"
     
     def exclists(self, max_len = None):
         """Gives the exclusion string for each atom/bond in molecule for dalton PE
@@ -1359,40 +1169,67 @@ class Molecule( list ):
     def add(self, item):
         if isinstance( item, Atom ):
             self.append( item )
+            item.Molecule = self
         else:
             logging.warning('Passed %s instance to Molecule' %type(item) )
 
-    def plot_2d(self, key = None, ):
+    def initiate(self, item):
+        if isinstance( item, Atom ):
+#Small hack to set molecule to LoProp if initiated with atom that has Property on it
+            if item.p.q != 0.0 or ( item.p.d != np.zeros(3)).all():
+                self.LoProp = True
+            self.append( item )
+            item.Molecule = self
+        else:
+            logging.warning('Passed %s instance to Molecule' %type(item) )
+
+
+
+    def plot_2d(self, copy = True, smart = False, key = None, ):
         """Plots the 2D projetion of the molecule onto the y plane,
         PLAN: TODO:
         Later implement internal plane projection on arbitray two-vector plane
         """
         fig, ax = plt.subplots()
         #norm  = self.get_internal_plane()
-        self.populate_bonds()
+        if copy:
+            copy = self.copy()
+        else:
+            copy = self
+        copy.populate_bonds()
 
-        norm = np.array( [0, 0, 1] )
+        if smart:
+            p1, p2, p3 = utilz.largest_triangle( [at.r for at in copy] )
+            t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+            v = np.cross( p3 - p1, p2 - p1 )
+            norm = v / np.linalg.norm( v )
+        else:
+            norm = np.array( [0, 0, 1] )
+
+        copy.t( t )
+        copy.inv_rotate( r1, r2, r3 )
+
 
         if key is None:
             key = lambda x: x.element
 
-        for at in self:
+        for at in copy:
             x, y = (at.r - np.einsum('i,i', norm, at.r)*norm)[:-1]
             ax.scatter( x, y, color = color_dict[at.element], linewidth=4 )
             ax.annotate(  key( at ) , (x, y ), (x, y+0.1) )
         
-        x = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[0], self)
-        y = map(lambda x: (x.r - np.einsum('i,i', norm, x.r)*norm)[1], self)
+        x = np.linspace( -5, 5, 100 )
+        y = np.linspace( -5, 5, 100 )
 
         #plot the bonds
 #Plot bonds
-        for each in self.bond_dict:
-            for key in self.bond_dict[ each ]:
+        for each in copy:
+            for key in each.bonds.values():
                 ax.plot( [key.x, each.x],
                          [key.y, each.y],
                          color = 'black', linewidth = 0.25 )
 
-        for at in self:
+        for at in copy:
             pass
         ax.set_title( 'Projection of molecule on yx-plane' )
         ax.set_xlabel( 'x-axis' )
@@ -1438,12 +1275,6 @@ class Molecule( list ):
     def in_mm(self, val):
         self._in_mm = val
 
-    @property
-    def label(self):
-        if self._label is not None:
-            return self._label
-        return self.element + self.order
- 
     def save(self, fname = "molecule.p"):
         pickle.dump( self, open( fname, 'wb' ), protocol = 2 )
 
@@ -1455,8 +1286,57 @@ class Molecule( list ):
     
     @property
     def b_proj(self):
-        b, p = Rotator.ut_3_square(self.sum_property['beta']), self.sum_property['dipole']
-        return np.einsum( 'ijj,i', b, p )/np.linalg.norm( p )
+        return utilz.b_para( self.b, self.p )
+
+    def attach_properties2(self, 
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
+            loprop = True,
+            freq = "0.0",
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
+            force_template = False,
+            centered = None,
+            ):
+        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        self.Property = None
+        if centered is None:
+            centered = self.com
+        if isinstance(self, Water) and not force_template:
+            template_key = lambda x: x.element + str(x.order)
+
+        if isinstance(self, Water):
+            R = np.einsum('ij->ji', utilz.get_rotation( self.o.r, (self.h1.r - self.h2.r)/2 + self.h2.r, self.h1.r) )
+
+        templ = Template().get( *(model, method, basis, loprop, freq) )
+        if loprop:
+            for at in self:
+                at.p = Property.from_template( template_key(at), templ )
+        else:
+            self.Property = Property.from_template( 'X', templ )
+
+        t1, t2, t3 = self.get_euler( key = euler_key )
+        for at in self:
+            at.p.d = np.einsum('ij,j', R, at.p.d )
+            at.p.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.a) ) )
+            at.p.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.Q) ) )
+            at.p.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(at.p.b) ) )
+
+        if loprop:
+            self.is_Property = False
+            self.LoProp = True
+        else:
+            self.is_Property = True
+            self.LoProp = False
+            self.property_r = centered
+
+            self.Property.d = np.einsum('ij,j', R, self.Property.d )
+            self.Property.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.a) ) )
+            self.Property.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.Q) ) )
+            self.Property.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(self.Property.b) ) )
+
+
 
     def attach_properties(self, 
             model = "TIP3P_PDB",
@@ -1470,8 +1350,9 @@ class Molecule( list ):
             centered = None,
             ):
         """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        self.Property = None
         if centered is None:
-            centered = np.zeros(3,)
+            centered = self.com
         if isinstance(self, Water) and not force_template:
             template_key = lambda x: x.element + str(x.order)
 
@@ -1487,15 +1368,15 @@ class Molecule( list ):
 
         t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
-            at.p.transform_ut_properties( t1, t2, t3 )
+            at.p = at.p.rotate( t1, t2, t3 )
         if loprop:
-            self.is_property = False
+            self.is_Property = False
             self.LoProp = True
         else:
-            self.is_property = True
-            self.property_r = centered
-            self.Property.transform_ut_properties( t1, t2, t3 )
+            self.is_Property = True
             self.LoProp = False
+            self.property_r = centered
+            self.Property = self.Property.rotate( t1, t2, t3 )
 
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
@@ -1518,6 +1399,8 @@ class Molecule( list ):
              x.get_atom_by_pdbname('CA').r)
         
         """
+        if isinstance( self, Water ):
+            key = lambda x: (x.o.r, x.h2.r + (x.h1.r-x.h2.r)/2, x.h1.r)
         if rot_type == 'water':
             key = lambda x: (x.o.r, x.h2.r + (x.h1.r-x.h2.r)/2, x.h1.r)
         try:
@@ -1532,8 +1415,9 @@ class Molecule( list ):
             tmpdir = None,
             maxl = 2,
             pol = 22,
-            hyper = 2,
+            hyp = 2,
             decimal = 7,
+            freqs = None,
             ):
         if tmpdir is None:
             tmpdir = "/tmp"
@@ -1548,30 +1432,41 @@ class Molecule( list ):
                     max_l = maxl,
                     pol = pol,
                     pf = penalty_function( 2.0 ),
-                    freqs = None,
+                    freqs = (freqs,)
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
-                            hyper = hyper,
+                            hyper = hyp,
                             decimal = decimal,
                             )
-        except:
+        except IOError:
             print tmpdir
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         if not len(lines) == len(self):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
             raise SystemExit
-        for at, prop in zip(self, lines):
+
+        f_at = lambda x: map(float,x.get_mol_line().split()[1:])
+        f_prop = lambda x: map(float,x.split()[1:4])
+        try:
+            assert len( self ) == len( lines )
+        except:
+            logging.error("Some error went undetected despite creating .tar.gz and .out files")
+            return
+        for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
             at.Property = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
-                    hyper = hyper )
+                    hyper = hyp )
+        self.freq = freqs
+        self.LoProp = True
+        self.Property = False
 
     def props_from_qm(self,
             tmpdir = None,
             dalpath = None,
             procs = 4,
-            decimal = 5,
+            decimal = 7,
             maxl = 2,
             pol = 22,
             hyper = 2,
@@ -1581,6 +1476,7 @@ class Molecule( list ):
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
             keep_outfile = False,
+            keep_targzfile = False,
             freq = None
             ):
         """
@@ -1618,13 +1514,17 @@ class Molecule( list ):
             if not os.path.isdir( tmpdir ):
                 os.mkdir( tmpdir )
 
-        dal = 'dalton.dal'
-        mol = 'molecule.mol'
+        dal = method + '.dal'
+        mol = self.molfile_label() + '.mol'
         dal_full, mol_full = map( lambda x: os.path.join( tmpdir, x ), [dal,mol])
         if method == 'hfqua':
             open( dal, 'w').write( Generator.get_hfqua_dal( ) )
         elif method == 'b3lypqua':
             open( dal, 'w').write( Generator.get_b3lypqua_dal( ) )
+        elif method == 'camb3lypqua':
+            open( dal, 'w').write( Generator.get_camb3lypqua_dal( ) )
+        elif method == 'ccsdlin':
+            open( dal, 'w').write( Generator.get_ccsdlin_dal( ) )
         elif method == 'hflin':
             if freq:
                 open( dal, 'w').write( Generator.get_hflin_freq_dal( freq = freq ) )
@@ -1634,11 +1534,16 @@ class Molecule( list ):
             if freq:
                 open( dal, 'w').write( Generator.get_b3lyplin_freq_dal( freq = freq ) )
             else:
-                open( dal, 'w').write( Generator.get_b3lyplin_dal( ) )
+                open( dal, 'w').write( Generator.get_b3lyplin_dal() )
+        elif method == 'camb3lyplin':
+            if freq:
+                open( dal, 'w').write( Generator.get_camb3lyplin_freq_dal( freq = freq ) )
+            else:
+                open( dal, 'w').write( Generator.get_camb3lyplin_dal() )
         else:
             print "wrong calculation type specified"
             return
-        open( mol, 'w').write( self.get_mol_string( basis = basis) )
+        open( mol, 'w').write( self.get_mol( basis = basis) )
 
 #Make sure that the external dalton script copies the .out and .tar.gz
 #files from calculation to current directory once child process finishes
@@ -1687,7 +1592,7 @@ class Molecule( list ):
         else:
 #Run as dalton script
             p = subprocess.Popen([dalton, 
-                '-N', str(procs), '-noarch', '-D', '-t', tmpdir,
+                '-N', str(procs), '-D', '-t', tmpdir,
                 dal, mol
                 ], stdout = subprocess.PIPE,
                 )
@@ -1698,27 +1603,27 @@ class Molecule( list ):
             out, err = p.communicate()
 
 
-            of = "DALTON.OUT"
-            tar = "dalton_molecule.tar.gz"
-#Need to do this since late dalton scripts appends the tmp with seperate PID
-            real_tmp = utilz.find_dir( of, tmpdir )
+            wrkdir = os.getcwd()
+            out_wrk = os.path.join( wrkdir, "%s_%s.out" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
+            tar_wrk = os.path.join( wrkdir, "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol])))
+            mol_wrk, dal_wrk = map( lambda x: os.path.join( wrkdir, x), [mol, dal] )
+            mol_tmp, dal_tmp = map( lambda x: os.path.join( tmpdir, x ), [mol, dal])
+
+            tar_tmp = "%s_%s.tar.gz" % tuple(map(lambda x:x.split('.')[0], [dal,mol]))
+            of_tmp = "DALTON.OUT"
+
+
+#Need to do this since late dalton scripts appends the tmp with separate PID
+            real_tmp = utilz.find_dir( of_tmp, tmpdir )
 
 #If smth happend to the dalton subprocess, the of will not exist and throw exception
             try:
-                of, tar = map( lambda x: os.path.join( real_tmp, x ), [of, tar ] )
+                of_tmp, tar_tmp = map( lambda x: os.path.join( real_tmp, x ), [of_tmp, tar_tmp ] )
             except AttributeError:
                 logging.error( "Some internal HPC specific error occured" )
                 logging.error( "Will dump the .mol file of botched calculation" )
-                logging.error( self.get_mol_string( basis = basis) )
+                logging.error( self.get_mol( basis = basis) )
                 return
-
-            #print out, err, real_tmp
-            #raise SystemExit
-
-        if 'lin' in method:
-            at, p, a = read_dal.read_alpha( of )
-        else:
-            at, p, a, b = read_dal.read_beta_hf( of )
 
 #Using Olavs external scripts
         try:
@@ -1770,17 +1675,19 @@ class Molecule( list ):
 
         try:
             for f_ in [f for f in os.listdir(real_tmp) if os.path.isfile(f) ]:
-                print os.path.join(real_tmp, f_) 
+                print os.path.join(real_tmp, f_)
+                raise SystemExit
+                os.remove( os.path.join(real_tmp, f_))
             for f_ in [mol, dal]:
-                print f_
                 os.remove( f_ )
         except OSError:
             logging.error('Something wrint in trying to remove files in real_tmp')
         if not keep_outfile:
-            for fil in [f for f in os.listdir(os.getcwd()) if "dalton_molecule" in f]:
-                os.remove( os.path.join( os.getcwd(), fil ) )
+            os.remove( out_wrk )
+        if not keep_targzfile:
+            os.remove( tar_wrk )
 
-        self.is_property = False
+        self.is_Property = False
         self.LoProp = True
 
     @classmethod
@@ -1801,28 +1708,38 @@ class Molecule( list ):
         for i in self:
             i.name = i.element + str(i.number)
 
-    def populate_bonds(self):
+    def populate_bonds(self, cluster = False):
 #Implement later that it can only be called once
-        bond_dict = {}
         for i, at in enumerate( self ):
-            bond_dict[ at ] = []
+            at.bonds = {}
 
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
-        for i in range(len(self)):
-            for j in range( i + 1, len(self) ):
-                if self[i].dist_to_atom( self[j] ) < conv*self.bonding_cutoff[ (self[i].element, self[j].element) ]:
 
-                    self[i].bonds[ self[j].name ] = self[j]
-                    self[j].bonds[ self[i].name ] = self[i]
-                    bond_dict[ self[i] ].append( self[j] )
-                    bond_dict[ self[j] ].append( self[i] )
-        self.bond_dict = bond_dict
+#Populate bonds on cluster level
+        if cluster:
+            for a1, a2 in itertools.product( self.Cluster.atoms, self.Cluster.atoms ):
+                if a1 == a2:
+                    continue
+                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                    if a1 not in a2.Molecule:
+                        if a1.element != 'C':
+                            continue
+                    a1.bonds[ a2.name ] = a2
+                    a2.bonds[ a1.name ] = a1
+        else:
+            for a1, a2 in itertools.product( self, self ):
+                if a1 == a2:
+                    continue
+                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                    a1.bonds[ a2.name ] = a2
+                    a2.bonds[ a1.name ] = a1
+
 
     def populate_angles(self):
-# Must be run after populate_bonds
+        self.populate_bonds()
         for at1 in self:
             for at2 in [at2 for at2 in at1.bonds.values()]:
                 for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
@@ -1896,22 +1813,21 @@ class Molecule( list ):
                     full_charm += pre_str + "\t" + atype_dihed[ t2 ] + '\n'
         return full_charm
 
-    def find_dihedrals(self):
+    def populate_dihedrals(self):
 
+        self.populate_bonds()
         dihed = []
         for at1 in self:
             if at1.bonds == []:
                 continue
-            for at2 in at1.bonds:
+            for at2 in at1.bonds.values():
                 if at2.bonds == []:
                     continue
-                for at3 in [a for a in at2.bonds if a != at1]:
+                for at3 in [a for a in at2.bonds.values() if a != at1]:
                     if at3.bonds == []:
                         continue
-                    for at4 in [a for a in at3.bonds if a != at2]:
-                        dihed.append( [at1.name, at2.name, at3.name, at4.name] )
-                        at1.dihedral[ (at3.name, at4.name) ] = (at1.name,at2.name, at3.name, at4.name)
-        return dihed
+                    for at4 in [a for a in at3.bonds.values() if a != at2]:
+                        at1.dihedrals[ (at2.name, at3.name, at4.name) ] = (at1,at2,at3,at4)
 
 #For molecular properties on whole molecule, instead of atomic ones
     @property
@@ -1919,13 +1835,14 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
-        assert val is not None
+        if val is None:
+            self._Property = val
+            return
         if self.LoProp is None:
-            logging.error("Can't set property, already set since LoProp is False")
-            raise AssertionError
+            warnings.warn("Setting property despite LoProp being False")
         self.LoProp = None
-
         self._Property = val
+        self.is_Property = True
 
 #Wrapper func for Molecule
     @property
@@ -1942,8 +1859,12 @@ Return the sum properties of all properties in molecules
         """
         if self.Property:
             return self.Property
-        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
+        coc = self.coc
+        conv = 1.0
+        if self.AA:
+            conv = 1/a0
+        el_dip = np.array([ conv*(at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        nuc_dip = np.array([ conv*(at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
         dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
@@ -2081,7 +2002,7 @@ Distance to other molecule, measured by center-of-mass
         return np.sqrt( ((self.com - other.com)**2 ).sum(axis=0) )
 
 
-    def plot(self, copy = True, center = False, d = False ):
+    def plot(self, copy = True, center = False, d = False, names = False, attr = False, key = False ):
         """
 Plot Molecule in a 3D frame
 
@@ -2109,11 +2030,11 @@ Plot Molecule in a 3D frame
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 #Plot bonds
-        for each in copy.bond_dict:
-            for key in copy.bond_dict[ each ]:
-                ax.plot( [key.x, each.x],
-                         [key.y, each.y],
-                         [key.z, each.z], color = 'black' )
+        for atom in copy:
+            for key in atom.bonds.values():
+                ax.plot( [key.x, atom.x],
+                         [key.y, atom.y],
+                         [key.z, atom.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -2128,12 +2049,21 @@ Plot Molecule in a 3D frame
             #ax.plot( [p[0]],[p[1]],[p[2]],'ko', markersize = 5, linewidth = 5 )
         for i in copy:
             ax.plot( [i.x], [i.y], [i.z], copy.style[i.element], linewidth= copy.linewidth[i.element] )
+        if names:
+            for i in copy:
+                ax.text( i.x, i.y, i.z, i.name)
+        if attr:
+            for i in copy:
+                ax.text( i.x, i.y, i.z, getattr(i, attr))
 
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
         plt.show()
 
+    def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
+        "ano-2 5 4 1" )):
+        return self.get_mol_string( basis = basis)
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
@@ -2162,8 +2092,12 @@ Plot Molecule in a 3D frame
 
     def copy_self(self):
         return self.copy()
-    def copy(self):
-        return copymod.deepcopy(self)
+
+    def copy(self, shallow = False):
+        if shallow:
+            return copymod.copy(self)
+        else:
+            return copymod.deepcopy(self)
 
     def get_inp_string(self, method ='B3LYP', basis = "6-31+g*", procs= 8):
 
@@ -2326,17 +2260,33 @@ Angstrom [ out_AA = True ]
                 m.to_AU()
         return m
 
+    def AA(self):
+        AA = self[0].AA
+        for at in self:
+            try:
+                assert AA == at
+            except AssertionError:
+                logging.error("Not all atoms same unit in molecule %s" %self)
+        return AA
+
+
     def to_AU(self):
-        if self.AA:
-            for at in self:
-                at.to_AU()
-            self.AA = False
+        for at in self:
+            at.to_AU()
 
     def to_AA(self):
-        if not self.AA:
-            for at in self:
-                at.to_AA()
-            self.AA = True
+        for at in self:
+            at.to_AA()
+
+    def byname(self,label ):
+        return self.get_atom_by_name( label.upper() )
+    def get_atom_by_name(self, label ):
+        for at in self:
+            if at.name == label:
+                return at
+        return None
+
+
 
     def get_atom_by_pdbname(self, label, dup = False):
         at = []
@@ -2362,6 +2312,7 @@ class Water( Molecule ):
 """
 
     def __init__(self , *args, **kwargs):
+
         super(Water, self).__init__( *args, **kwargs )
         self.atoms = 0
 
@@ -2378,16 +2329,42 @@ class Water( Molecule ):
         self.in_mm = False
         self.in_qmmm = False
 
+#Since we added the atoms already, we need to define .o, .h1, and .h2
+#the element + index of occurance of atom in molecule must match here for proper
+#Water initialization from list of atoms
+        if args is not ():
+            for atom in args: 
+                if atom.name == 'O1':
+                    self.o = atom
+                if atom.name == 'H2':
+                    self.h1 = atom
+                if atom.name == 'H3':
+                    self.h2 = atom
+
+
+
         if kwargs is not {}:
             self.AA = kwargs.get( "AA", False )
 
+#Water - Properties for grabbing uniquely PDB named atoms
+    @property
+    def OW(self):
+        return self.get_atom_by_pdbname( 'OW' )
+    @property
+    def HW1(self):
+        return self.get_atom_by_pdbname( 'HW1' )
+    @property
+    def HW2(self):
+        return self.get_atom_by_pdbname( 'HW2' )
+
 #If initializing water from list of 3 atoms, set H, O for given atoms
 
-    def copy(self):
-        return self.copy_water()
+    def copy(self, shallow = False):
+        return super(Water, self).copy( shallow = shallow )
 
     def copy_self(self):
         return self.copy_water()
+
 
     def copy_water(self):
         w = Water()
@@ -2413,6 +2390,12 @@ class Water( Molecule ):
 Return water molecule from specified template with :math:`r=0.9572` Angstrom and 
 :math:`\\theta=104.52` degrees.
 
+other models:
+    sign_change : 
+    r = 0.958019
+    theta = 104.50
+
+
 .. code:: python
 
     >>> m = Water.get_standard()
@@ -2427,6 +2410,9 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
         elif model == 'spc':
             r_oh = 1.00
             a_hoh =  109.47
+        elif model == 'sign_change':
+            r_oh = 0.958019
+            a_hoh =  104.50
         r_oh = r_oh / a0
         d = (90 - a_hoh/2 ) * np.pi / 180
         origin = np.array( [ 0, 0, 0] )
@@ -2462,7 +2448,7 @@ Return water molecule from specified template with :math:`r=0.9572` Angstrom and
             w.h1.scale_angle( 0.988 )
             w.h1.scale_bond( 0.985 )
             w.h2.scale_bond( 1.015 )
-            w.inv_rotate()
+            w.inv_rotate( *w.get_euler() )
         return w
 
     def is_worst(self):
@@ -2535,8 +2521,8 @@ Override list append method, will add up to 3 atoms,
 
         if len(self) == 3:
             hyd1, hyd2 = [i for i in self if i.element == "H" ]
-            d1 = hyd1.dist_to_point( [1,1,1] )
-            d2 = hyd2.dist_to_point( [1,1,1] )
+            d1 = hyd1.dist_to_point( np.array([1,1,1]) )
+            d2 = hyd2.dist_to_point( np.array([1,1,1]) )
             if d1 < d2:
                 self.h1 = hyd1
                 self.h2 = hyd2
@@ -2740,69 +2726,6 @@ Override list append method, will add up to 3 atoms,
         return string
 
 
-
-
-class Methanol(Molecule):
-    """
-Not yet implemented, only needs get_euler and z-matrix to be specific.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super( Methanol, self).__init__(**kwargs)
-
-    def append(self, atom):
-        """Typical append for each seperate molecule class"""
-        if len(self) == 6:
-            print "tried to add additional atoms to methanol, exiting"
-            raise SystemExit
-
-        if not isinstance( atom, Atom ):
-            print "wront class passed to methanol append"
-            raise SystemExit
-
-        if atom.element == "H":
-            if self.no_hydrogens:
-                self.h1 = atom
-                self.no_hydrogens = False
-            else:
-                self.h2 = atom
-
-        if atom.element == "O":
-            self.o = atom
-#Add the atom
-        super( Molecule, self).append(atom)
-
-#Define methanol center, by default set it to center of C=O bond
-
-        if len(self) == 6:
-            self.center = sum([ i.r for i in self ] ) / len(self)
-            #hc = charge_dict[ self.h1.element ]
-            #oc = charge_dict[ self.h1.element ]
-            #self.coc = np.array([ self.h1.x * hc  + self.h2.x *hc + self.o.x *oc,  \
-            #    self.h1.y *hc + self.h2.y *hc + self.o.y *oc , \
-            #    self.h1.z *hc + self.h2.z *hc + self.o.z *oc ]) /( 2*hc +oc)
-        if self.res_id:
-            if self.res_id != atom.res_id:
-                print "Tried to add %s to %s, exiting" %(atom, self)
-                raise SystemExit
-        else:
-#Initialize res_id from atomic res_id
-            self._res_id = atom.res_id
-#Also calculate center now
-        if len(self) == 6:
-            h1, h2, h3, h4 = [i for i in self if i.element == "H" ]
-            #print "All hyds added for methanol %s" %str(self)
-            #raise SystemExit
-            #d1 = hyd1.dist_to_point( [1,1,1] )
-            #d2 = hyd2.dist_to_point( [1,1,1] )
-            #if d1 < d2:
-            #    self.h1 = hyd1
-            #    self.h2 = hyd2
-            #else:
-            #    self.h1 = hyd2
-            #    self.h2 = hyd1
-
-
 class Cluster(list):
     """
 **Molecule container which groups molecules into quantum mechanics, molecular mechanics, and qm/mm regions for easy in generating input files for QM/MM.**
@@ -2811,19 +2734,96 @@ class Cluster(list):
         """ Can be a list of molecules or a list of clusters"""
 
         super(Cluster, self).__init__()
+
+        copy = False
+        if kwargs != {}:
+            copy = kwargs.get( "copy", False )
+
         self._chain_id = None
+        self._freq = None
+        self._snap = None
+        self._system_order = None
+        self._System = None
         self.Property = None
         self.atom_list = []
+
         if type(args) == tuple:
             if len(args) == 1:
                 if type(args[0]) == list:
                     for i in args[0]:
-                        self.add( i )
+                        self.add( i, copy = copy )
                 else:
-                    self.add( args[0] )
+                    self.add( args[0], copy = copy )
             else:
                 for item in args:
-                    self.add( item )
+                    self.add( item, copy = copy )
+
+    @staticmethod
+    def rand_water_cluster(N = 10):
+        c = Cluster()
+        cnt = 0 
+        while cnt < N:
+            w = Water.get_standard()
+            w.rotate( *np.random.uniform( 0, 2*np.pi, 3) )
+            w.t( np.random.uniform( -25, 25, 3) )
+            if c.mol_too_close( w ):
+                continue
+            c.add( w )
+            cnt += 1
+        return c
+
+
+
+    def dump_xyz(self):
+        """Quickl;y wrote xyz file for fancier visualization in avogadro/vmd"""
+        open( 'tmp.xyz', 'w' ).write( self.get_xyz_string() )
+
+#Cluster freq method
+    @property
+    def system_order(self):
+        if self._system_order:
+            return self._system_order
+        return 0
+#Cluster 
+    @system_order.setter
+    def system_order(self, val):
+        self._system_order = val
+
+#Cluster
+    @property
+    def System(self):
+        return self._System
+#Cluster
+    @System.setter
+    def System(self, val):
+        self._System = val
+
+#Cluster freq method
+    @property
+    def freq(self):
+        if self._freq is not None:
+            return self._freq
+        if self.System:
+            return self.System.freq
+        return "0.0000000"
+
+    @freq.setter
+    def freq(self, val):
+        self._freq = val
+#Cluster snap method
+    @property
+    def snap(self):
+        if self._snap is not None:
+            return self._snap
+        if self.System:
+            return self.System.snap
+        return "0"
+
+    @snap.setter
+    def snap(self, val):
+        self._snap = val
+
+#Cluster method
     @property
     def chain_id(self):
         if self._chain_id:
@@ -2860,6 +2860,35 @@ class Cluster(list):
             st += at.pdb_string()
         return st
 
+
+#Cluster level
+    def transfer_props(self, at_list, 
+            transfer = { 'charge' : 0,
+                'quadrupole' : 0,
+                'dipole' : 0,
+                'alpha' : 0,
+                'beta' :0},
+            center = None ):
+        """
+        Convenient wrapper for clusters with several interconnected
+        Molecules.
+
+        splitter puts atoms in seperate lists belonging to same molecules
+
+        Make sure that these are not interconnected
+
+        Note: the populate_bonds method must be run before this 
+        in order to get correct transfering behaviour
+        """
+        
+
+        mol_arr = utilz.splitter( at_list, key = lambda x: x.Molecule )
+
+        for ind, ats in enumerate( mol_arr ):
+            mol_arr[ ind ][0].Molecule.transfer_props( ats,
+                    transfer = transfer,
+                    center = center )
+
     @property
     def density(self):
         """Return the density in SI units kg/m^3"""
@@ -2880,15 +2909,13 @@ class Cluster(list):
 #kg m**-3 = g cm**-3
         return m/v
 
-    def g_list_from_damped(self, 
+    def get_pdlist(self, 
             max_l = 1,
             pol = 22,
-            hyp = 2,
-            rq = 1e-9,
-            rp = 1e-9,
-            AA_cutoff = 1.5,
-            nullify = False,
-            model = 'thole'
+            hyp = 1,
+            model = 'pointdipole',
+            cell = False,
+            cell_cutoff = 25.0, 
             ):
         """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
         where atomic within AA_cutoff between different interacting segments
@@ -2899,6 +2926,7 @@ class Cluster(list):
         from pd.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
+                'point' :PointDipoleList,
                 'thole' : TholeList,
                 'gaussian' :GaussianQuadrupoleList,
                 'p' : PointDipoleList,
@@ -2908,17 +2936,60 @@ class Cluster(list):
 
         aa = self.AA
         self.to_AU()
-        g = opts[model].from_string( self.get_qmmm_pot_string() )
-        for atom, res in map( lambda x: [x, x.residue], self.min_dist_atoms_seperate_res(AA_cutoff) ):
-            ind = reduce( lambda a, x: a + len(x), res.Chain[:res.order_nr],0)+atom.order_nr
+        if cell:
+            init_f = functools.partial( opts[model].cell_from_string, co = float(cell_cutoff) ) 
+        else:
+            init_f = opts[model].from_string
+        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp))
+        if aa:
+            self.to_AA()
+        return g
+
+    def g_list_from_damped(self, 
+            max_l = 1,
+            pol = 22,
+            hyp = 1,
+            rq = 1e-9,
+            rp = 1e-9,
+            AA_cutoff = 1.5,
+            nullify = False,
+            model = 'thole',
+            cell = False,
+            cell_cutoff = 25.0, 
+            ):
+        """Given cutoff in Angstromgs, will return a GassuanQuadrupoleList
+        where atomic within AA_cutoff between different interacting segments
+        
+        has a damped gaussian """
+        from pd.particles import PointDipoleList
+        from pd.gaussian import GaussianQuadrupoleList
+        from pd.thole import TholeList
+
+        opts = { 'pointdipole' : PointDipoleList,
+                'point' :PointDipoleList,
+                'thole' : TholeList,
+                'gaussian' :GaussianQuadrupoleList,
+                'p' : PointDipoleList,
+                't' : TholeList,
+                'g' :GaussianQuadrupoleList,
+                }
+
+        aa = self.AA
+        self.to_AU()
+        if cell:
+            init_f = functools.partial( opts[model].cell_from_string, co = float(cell_cutoff) ) 
+        else:
+            init_f = opts[model].from_string
+        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp))
+
+        for atom, res in map( lambda x: [x, x.Molecule], self.min_dist_atoms_separate_res(AA_cutoff) ):
+            ind = reduce( lambda a, x: a + len(x), res.Chain[ : res.Chain.index(res) ] , 0) + atom.order
             g[ ind ]._R_q = rq
             g[ ind ]._R_p = rp
             if nullify:
                 g[ ind ]._q = 0.0
                 g[ ind ]._p0 = np.zeros( (3,) )
-                g[ ind ]._a0 = np.zeros( (3,3,) )
                 g[ ind ]._Q0 = np.zeros( (3,3,) )
-                g[ ind ]._b0 = np.zeros( (3,3,3,) )
         if aa:
             self.to_AA()
         return g
@@ -2926,8 +2997,10 @@ class Cluster(list):
 # Slicing the cluster givees back a cluster, but only accessing one index gives molecule
     def __add__(self, other):
         return Cluster(list.__add__(self, other))
+
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
+
     def __getitem__(self, item):
         if isinstance( item, slice ):
             result = list.__getitem__(self, item)
@@ -2991,11 +3064,11 @@ class Cluster(list):
         if in_AA :
             max_dist / a0
 
-        """Given pdb/mol/xyz  file return a Cluster with all seperate molecules"""
+        """Given pdb/mol/xyz  file return a Cluster with all separate molecules"""
         if fil.endswith('.xyz'):
             with open(fil,'r') as f_:
                 pass
-    def min_dist_atoms_seperate_res(self, AA_cutoff = 1.5 ):
+    def min_dist_atoms_separate_res(self, AA_cutoff = 1.5 ):
         """Return list of atoms which have an other atom closer than 1.5 AA to them
         and are not in the same residue
         
@@ -3009,7 +3082,7 @@ class Cluster(list):
                 if ats[i].dist_to_atom( ats[j] ) < AA_cutoff:
                     tmp.append( ats[i] )
                     tmp.append( ats[j] )
-        return read_dal.unique( tmp )
+        return utilz.unique( tmp )
 
 
 
@@ -3045,7 +3118,7 @@ class Cluster(list):
             min_ats.append( ats[xi] )
             min_ats.append( ats[zi] )
 
-        return read_dal.unique(min_ats)
+        return utilz.unique(min_ats)
 
 
     def min_dist_coo(self):
@@ -3110,7 +3183,7 @@ class Cluster(list):
                 /sum( map(float,[charge_dict[at.element] for mol in self for at in mol]) )
 
 
-    def plot(self, copy = True, center = False ):
+    def plot(self, copy = True, center = False, d = False, names = False, attr = False, key = False ):
         """
 Plot Cluster a 3D frame in the cluster
 
@@ -3134,8 +3207,7 @@ Plot Cluster a 3D frame in the cluster
         if center:
             copy.translate( -self.com )
 
-        for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
-            mol.populate_bonds()
+        copy.populate_bonds()
 
 #Plot in nice xyz axis
         fig = plt.figure()
@@ -3144,12 +3216,10 @@ Plot Cluster a 3D frame in the cluster
 #Plot bonds
         for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
             for atom in mol:
-                for key in mol.bond_dict[ atom ]:
+                for key in atom.bonds.values():
                     ax.plot( [key.x, atom.x],
                              [key.y, atom.y],
                              [key.z, atom.z], color = 'black' )
-
-
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -3159,6 +3229,15 @@ Plot Cluster a 3D frame in the cluster
         for i in copy:
             for j in i:
                 ax.plot( [j.x], [j.y], [j.z], j.Molecule.style[j.element], linewidth= j.Molecule.linewidth[j.element] )
+        if names:
+            for mol in copy:
+                for at in mol:
+                    ax.text( at.x, at.y, at.z, at.name)
+        if attr:
+            for mol in copy:
+                for at in mol:
+                    ax.text( at.x, at.y, at.z, getattr(at, attr ) )
+
         ax.set_zlim3d( -5,5)
         plt.xlim(-5,5)
         plt.ylim(-5,5)
@@ -3199,7 +3278,7 @@ Plot Cluster a 3D frame in the cluster
 
 
 
-    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) , AA = False):
+    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
@@ -3215,7 +3294,7 @@ Plot Cluster a 3D frame in the cluster
         comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
         uni = utilz.unique([ at.element for mol in self for at in mol if mol.in_qm])
         s_ = ""
-        if AA: s_ += "Angstrom"
+        if self.AA: s_ += "Angstrom"
 
         st += "ATOMBASIS\n%s\n%s\nAtomtypes=%d Charge=0 Nosymm %s\n" %( \
                 comm1,
@@ -3292,7 +3371,7 @@ Plot Cluster a 3D frame in the cluster
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True ):
 
-#make sure that each unique residue is in seperate residue in POT output
+#make sure that each unique residue is in separate residue in POT output
         self.order_mm_mols()
 
         if self.AA:
@@ -3306,14 +3385,14 @@ Plot Cluster a 3D frame in the cluster
 
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_property]), max_l, pol, 1 )
+            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
-            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_property ] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_Property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
                     max_l, pol, 1 )
             st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
-            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.is_property ] )
+            st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.in_mm and mol.is_Property ] )
         return st
 
     def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
@@ -3349,7 +3428,7 @@ Plot Cluster a 3D frame in the cluster
             cnt += 1
     def order_mm_mols(self):
         cnt = 1
-        self.sort( key = lambda x:x.is_property )
+        self.sort( key = lambda x:x.is_Property )
         for mol in self:
             mol.cluster_order = cnt
             cnt += 1
@@ -3365,11 +3444,12 @@ Plot Cluster a 3D frame in the cluster
             t1, t2, t3 = wat.get_euler()
             for at in wat:
                 Property.add_prop_from_template( at, kwargs_dict )
-                at.Property.transform_ut_properties( t1, t2, t3)
+                at.Property.rotate( t1, t2, t3)
 
     @staticmethod
     def get_water_cluster_from_string( _str, in_AA,
-            out_AA, N_waters = 1000, file_ending = '.mol'):
+            out_AA, N_waters = 1000, file_ending = '.mol',
+            md_type = None ):
 
         """
 Return a cluster of water molecules given file.
@@ -3391,7 +3471,9 @@ Return a cluster of water molecules given file.
                 if pat_xyz.match(i):
                     f = pat_xyz.match(i).groups()
                     matched = pat_xyz.match(i).groups()
-                    kwargs = { "element" :  matched[0], "x" : matched[1],
+                    kwargs = { "element" :  matched[0],
+                            "AA": in_AA,
+                            "x" : matched[1],
                             "y" : matched[2], "z" : matched[3] }
                     tmpAtom = Atom( **kwargs )
                     atoms.append( tmpAtom )
@@ -3444,150 +3526,75 @@ Return a cluster of water molecules given file.
 #loop over oxygen and hydrogen and if they are closer than 1 A add them to a water
         waters = []
         cnt = 1
-        if file_ending == '.mol' or file_ending == '.xyz' or file_ending == '.log':
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water( AA = in_AA)
-#Gaussian output seems to have Angstrom always
-                if file_ending == '.log':
-                    tmp.AA = True
-                i.in_water = True
-                tmp.add_atom( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
-#If in angstrom
-                    if in_AA:
-                        if i.dist_to_atom(j) < 1.1:
-                            tmp.add_atom ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist_to_atom(j) < 1.1/a0:
-                            tmp.add_atom ( j )
-                            j.in_water = True
-                tmp._res_id = cnt
-                cnt += 1
-                waters.append( tmp )
-            waters.sort( key = lambda x: x.dist_to_point( center ))
-            center_water = waters[0]
-            cent_wlist = waters[1:]
-            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+#Find the box encompassing all atoms
+        xmin, ymin, zmin = np.inf, np.inf, np.inf
+        xmax, ymax, zmax = -np.inf, -np.inf, -np.inf
+        for i in atoms:
+            if i.x < xmin:
+                xmin = i.x
+            if i.y < ymin:
+                ymin = i.y
+            if i.z < zmin:
+                zmin = i.z
+            if i.x > xmax:
+                xmax = i.x
+            if i.y > ymax:
+                ymax = i.y
+            if i.z > zmax:
+                zmax = i.z
+#Dead center of the box
+        center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
 
-            if N_waters < 1:
-                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
-                raise SystemExit
-# Ensure that cluster has ordered water structure from first index
-            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
-            for i in waters:
-                c.append(i)
-        elif file_ending == '.pdb':
-#Find out the size of the box encompassing all atoms
-            xmin = 10000.0; ymin = 10000.0; zmin = 10000.0; 
-            xmax = -10000.0; ymax = -10000.0; zmax = -10000.0; 
-            for i in atoms:
-                if i.x < xmin:
-                    xmin = i.x
-                if i.y < ymin:
-                    ymin = i.y
-                if i.z < zmin:
-                    zmin = i.z
-                if i.x > xmax:
-                    xmax = i.x
-                if i.y > ymax:
-                    ymax = i.y
-                if i.z > zmax:
-                    zmax = i.z
-            center = np.array([ xmax - xmin, ymax -ymin, zmax- zmin]) /2.0
-            wlist = []
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water( AA = in_AA )
+        from dstruct import Cell
+        cell = Cell( [xmin, ymin, zmin], [xmax, ymax, zmax], 3 )
+        for at in atoms:
+            cell.add_atom(at )
+
+        
+        wlist = []
+        for i in cell:
+            if i.element == "H":
+                continue
+            if i.in_water:
+                continue
+            tmp = Water( AA = in_AA )
 #__Water__.append() method will update the waters residue number and center coordinate
 #When all atoms are there
 #Right now NOT center-of-mass
-                i.in_water= True
-                tmp.add_atom(i)
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
+            i.in_water= True
+            tmp.add_atom(i)
+            for j in cell.get_closest(i):
+                if j.element == "O":
+                    continue
+                if j.in_water:
+                    continue
 #1.05 because sometimes spc water lengths can be over 1.01
-                    if in_AA:
-                        if i.dist_to_atom(j) <= 1.05:
-                            j.in_water = True
-                            tmp.add_atom( j )
-                    else:
-                        if i.dist_to_atom(j) <= 1.05/a0:
-                            j.in_water = True
-                            tmp.add_atom( j )
-                tmp._res_id = cnt
-                cnt += 1
-                wlist.append( tmp )
-            wlist.sort( key = lambda x: x.dist_to_point( center ))
-            center_water = wlist[0]
-            cent_wlist = wlist[1:]
-            cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
+                if in_AA:
+                    if i.dist_to_atom(j) <= 1.05:
+                        j.in_water = True
+                        tmp.add_atom( j )
+                else:
+                    if i.dist_to_atom(j) <= 1.05/a0:
+                        j.in_water = True
+                        tmp.add_atom( j )
+            tmp._res_id = cnt
+            cnt += 1
+            wlist.append( tmp )
+        wlist.sort( key = lambda x: x.dist_to_point( center ))
+        center_water = wlist[0]
+        cent_wlist = wlist[1:]
+        cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
 
 
-            if N_waters < 1:
-                print "WARNING ; chose too few waters in Cluster.get_water_cluster"
-                raise SystemExit
+        if N_waters < 1:
+            print "WARNING ; chose too few waters in Cluster.get_water_cluster"
+            raise SystemExit
 
 # Ensure that cluster has ordered water structure from first index
-            waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
-            for i in waters:
-                c.append(i)
-        elif file_ending == '.out':
-            for i in atoms:
-                if i.element == "H":
-                    continue
-                if i.in_water:
-                    continue
-                tmp = Water()
-                i.in_water = True
-                tmp.append( i )
-                for j in atoms:
-                    if j.element == "O":
-                        continue
-                    if j.in_water:
-                        continue
+        waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
+        for i in waters:
+            c.append(i)
 #If in cartesian:
-                    if i.AA:
-                        if i.dist_to_atom(j) < 1.0:
-                            tmp.append ( j )
-                            j.in_water = True
-                    else:
-                        if i.dist_to_atom(j) < 1.0/a0:
-                            tmp.append ( j )
-                            j.in_water = True
-                tmp.res_id = cnt
-                cnt += 1
-                waters.append( tmp )
         for wat in c:
             for atom in wat:
                 atom._res_id = wat.res_id
@@ -3596,23 +3603,26 @@ Return a cluster of water molecules given file.
             if not out_AA:
                 for wat in c:
                     wat.to_AU()
-        if not in_AA:
-            if out_AA:
-                for wat in c:
-                    wat.to_AA()
+        if not in_AA and out_AA:
+            c.to_AA()
         for wat in c:
             wat.o.order = 1
             wat.h1.order = 2
             wat.h2.order = 3
         c.set_qm_mm(100)
+        if md_type == 'xinli':
+            for wat in c:
+                wat.o.pdb_name = 'OW'
+                wat.h1.pdb_name = 'HW1'
+                wat.h2.pdb_name = 'HW2'
         return c
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000 ):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000, md_type = None ):
         file_ending = '.' + fname.split('.')[-1]
         return Cluster.get_water_cluster_from_string( open(fname).read(),
                 in_AA = in_AA, out_AA = out_AA, N_waters = N_waters,
-                file_ending = file_ending)
+                file_ending = file_ending, md_type = md_type)
 
     def mol_too_close(self, mol, dist = 2.5):
         for mols in self:
@@ -3622,9 +3632,31 @@ Return a cluster of water molecules given file.
                         return True
         return False
 
+    def attach_properties2(self, 
+            model = "TIP3P_PDB",
+            method = "B3LYP",
+            basis = "ANO631",
+            loprop = True,
+            freq = "0.0",
+            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
+            template_key = lambda x: x.pdb_name,
+            force_template = False,
+            centered = None,
+            ):
+        """Attach properties to all molecules in this cluster"""
+        for mol in self:
+            mol.attach_properties2( model = model,
+                    method = method,
+                    basis = basis,
+                    loprop = loprop,
+                    freq = freq,
+                    euler_key = euler_key,
+                    template_key = template_key,
+                    force_template = force_template,
+                    centered = centered )
     def attach_properties(self, 
             model = "TIP3P_PDB",
-            method = "HF",
+            method = "B3LYP",
             basis = "ANO631",
             loprop = True,
             freq = "0.0",
@@ -3645,30 +3677,88 @@ Return a cluster of water molecules given file.
                     force_template = force_template,
                     centered = centered )
 
-    def add(self, item ):
+#Add method for cluster
+    def add(self, item, copy = False ):
         if isinstance( item , Molecule ):
-            self.add_mol( item )
+            self.add_mol( item, copy = copy )
         elif isinstance( item, Atom) :
-            self.add_atom( item )
+            self.add_atom( item, copy = copy )
         else:
             logging.warning( 'Tried to pass other instance than Atom or Molecule to Cluster' )
 
-    def add_mol(self, mol, ):
+    def add_mol(self, mol, copy = False ):
         if isinstance( mol , Molecule ):
-            super( Cluster, self ).append( mol )
+            if copy:
+                mol = copymod.deepcopy( mol )
+            if mol.chain_id is not 'X':
+                self._chain_id = mol.chain_id
             mol.Cluster = self
+            super( Cluster, self ).append( mol )
         elif type( mol ) == list:
             for each in mol:
-                each.in_mm = in_mm
-                each.in_qm = in_qm
-                each.in_qmmm = in_qmmm
+                if copy:
+                    each = copymod.deepcopy( each )
+                if each.chain_id is not 'X':
+                    self._chain_id = each.chain_id
                 super( Cluster, self ).append( each )
                 each.Cluster = each
 
-    def add_atom(self, *at):
+    def add_atom(self, at, copy = False ):
         for i, iat in enumerate(at):
+#If we create a slice of a cluster, retain the chain ID in the new one,solves a lot of problems
+            if copy:
+                iat = copymod.deepcopy( iat )
+            if iat.chain_id is not 'X':
+                print iat
+                self._chain_id = iat.chain_id
+                print self.chain_id
             self.append( iat )
             iat.Cluster = self
+
+#Special cluster method when dealing with different molecules in a clusters
+# By defalt only connet atoms in the peptide, meaning carbons
+    def populate_bonds(self ):
+
+        for i, at in enumerate( self.atoms ):
+            at.bonds = {}
+        if self.AA:
+            conv = 1.0
+        else:
+            conv = 1/a0
+        for a1, a2 in itertools.product( self.atoms, self.atoms ):
+            if a1 == a2:
+                continue
+            if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
+                if (a1 in a1.Molecule) and (a2 not in a1.Molecule):
+                    if a1.element != 'C':
+                        continue
+                a1.bonds[ a2.name ] = a2
+                a2.bonds[ a1.name ] = a1
+
+#Cluster method for angles
+    def populate_angles(self):
+        self.populate_bonds()
+        for at1 in self.atoms:
+            for at2 in [at2 for at2 in at1.bonds.values()]:
+                for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
+                    at1.angles[(at2.name,at3.name)] = at3
+
+#Bend angle in Cluster, should be fine as long as bonds are correctly connected
+    def bend(self, at1, at2, at3, theta = 0.0):
+        """Bend angle between at1 and at2 by theta"""
+        self.populate_angles()
+        
+#So we only rotate atoms, not the one in middle of angle bond
+        ats = at2.get_async_bond( first = at1 )[1:]
+        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+        for at in ats:
+            at.x, at.y, at.z = at.r + trans
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = at.r - trans
+
+
 
     def reset_qm_mm(self):
         """Set all atoms to neither qm not mm"""
@@ -3715,7 +3805,7 @@ Return a cluster of water molecules given file.
             tmpdir = None,
             dalpath = None,
             procs = 4,
-            decimal = 5,
+            decimal = 7,
             maxl = 2,
             pol = 22,
             hyper = 2,
@@ -3775,31 +3865,43 @@ Return a cluster of water molecules given file.
     @property
     def sum_property(self):
         """
-Return the sum properties of all molecules in cluster
+        Return the sum properties of all molecules in cluster
+        Now it is dead wrong, need to adjust dipoles and quadrupoles to coc
         """
-        el_dip = np.array([ (at.r-self.coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ (at.r-self.coc)*charge_dict[at.element] for mol in self for at in mol])
-        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-        dip = el_dip + nuc_dip
-        dip_tot = (dip + dip_lop).sum(axis=0)
+        coc = self.coc
+        #el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
+        #nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
+        #dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        #dip = el_dip + nuc_dip
+        #dip_tot = (dip + dip_lop).sum(axis=0)
         p = Property()
-        for mol in [m for m in self if m.is_property]:
-            p += mol.Property
         for mol in [m for m in self if m.LoProp]:
-            for at in mol:
-                p += at.Property
-        p['dipole'] = dip_tot
+            p += mol.sum_property
+        for mol in [m for m in self if m.is_Property]:
+            p += mol.Property
         return p
 
     def to_AA(self):
         if not self.AA:
             for i in self:
                 i.to_AA()
+        return self
+    def get_atom_by_label(self, val):
+        for at in self.atoms:
+            if at.label == val:
+                return at
+        return None
+
+    def get_atom_by_clabel(self, val):
+        for at in self.atoms:
+            if at.clabel == val:
+                return at
+        return None
+     
 
     def to_AU(self):
-        if self.AA:
-            for i in self:
-                i.to_AU()
+        for i in self:
+            i.to_AU()
 
     def translate(self, r):
         """

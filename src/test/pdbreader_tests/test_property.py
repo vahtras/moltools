@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 from pdbreader import *
 from molecules import Property
+from nose.plugins.attrib import attr
 import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
@@ -9,6 +9,7 @@ second_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO2.p' )
 first_con_file = os.path.join(os.path.dirname(__file__), 'A-PRO1-con.p')
 
 #@unittest.skip('Skip due to being too slow')
+@attr(speed = 'slow' )
 class TestConcapsLevel1( unittest.TestCase ):
 
     def setUp(self):

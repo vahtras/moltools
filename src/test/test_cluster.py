@@ -1,13 +1,15 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Atom, Water
+from molecules import Cluster, Atom, Water, Molecule, Property
+from nose.plugins.attrib import attr
 from use_generator import Generator
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
     def setUp(self):
         self.c = Cluster.get_water_cluster(
@@ -98,6 +100,26 @@ class WaterTest( unittest.TestCase ):
         assert np.mean( [ dists[0], dists[1] ] ) == \
                 (dists[0] + dists[1])/2
 
+    def test_sum_property(self):
+#Make sure that cluster total dipole moment is same weather molecular units are LoProp or Simple mode
+        a1 = Atom(element='H', z = 1.   )
+        a2 = Atom(element='H', z = 1.   )
+        a3 = Atom(element='O', z = 0.0  )
+        a1.p.q = 0.25
+        a2.p.q = 0.25
+        a3.p.q = -0.5
+        a1.p.d = np.array( [ 0., 0., -0.2 ] )
+        a2.p.d = np.array( [ 0., 0., -0.2 ] )
+        a3.p.d = np.array( [ 0., 0., 0.5 ] )
+        m1 = Molecule( a1, a2, a3 )
+        np.testing.assert_allclose( m1.p.d, np.array([0.,0.,0.6]), atol = 1e-7 )
+
+        m2 = m1.copy()
+        m2.Property = Property()
+        m2.p.d = np.array( [0., 0., 0.6] )
+        c = Cluster(m1, m2 )
+
+        np.testing.assert_allclose( c.p.d, np.array([0.,0.,1.2]), atol = 1e-7 )
 
     def eq(self, a, b):
         np.testing.assert_almost_equal( a, b, decimal = 3)

@@ -89,6 +89,17 @@ B3LYP
         return st
 
     @staticmethod
+    def get_lin_dal( _string ):
+        if _string == 'hflin':
+            return Generator.get_hflin_dal()
+        elif _string == 'b3lyplin':
+            return Generator.get_b3lyplin_dal()
+        elif _string == 'camb3lyplin':
+            return Generator.get_camb3lyplin_dal()
+        elif _string == 'ccsdlin':
+            return Generator.get_ccsdlin_dal()
+
+    @staticmethod
     def get_b3lyplin_dal():
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -112,26 +123,6 @@ ZDIPLEN
 .DIPLEN
 **END OF DALTON INPUT""" 
 
-    @staticmethod
-    def get_ccsdqua_dal():
-        return """
-**DALTON INPUT
-.RUN RESPONSE
-**INTEGRALS
-.DIPLEN
-.SECMOM
-**WAVE FUNCTION
-.CC
-*CC INPUT
-.CCSD
-*CCFOP
-.DIPMOM
-*CCLR
-.DIPOLE
-*CCQR
-.DIPOLE
-**END OF DALTON INPUT
-"""
     @staticmethod
     def get_b3lypqua_dal( ):
         return """**DALTON INPUT
@@ -157,6 +148,32 @@ ZDIPLEN
 .DIPLEN
 **END OF DALTON INPUT""" 
 
+    @staticmethod
+    def get_hflin_freq_dal( freq = "0.0", au = True, nm = False  ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+.FREQUE
+ 1
+ %s
+""" %( freq )
+        _string += "**END OF DALTON INPUT\n"
+        return _string
     @staticmethod
     def get_hfqua_dal( ):
         return """**DALTON INPUT
@@ -205,33 +222,6 @@ ZDIPLEN
 **END OF DALTON INPUT""" 
 
     @staticmethod
-    def get_hflin_freq_dal( freq = "0.0", au = True, nm = False  ):
-        _string = """**DALTON INPUT
-.RUN RESPONSE
-.DIRECT
-.PARALLELL
-**WAVE FUNCTION
-.HF
-**INTEGRAL
-.DIPLEN
-.SECMOM
-**RESPONSE
-.PROPAV
-XDIPLEN
-.PROPAV
-YDIPLEN
-.PROPAV
-ZDIPLEN
-*LINEAR
-.DIPLEN
-.FREQUE
- 1
- %s
-""" %( freq )
-        _string += "**END OF DALTON INPUT\n"
-        return _string
-
-    @staticmethod
     def get_b3lyplin_freq_dal( freq = "0.0", au = True, nm = False  ):
         _string = """**DALTON INPUT
 .RUN RESPONSE
@@ -259,6 +249,128 @@ ZDIPLEN
 """ %( freq )
         _string += "**END OF DALTON INPUT\n"
         return _string
+    @staticmethod
+    def get_camb3lyplin_dal():
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+
+
+    @staticmethod
+    def get_camb3lypqua_dal( ):
+        return """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*QUADRATIC
+.QLOP
+.DIPLEN
+**END OF DALTON INPUT""" 
+
+
+
+    @staticmethod
+    def get_camb3lyplin_freq_dal( freq = "0.0", au = True, nm = False  ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.DFT
+CAMB3LYP
+.INTERFACE
+**INTEGRAL
+.DIPLEN
+.SECMOM
+**RESPONSE
+.PROPAV
+XDIPLEN
+.PROPAV
+YDIPLEN
+.PROPAV
+ZDIPLEN
+*LINEAR
+.DIPLEN
+.FREQUE
+ 1
+ %s
+""" %( freq )
+        _string += "**END OF DALTON INPUT\n"
+        return _string
+
+
+
+    @staticmethod
+    def get_ccsdlin_dal():
+        return """**DALTON INPUT
+.RUN RESPONSE
+**INTEGRALS
+.DIPLEN
+.SECMOM
+**WAVE FUNCTION
+.CC
+*CC INPUT
+.CCSD
+*CCFOP
+.DIPMOM
+*CCLR
+.DIPOLE
+**END OF DALTON INPUT
+"""
+    @staticmethod
+    def get_ccsdqua_dal():
+        return """
+**DALTON INPUT
+.RUN RESPONSE
+**INTEGRALS
+.DIPLEN
+.SECMOM
+**WAVE FUNCTION
+.CC
+*CC INPUT
+.CCSD
+*CCFOP
+.DIPMOM
+*CCLR
+.DIPOLE
+*CCQR
+.DIPOLE
+**END OF DALTON INPUT
+"""
+
 
     def get_mol( self, 
             center = [0,0,0], 
@@ -382,7 +494,7 @@ ZDIPLEN
 
     def gen_mols_param(self, mol = "water", 
             model = 'tip3p',
-            basis = ["ano-1 2 1", "ano-1 4 3 1"],
+            basis = ["ano-1 2", "ano-1 4 3 1"],
             AA = True,
             worst = False):
         r = np.linspace( self[ ('r', 'min')] , self[ ('r', 'max')] ,
@@ -412,9 +524,8 @@ ZDIPLEN
                     for l in rho1:
                         for m in rho2:
                             for n in rho3:
-                                w1 = self.get_mol( [0, 0, 0], 
-                                        mol = mol,
-                                        model = model, AA = AA)
+                                w1 = molecules.Water.get_standard( AA = AA)
+                                w1.t( -w1.o.r )
                                 if worst:
                                     w1 = self.get_mol( [0, 0, 0], 
                                             mol = mol,
@@ -425,9 +536,12 @@ ZDIPLEN
                                     w1.h1.scale_bond( 0.985 )
                                     w1.h2.scale_bond( 1.015 )
                                     w1.inv_rotate()
+                                w2 = molecules.Water.get_standard( AA = AA )
+                                w2.t( -w2.o.r )
                                 x, y, z = self.polar_to_cartesian( i, j, k )
-                                w2 = self.get_mol( [x,y,z], mol, AA = AA)
+
                                 w2.rotate( l, m, n )
+                                w2.t( np.array( [x, y, z]) )
 
                                 name = ""
                                 name += "-".join( map( str, ["%3.2f"%i, "%3.2f"%j, "%3.2f"%k, "%3.2f"%l, "%3.2f"%m, "%3.2f"%n] ) )

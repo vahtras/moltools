@@ -7,7 +7,8 @@ This will replace read_dal.py as general functions module with no dependencies
 on other modules or files in this repository
 """
 
-import os,sys, re, argparse, ctypes, multiprocessing, functools
+import os,sys, re, argparse, ctypes, multiprocessing, functools, warnings
+import itertools
 import numpy as np
 import math as m
 
@@ -35,8 +36,23 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
 allowed_elements = ( 'H', 'O' )
 
 def nm_to_au( val ):
-    au_to_nm = 45.563352491687866
-    return "%.7f" %( au_to_nm / float(val) )
+    conv = 45.563352491687866
+    if val == 'inf':
+        return "%.7f" % 0
+    return "%.7f" %( conv / float(val) )
+
+def au_to_nm( val ):
+    conv = 45.563352491687866
+    if np.allclose( 0.0, float(val), atol=1e-7 ):
+        return 'inf'
+    return "%d" % int( "%.0f" % ( conv/float(val) ))
+
+def angle( p1, p2 ,p3 ):
+    """Return the angle between 3 points"""
+    v1 = p1 - p2
+    v2 = p3 - p2
+    return np.arccos( np.dot(v1,v2) / (np.linalg.norm(v1)* np.linalg.norm(v2)))
+
 
 def make_para( shape = ( 0,) ):                                                      
     """Returns a np array that can be used for writing between different processes"""
@@ -48,6 +64,8 @@ def make_para( shape = ( 0,) ):
 
 
 def convex_hull_volume( pts):
+    """Calculates the minimum convex set from points, in 
+    3D ths corresponds to the minimum volume occupied by the points"""
     from scipy.spatial import Delaunay, ConvexHull
     def tetrahedron_volume(a, b, c, d):
         return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
@@ -57,7 +75,7 @@ def convex_hull_volume( pts):
     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1],
         tets[:, 2], tets[:, 3]))
 
-def rotate_point_by_two_points(p, p1, p2, theta):
+def rotate_point_by_two_points(p, p1, p2, theta = 0.0 ):
     """Rotate the point p around the line with point at p1 or p2 with 
     direction vector p2-p1"""
     origin = p1.copy()
@@ -69,6 +87,28 @@ def rotate_point_by_two_points(p, p1, p2, theta):
     p = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), p )
     p += origin
     return p
+
+def rotate_point_by_two_points2(p, p1, p2, theta = 0.0 ):
+    """Rotate the point p around the line with point at p1 or p2 with 
+    direction vector p2-p1"""
+    return np.dot( R( p2-p1, theta ), p )
+
+
+
+def rotate_point_around_cross(p1, p2, p3, theta = 0.0 ):
+    """Rotate the point p1 clockwise 
+    around the vector formed by crossing p1-p2 and p3-p2"""
+    trans, r3, r2, r1 = center_and_xz( p2, p3, p1 )
+
+    p1, p2, p3 = map(lambda x: x + trans, [p1, p2, p3] )
+
+    p1, p2, p3 = map( lambda x: np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), x ), [p1, p2, p3] )
+    p1 = np.einsum('ab,b', Ry_inv(theta), p1 )
+    p1, p2, p3 = map( lambda x: np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), x ), [p1, p2, p3] )
+
+    p1, p2, p3 = map(lambda x: x - trans, [p1, p2, p3] )
+    return p1
+
 def reflect_point_by_three_points( p, p1, p2, p3 ):
     """ will reflect point p by 
     plane formed by points p1, p2 and p3"""
@@ -111,12 +151,41 @@ def Ry_inv( theta ):
                         [ np.sin(theta), 0, np.cos(theta)]])
     return vec
 
+def R( axis, theta ):
+    ux, uy, uz = axis
+    st = np.sin(theta)
+    ct = np.cos(theta)
+    omct = 1 - ct
+    R = np.array([[ct + ux*ux*omct, ux*uy*omct - uz*st, ux*uz*omct + uy*st],
+            [ux*uy*omct + uz*st, ct + uy*uy*omct, uy*uz*omct - ux*st],
+            [ux*uz*omct - uy*st, uy*uz*omct + ux*st, ct + uz*uz*omct]])
+    return R
 
 
 def scale_vec_to_abs( vec, value = 1.0 ):
     """Given vector, scale it to final value """
     assert isinstance( vec, np.ndarray )
     return vec * value / np.linalg.norm( vec )
+
+def center_of_nuclei_charge( p_n, q_n ):
+    assert isinstance( p_n, np.ndarray)
+    assert isinstance( q_n, np.ndarray)
+    coc = np.einsum( 'ij,i', p_n , q_n ) / np.sum(q_n )
+    return coc
+
+def electric_monopole_moment( q_e ):
+    """given arrays"""
+    return np.sum( q_e )
+
+def electric_dipole_moment( p_n, q_n, p_e, q_e ):
+    """given arrays """
+    assert isinstance( p_e, np.ndarray)
+    assert isinstance( q_e, np.ndarray)
+    coc = center_of_nuclei_charge( p_n, q_n )
+    return np.einsum('ij,i', (p_e - coc), q_e )
+
+def electric_quadrupole_moment( p_n, q_n, p_e, q_e ):
+    pass
 
 def dipole( r, r_n, r_e ):
     """Return the total dipole moment given vector r,
@@ -150,9 +219,40 @@ def center_and_xz(p1 = np.array([0,0,0]),
     r1, r2, r3 = get_euler( v2, v3 )
     return t_v, r1, r2, r3
 
+def get_t_and_rho(p1 = np.array([0,0,0]),
+        p2 = np.array([0,0,1]),
+        p3 = np.array([1,0,0]),
+        plane = 'xz' ):
+    """Given three points, will return one translation vector
+    and 3 rotation matrices Rz**-1, Ry, and Rz**-1
+    Required to put p1 in origo, with p2 and p3 in the xz plane and
+    p2-p1 as the z axis.
+    """
+    t_v = -p1.copy()
+    v2 = p2 - p1
+    v3 = p3 - p1
+    r1, r2, r3 = get_euler( v2, v3, plane = plane )
+    return t_v, r1, r2, r3
 
 
-def get_euler( r1, r2 ):
+
+
+def get_rotation( p1 = [0, 0, 0], p2 = [0, 0, 1], p3 = [1, 0, 0] ):
+    """Give the rotation vector necessary to place points p1, p2, p3
+    in cannonical cartesian unit basis
+    
+    with line p2-p1 as z axis, and line p3-p1 in the positive x-axis in zx-plane"""
+    p1, p2, p3 = map( np.array, [p1, p2, p3] )
+    r1 = p2 - p1
+    r2 = p3 - p1
+
+    ez = r1/ np.linalg.norm( r1 )
+    y = np.cross( r1, r2 )
+    ey = y / np.linalg.norm( y )
+    ex = np.cross( ey, ez )
+    return np.array( [ ex, ey, ez ] )
+
+def get_euler( r1, r2, plane = 'xz' ):
     """Given two vectors, return 3 euler angles defined as follows
     
     1) Rotation around z axis clockwise,
@@ -168,31 +268,89 @@ def get_euler( r1, r2 ):
     t3 = 0
 
     outputs vectors in order as they are needed to produce the input from
-    the z and x unit vectors
+    the [0,0,1 and [1,0,0] unit vectors
 
     """
+
+    rots = { 'xz' : (Rz_inv, Ry, Rz_inv ),
+             'xy' : (Ry_inv, Rz, Ry_inv )
+        }
+
+
     r1, r2 = map(lambda x: x.copy(), [r1, r2] )
 # First angle
     t1 = np.arctan2( r1[1], r1[0] )
     if t1 < 0:
         t1 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t1 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][0]( t1 ), x), [r1, r2 ] )
 
 # Second angle
     t2 = np.arctan2( -r1[0], r1[2] )
     if t2 < 0:
         t2 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Ry( t2 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][1]( t2 ), x), [r1, r2 ] )
 
 # Third angle
     t3 = np.arctan2( r2[1], r2[0] )
     if t3 < 0:
         t3 += 2 * np.pi
 
-    r1, r2 = map( lambda x: np.einsum( 'ij,j', Rz_inv( t3 ), x), [r1, r2 ] )
+    r1, r2 = map( lambda x: np.einsum( 'ij,j', rots[ plane ][2]( t3 ), x), [r1, r2 ] )
     return t3, t2, t1
+
+
+def dipole_iso( d ):
+    assert d.shape == (3,)
+    return np.sqrt( (d**2).sum() )
+
+def alpha_iso( a ):
+    a = ut2s( a )
+    assert a.shape == (3,3,)
+    return a.trace()/3.0
+
+def alpha_aniso( a ):
+    a = ut2s( a )
+    assert a.shape == (3,3,)
+    return np.sqrt( (np.einsum('ij,ij', 3*a, a) - np.einsum('ii,jj', a, a )) /2 )
+
+
+def b_para( b, p = None ):
+    """Given beta in either UT or full tensor form, and dipole moment
+    will return the projected beta vector, the rotationally invariant of the beta
+    tensor"""
+    b = ut2s( b )
+    assert b.shape == (3,3,3)
+
+    if p is not None:
+        assert p.shape == (3,)
+        b_p = 3.0/5.0*np.einsum('ijj,i', b, p )/np.linalg.norm( p )
+    else:
+        b_p = 0.0
+        for i in range(3):
+            b_p += b[2, i, i]
+            b_p += b[i, 2, i]
+            b_p += b[i, i, 2]
+        b_p *= 1.0/5.0
+    return b_p
+
+
+def beta_vec( b ):
+    b = ut2s( b )
+    assert b.shape == (3,3,3)
+    b_x =   b[0, 0, 0] +\
+            b[0, 1, 1] + b[1, 0, 1] + b[1, 1, 0] +\
+            b[0, 2, 2] + b[2, 0, 2] + b[2, 2, 0]
+
+    b_y =   b[1, 1, 1] +\
+            b[1, 0, 0] + b[0, 1, 0] + b[0, 0, 1] +\
+            b[1, 2, 2] + b[2, 1, 2] + b[2, 2, 1]
+
+    b_z =   b[2, 2, 2] +\
+            b[2, 0, 0] + b[0, 2, 0] + b[0, 0, 2] +\
+            b[2, 1, 1] + b[1, 2, 1] + b[1, 1, 2]
+    return np.array( [b_x, b_y, b_z] )
 
 def b_at_sphere( b, x, y, z ):
     """Given beta and 3 numpy arrays for meshed 3dgrid, 
@@ -384,8 +542,7 @@ def read_dipole( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                 try:
                     element = lab.split('-')[2][0]
                 except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
+                    warnings.warn( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
                     continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
@@ -446,333 +603,10 @@ def read_dipole( file_, freq = "0.0",  in_AA = False, out_AA = False ):
     print N_el
     return tot_dip
 
-def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, akka = False):
-    nuc_dip = np.zeros(3)
-    el_dip = np.zeros(3)
-    alpha = np.zeros([3,3])
-    beta = np.zeros([3,3,3])
-    tmp = []
-    atoms = []
-    missing = {}
-    exists = {}
-    lab = ["X", "Y", "Z"]
-
-    pat_Q = re.compile(r'Total charge of the molecule')
-    pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
-    pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
-#Special xyz hack for camb3lyp output from akka dalton to find atoms
-    if akka:
-        pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
-    else:
-        pat_akka_xyz = re.compile(r'^(?!a)a')
-
-    pat_labels_xyz = re.compile(r'^\s*((?!-)\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
-# Reading in dipole and charge
-    for i in string_.split('\n'):
-        if pat_Q.search( i ):
-            Q = float(i.split()[-1])
-        if pat_xyz.match(i):
-            f = pat_xyz.match(i).groups()
-            matched = pat_xyz.match(i).groups()
-#Skip coordinates in out file that are for MM region from QMMM
-            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        elif pat_akka_xyz.match(i):
-            print i
-            print 'asdf'
-            raise SystemExit
-            f = pat_akka_xyz.match(i).groups()
-            matched = pat_akka_xyz.match(i).groups()
-#Skip coordinates in out file that are for MM region from QMMM
-            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        elif pat_labels_xyz.match(i):
-            f = pat_labels_xyz.match(i).groups()
-            matched = pat_labels_xyz.match(i).groups()
-            lab = matched[0]
-            if len(lab.split('-')) == 4:
-                element = "H"
-            else:
-                try:
-                    element = lab.split('-')[2][0]
-                except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
-                    continue
-            kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        if pat_pol.search(i):
-            if pat_pol.search(i).group(1) == "X":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[0] += frac
-            if pat_pol.search(i).group(1) == "Y":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[1] += frac
-            if pat_pol.search(i).group(1) == "Z":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[2] += frac
-
-
-#Set center of nuceli charge to 0
-    coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
-            sum([ charge_dic[x.element] for x in atoms ])
-
-    for i in atoms:
-        nuc_dip += charge_dic[ i.element ] * (i.r - coc )
-
-    if in_AA and not out_AA:
-# Make sure center of charge is in Atomic units to give correct electronic dipole
-        coc /= a0
-
-# Reading in Alfa and Beta tensor
-    fre = str("%.5f" % float(freq))
-    pat_alpha = re.compile(r'@.*QRLRVE.*([XYZ])DIPLEN.*([XYZ])DIPLEN.*%s' %fre)
-    alpha = np.zeros( [3,3,] )
-    lab = ['X', 'Y', 'Z', ]
-
-    for i in string_.split('\n'):
-        if pat_alpha.match( i ):
-            try:
-                if "D" in i.split()[-1]:
-                    frac = float( i.split()[-1].replace("D","E") )
-                else:
-                    frac = float( i.split()[-1] )
-            except IndexError:
-                if "D" in i.split()[-1]:
-                    frac = float( i.split()[-1].strip("=").replace("D","E") )
-                else:
-                    frac = float( i.split()[-1].strip("=") )
-            A = pat_alpha.match(i).groups(1)[0]
-            B = pat_alpha.match(i).groups(1)[1]
-            alpha[ lab.index( A ) , lab.index( B ) ]  = frac
-            if A == "X" and B == "Y":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-            if A == "X" and B == "Z":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-            if A == "Y" and B == "Z":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-
-    pat_beta = re.compile(r'@ B-freq')
-    for i in string_.split('\n'):
-        if pat_beta.match(i):
-            try:
-                if i.split()[7].lstrip("beta") in exists:
-                    continue
-                exists[ i.split()[7].lstrip("beta") ] = float(i.split()[9] )
-            except ValueError:
-                a, b, c = i.split()[9].lstrip("beta").strip("()").split(",")
-                if i.split()[7].lstrip("beta") in missing:
-                    continue
-                missing[ i.split()[7].lstrip("beta") ] =  "(%s;%s,%s)"%(a,b,c)
-    for i in range(3):
-        for j in range(3):
-            for k in range(3):
-                try:
-                    beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
-                except KeyError:
-                    beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
-    N_el = sum([charge_dic[at.element] for at in atoms]) - Q
-    tot_dip = -el_dip + coc * N_el
-
-    return atoms, tot_dip, alpha , beta
-
-
-
 def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
-    nuc_dip = np.zeros(3)
-    el_dip = np.zeros(3)
-    alpha = np.zeros([3,3])
-    beta = np.zeros([3,3,3])
-    tmp = []
-    atoms = []
-    missing = {}
-    exists = {}
-    lab = ["X", "Y", "Z"]
-
-    pat_Q = re.compile(r'Total charge of the molecule')
-    pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
-    pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
-#Special xyz hack for camb3lyp output from akka dalton to find atoms
-    pat_akka_xyz = re.compile(r'^\s*(\w+)\s+:\s+\d\s+x\s+(-*\d*\.+\d+)\s+\d\s+y\s+(-*\d*\.+\d+)\s+\d\s+z\s+(-*\d*\.+\d+) *$')
-
-    pat_labels_xyz = re.compile(r'^\s*((?!-)\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
-# Reading in dipole and charge
-    for i in open( file_ ).readlines():
-        if pat_Q.search( i ):
-            Q = float(i.split()[-1])
-        if pat_xyz.match(i):
-            f = pat_xyz.match(i).groups()
-            matched = pat_xyz.match(i).groups()
-#Skip coordinates in out file that are for MM region from QMMM
-            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        elif pat_akka_xyz.match(i):
-            f = pat_akka_xyz.match(i).groups()
-            matched = pat_akka_xyz.match(i).groups()
-#Skip coordinates in out file that are for MM region from QMMM
-            kwargs = { "AA": in_AA, "element" :  matched[0], "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        elif pat_labels_xyz.match(i):
-            f = pat_labels_xyz.match(i).groups()
-            matched = pat_labels_xyz.match(i).groups()
-            lab = matched[0]
-            if len(lab.split('-')) == 4:
-                element = "H"
-            else:
-                try:
-                    element = lab.split('-')[2][0]
-                except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
-                    continue
-            kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
-                    "y" : matched[2], "z" : matched[3] }
-            tmpAtom = molecules.Atom( **kwargs )
-            atoms.append( tmpAtom )
-
-        if pat_pol.search(i):
-            if pat_pol.search(i).group(1) == "X":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[0] += frac
-            if pat_pol.search(i).group(1) == "Y":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[1] += frac
-            if pat_pol.search(i).group(1) == "Z":
-                try:
-                    if "D" in i.split()[3]:
-                        frac = float(i.split()[3].replace("D","E"))
-                    else:
-                        frac = float(i.split()[3])
-                except IndexError:
-                    if "D" in i.split()[2]:
-                        frac = float( i.split()[2].strip(":").replace("D","E"))
-                    else:
-                        frac = float( i.split()[2].strip(":"))
-                el_dip[2] += frac
-
-
-#Set center of nuceli charge to 0
-    coc = sum([ x.r * charge_dic[x.element] for x in atoms ]) /\
-            sum([ charge_dic[x.element] for x in atoms ])
-    for i in atoms:
-        nuc_dip += charge_dic[ i.element ] * (i.r - coc )
-
-    if in_AA:
-# Make sure center of charge is in Atomic units to give correct electronic dipole
-        coc /= a0
-
-# Reading in Alfa and Beta tensor
-
-    fre = str("%.5f" % float(freq))
-    pat_alpha = re.compile(r'@.*QRLRVE.*([XYZ])DIPLEN.*([XYZ])DIPLEN.*%s' %fre)
-    alpha = np.zeros( [3,3,] )
-    lab = ['X', 'Y', 'Z', ]
-
-    for i in open( file_ ).readlines():
-        if pat_alpha.match( i ):
-            try:
-                if "D" in i.split()[-1]:
-                    frac = float( i.split()[-1].replace("D","E") )
-                else:
-                    frac = float( i.split()[-1] )
-            except IndexError:
-                if "D" in i.split()[-1]:
-                    frac = float( i.split()[-1].strip("=").replace("D","E") )
-                else:
-                    frac = float( i.split()[-1].strip("=") )
-            A = pat_alpha.match(i).groups(1)[0]
-            B = pat_alpha.match(i).groups(1)[1]
-            alpha[ lab.index( A ) , lab.index( B ) ]  = frac
-            if A == "X" and B == "Y":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-            if A == "X" and B == "Z":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-            if A == "Y" and B == "Z":
-                alpha[ lab.index( B ) , lab.index( A ) ]  = frac
-
-    pat_beta = re.compile(r'@ B-freq')
-    for i in open( file_ ).readlines():
-        if pat_beta.match(i):
-            try:
-                if i.split()[7].lstrip("beta") in exists:
-                    continue
-                exists[ i.split()[7].lstrip("beta") ] = float(i.split()[9] )
-            except ValueError:
-                a, b, c = i.split()[9].lstrip("beta").strip("()").split(",")
-                if i.split()[7].lstrip("beta") in missing:
-                    continue
-                missing[ i.split()[7].lstrip("beta") ] =  "(%s;%s,%s)"%(a,b,c)
-    for i in range(3):
-        for j in range(3):
-            for k in range(3):
-                try:
-                    beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
-                except KeyError:
-                    beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
-    N_el = sum([charge_dic[at.element] for at in atoms]) - Q
-    tot_dip = el_dip - coc * N_el
-
-    return atoms, tot_dip, alpha , beta
+    with open( _file) as f:
+        return read_beta_hf_string( f.read(), freq = freq,
+            in_AA = in_AA, out_AA = out_AA )
 
 def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, akka = False):
     nuc_dip = np.zeros(3)
@@ -830,8 +664,7 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
                 try:
                     element = lab.split('-')[2][0]
                 except IndexError as e:
-                    logging.warning( f )
-                    logging.warning( e )
+                    warnings.warn( 'Occured when finding wrong pattern for .xyz in read_beta_hf_string ' )
                     continue
             kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
                     "y" : matched[2], "z" : matched[3] }
@@ -875,6 +708,13 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
                     else:
                         frac = float( i.split()[2].strip(":"))
                 el_dip[2] += frac
+    remove = []
+    for ind, at in enumerate(atoms[:-1]):
+        for other in atoms[ind+1:]:
+            if at.equal( other ):
+                remove.append( other )
+    for each in remove:
+        atoms.remove( each )
 
 
 #Set center of nuceli charge to 0
@@ -939,6 +779,14 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
     tot_dip = -el_dip + coc * N_el
 
     return atoms, tot_dip, alpha , beta
+
+def converged( _str, ):
+    pat = re.compile( r'Total wall time used in DALTON:' )
+    for line in _str.split('\n'):
+        if pat.search( line ):
+            return True
+    return False
+
 
 def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
     """ Same as read_beta_hf but skips coordinates not in allowd_elements
@@ -1078,9 +926,17 @@ def find_file(name, path):
         if name in files:
             return os.path.join(root, name)
 
-# Functions related to transforming between upper triangular and square form
+
 def upper_triangular(n, start=0):
-    """Recursive generator for triangular looping of Carteesian tensor"""
+    """Recursive generator for triangular looping of Carteesian tensor
+
+Usage, form 2D-matrix from upper-triangular matrix represented by an array::
+
+    ref = np.arange( 6 ) # Non-zero elements in 2-dimensional UT-tensor
+    arr = np.zeros( (3, 3) ) # Target 
+    for ind, (i, ii) in enumerate( upper_triangular(2) ):
+        arr[ i, ii ] = ref[ ind ]
+"""
     if n > 2:
         for i in range(start, 3):
             for j in upper_triangular(n-1, start=i):
@@ -1089,6 +945,7 @@ def upper_triangular(n, start=0):
         for i in range(start, 3):
             for j in range(i, 3):
                 yield i, j
+
 def ut_2_square( alpha ):
     assert len(alpha) == 6
     tmp_a = np.zeros( (3,3, ))
@@ -1115,6 +972,10 @@ def ut2s( vec ):
         return ut_2_square( vec )
     elif len( vec ) == 10:
         return ut_3_square( vec )
+    elif vec.shape == (3,3,):
+        return vec
+    elif vec.shape == (3,3,3,):
+        return vec
 
 
 def square_2_ut(alpha):
@@ -1187,3 +1048,32 @@ def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
                                     for z2 in range(3):
                                         b_new[X,Y,Z] += vec[X,Y,Z,x1,y1,z1,x2,y2,z2] * beta[x1,y1,z1] * beta[x2,y2,z2]
     return b_new[ car1, car2, car3 ]
+
+def largest_triangle( _l ):
+    """ Naive O( n^3 ) implementation of finding largest area triangle
+    list _l have points and are thus shapes( n, 3 )"""
+
+    largest = 0
+    points = (0, 0, 0,)
+    for p1, p2, p3 in itertools.product( _l, _l, _l ):
+        if (p1 == p2).all() or (p1 == p3).all() or (p2 == p3).all():
+            continue
+        tri = np.linalg.norm( np.cross((p2-p1),(p3-p1)) ) /2
+        if tri > largest:
+            points = ( p1, p2, p3 )
+            largest = tri
+    return points
+
+def file_is_used( _f ):
+    """ Will return True if the file _f is open by an other process.
+
+    Does not work for files opened in vim"""
+    _f = os.path.realpath( _f )
+    procs = [p for p in os.listdir( '/proc' ) if p.isdigit() ]
+    all_fds = ["/proc/%s/fd" %p for p in procs ]
+
+    user_fds = filter( lambda x: os.stat(x).st_uid == 1000, all_fds )
+    all_files = map( lambda x: [ os.path.realpath(os.path.join(x, p)) for p in os.listdir(x) ] , user_fds )
+    open_fds = reduce( lambda a, x: a+x, all_files )
+    
+    return _f in open_fds

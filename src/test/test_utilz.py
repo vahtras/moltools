@@ -2,6 +2,9 @@ import unittest
 import numpy as np
 
 from utilz import *
+from nose.plugins.attrib import attr
+from molecules import Water
+import utilz
 
 HF_FILE = """
 
@@ -1189,6 +1192,7 @@ File label for MO orbitals:  23Jun15   FOCKDIIS
      Host name              : archer                                  
 """
 
+@attr(speed = 'fast' )
 class UtilzTestCase( unittest.TestCase ):
 
     def setUp(self):
@@ -1245,7 +1249,7 @@ class UtilzTestCase( unittest.TestCase ):
         p2 = np.array( [5, 5, 6] )
         p3 = np.array( [6, 5, 5] )
         t_v, r1, r2, r3 = center_and_xz( p1, p2, p3 )
-        np.testing.assert_allclose( t_v, np.full( (3,), -5 ) , atol =1e-10 )
+        np.testing.assert_allclose( t_v, np.full( (3,), -5.0 ) , atol =1e-10 )
         np.testing.assert_allclose( r1, 0.0 , atol =1e-10 )
         np.testing.assert_allclose( r2, 0.0 , atol =1e-10 )
         np.testing.assert_allclose( r3, 0.0 , atol =1e-10 )
@@ -1279,6 +1283,81 @@ class UtilzTestCase( unittest.TestCase ):
         theta = np.pi * 3/2
         p_out = rotate_point_by_two_points(p, p1, p2, theta)
         np.testing.assert_allclose( p_out, np.array( [ 3, 6, 1] ), atol=1e-10 )
+
+    def test_rotate_point_around_cross(self):
+        p1 = np.array( [ 1, 0, 0] )
+        p2 = np.array( [ 0, 0,  0] )
+        p3 = np.array( [ 0, 1,  0] )
+        theta = np.pi/2
+        p_out = rotate_point_around_cross(p1, p2, p3, theta)
+        np.testing.assert_allclose( p_out, np.array( [ 0, 1, 0] ), atol=1e-10 )
+
+    def test_get_t_and_rho(self):
+        w = Water.get_standard() 
+
+        t, r1, r2, r3 = get_t_and_rho( w.o.r, (w.h1.r - w.h2.r)/2 + w.h2.r, w.h1.r,
+                plane = 'xy' )
+
+    def test_converged(self):
+        ret = utilz.converged( HF_FILE )
+        assert ret == True
+
+    def test_dipole_iso(self):
+        d = np.array( [ -1, 2, -2 ] )
+        d_iso = dipole_iso( d )
+        np.testing.assert_allclose( d_iso, 3, atol = 1e-7 )
+
+    def test_beta_par(self):
+        w = Water.get_standard()
+        w.attach_properties()
+        d = w.p.d
+        b = ut2s( w.p.b )
+
+        b_para1 = utilz.b_para( b, d ) 
+        b_para2 = 1.0/5.0*( (np.einsum( 'ijj', b ) + np.einsum( 'jij', b ) +  np.einsum( 'jji', b )).sum() )
+        np.testing.assert_allclose( b_para1, b_para2 )
+
+
+    def test_get_rotation(self):
+        p1 = np.array( [ 0, 0, 0] )
+        p2 = np.array( [ 0, 0, 1] )
+        p3 = np.array( [ 0, 1, 0] )
+        R = utilz.get_rotation( p1, p2, p3 )
+        R = np.einsum( 'ij->ji', R )
+        Rz = utilz.Rz( np.pi/2.0 )
+        np.testing.assert_allclose( Rz, R, atol =1e-7 )
+
+
+    def test_center_of_nuclei_charge(self):
+        _type = np.float
+        p_n = np.array( [ [0, 0, -1], [0, 0, 1] ], dtype = _type )
+        q_n = np.array( [ 1, 1 ], dtype = _type )
+        coc = center_of_nuclei_charge( p_n, q_n )
+        np.testing.assert_allclose( coc, np.zeros( (3,) ) )
+
+    def test_monopole_moment(self):
+        _type = np.float
+        q_e = np.array( [ -1, -0.5 -0.5 ], dtype = _type )
+        m = electric_monopole_moment( q_e )
+        np.testing.assert_allclose( -2, m )
+
+    def test_dipole_moment_inv(self):
+        """Same dipole moment should be obtained after translating 
+        coordinate frame """
+        _type = np.float
+        p_n = np.random.random( (5, 3,) )
+        q_n = np.random.random( (5, ) )
+        p_e = np.random.random( (5, 3,) )
+        q_e = np.random.random( (5, ) )
+
+        m1 = electric_dipole_moment( p_n, q_n, p_e, q_e )
+        t_vector = np.random.random( (3,) ) 
+
+        p_n += t_vector
+        p_e += t_vector
+
+        m2 = electric_dipole_moment( p_n, q_n, p_e, q_e )
+        np.testing.assert_allclose( m1, m2 )
 
 
 if __name__ == '__main__':

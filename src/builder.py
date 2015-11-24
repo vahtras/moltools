@@ -30,8 +30,9 @@ def pmma_monomer( t = 0 ):
     m._rn = 1.46
 
 #This is for geometry optimized monomer, which as slighlty larger CA-HN bond
-    if t == 3:
-        m._rn = 1.5735
+    if t == 3 :
+        m._r = 1.577
+        m._rn = 1.570
     m._angle = 104.5
     m._dihedral = 180.0
     return m

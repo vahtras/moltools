@@ -1,13 +1,15 @@
 import unittest, mock, os
 import numpy as np
 
-from molecules import Water, Molecule, Methanol
+from molecules import Water, Molecule
+from nose.plugins.attrib import attr
 from generator import Generator
 
 
 FILE_XYZ =os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), "tmp.xyz" )
 
 
+@attr(speed = 'fast' )
 class GeneratorTestCase( unittest.TestCase ):
 
     def setUp(self):
@@ -25,7 +27,6 @@ class GeneratorTestCase( unittest.TestCase ):
     def test_get_mol(self):
         w = Water.get_standard() 
         self.assertIsInstance( w, Molecule )
-        self.assertNotIsInstance( w, Methanol )
 
     def test_vary_parameters(self):
 #Could modify in future this test todo

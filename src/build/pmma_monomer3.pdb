@@ -1,17 +1,17 @@
-HETATM    1  HN  LIG     1      -0.016   2.334  -0.492  1.00  0.00           H  
-HETATM    2  CA  LIG     1       0.000   0.000   0.000  1.00  0.00           C  
-HETATM    3  CB1 LIG     1      -1.404  -0.339  -0.547  1.00  0.00           C  
-HETATM    4  CB2 LIG     1       0.000   0.000   1.534  1.00  0.00           C  
-HETATM    5  CD  LIG     1      -0.660  -1.173   3.481  1.00  0.00           C  
-HETATM    6  C   LIG     1       0.537   1.378  -0.505  1.00  0.00           C  
-HETATM    7  HC  LIG     1       0.745  -0.719  -0.377  1.00  0.00           H  
-HETATM    8  OG1 LIG     1       0.517   0.839   2.240  1.00  0.00           O  
-HETATM    9  OG2 LIG     1      -0.652  -1.076   2.044  1.00  0.00           O  
-HETATM   10  HB1 LIG     1      -1.708  -1.350  -0.280  1.00  0.00           H  
-HETATM   11  HB2 LIG     1      -1.402  -0.261  -1.641  1.00  0.00           H  
-HETATM   12  HB3 LIG     1      -2.154   0.347  -0.152  1.00  0.00           H  
-HETATM   13  HD1 LIG     1      -1.191  -0.323   3.917  1.00  0.00           H  
-HETATM   14  HD2 LIG     1       0.364  -1.191   3.863  1.00  0.00           H  
-HETATM   15  HD3 LIG     1      -1.180  -2.105   3.705  1.00  0.00           H  
-HETATM   16  H1  LIG     1       0.808   1.235  -1.559  1.00  0.00           H  
-HETATM   17  H2  LIG     1       1.474   1.554   0.033  1.00  0.00           H  
+ATOM  0     HC   PMMAX   1       0.226   1.002  -0.374                       H
+ATOM  1     CA   PMMAX   1       0.000   0.000   0.000                       C
+ATOM  2     C    PMMAX   1      -1.458  -0.255  -0.505                       C
+ATOM  3     HN   PMMAX   1      -1.986  -1.221  -0.493                       H
+ATOM  4     CB1  PMMAX   1       1.018  -1.023  -0.548                       C
+ATOM  5     CB2  PMMAX   1       0.000   0.000   1.534                       C
+ATOM  6     CD   PMMAX   1       1.345   0.043   3.481                       C
+ATOM  7     OG1  PMMAX   1      -0.985   0.007   2.240                       O
+ATOM  8     OG2  PMMAX   1       1.259   0.000   2.044                       O
+ATOM  9     HB1  PMMAX   1       2.040  -0.760  -0.281                       H
+ATOM  10    HB2  PMMAX   1       0.950  -1.061  -1.641                       H
+ATOM  11    HB3  PMMAX   1       0.820  -2.021  -0.153                       H
+ATOM  12    HD1  PMMAX   1       0.894  -0.852   3.916                       H
+ATOM  13    HD2  PMMAX   1       0.830   0.928   3.863                       H
+ATOM  14    HD3  PMMAX   1       2.413   0.081   3.704                       H
+ATOM  15    H1   PMMAX   1      -2.094   0.454   0.034                       H
+ATOM  16    H2   PMMAX   1      -1.475   0.052  -1.559                       H

@@ -1,12 +1,12 @@
-#!/usr/bin/env python
 from pdbreader import *
 import unittest, pytest
 from nose.tools import timed
+from nose.plugins.attrib import attr
 import time
 
 FILE = os.path.join(os.path.dirname(__file__), 'collagen.pdb')
 
-#@unittest.skip('Skip due to being too slow')
+@attr( speed = 'slow' )
 class TestConcapsLevel1( unittest.TestCase ):
 
 

@@ -2,8 +2,11 @@ import unittest, os
 import numpy as np
 
 import utilz
-from molecules import Property, Water
+from nose.plugins.attrib import attr
+from molecules import Water
+from property import Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
@@ -99,6 +102,27 @@ class WaterTest( unittest.TestCase ):
         np.testing.assert_allclose( P.a, np.array([3, 0, 0, 2, 0, 7]) , atol = 1e-7 )
         np.testing.assert_allclose( P.Q, np.array([3, 0, 0, 2, 0, 7]) , atol = 1e-7 )
         #np.testing.assert_allclose( P.b, np.array([3, 0, 0, 0, 0, 0, 5, 0, 0, 10 ]), atol = 1e-7 )
+
+    def test_transform_by_inv_rotate(self):
+        w = Water.get_standard()
+        w.rotate( 0, np.pi/2, np.pi/2 )
+        w.o.p.d = np.array([0, -1.0, 0 ])
+        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r-w.h2.r)/2 + w.h2.r,w.h1.r)
+        w.inv_rotate( r3, r2, r1)
+        np.testing.assert_allclose( w.o.p.d, np.array([0, 0, 1 ]), atol = 1e-10)
+
+    def test_transform_by_matrix(self):
+        w = Water.get_standard()
+        w.rotate( 0, np.pi/2, np.pi/2 )
+        w.o.p.d = np.array([0, -1.0, 0 ])
+        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r-w.h2.r)/2 + w.h2.r,w.h1.r)
+        R1 = utilz.R( [0,0,1], np.pi/2 )
+        R2 = utilz.R( [0,1,0], 3*np.pi/2 )
+        for at in w:
+            at.p = at.p.transform_by_matrix( R1 )
+            at.p = at.p.transform_by_matrix( R2 )
+        np.testing.assert_allclose( w.o.p.d, np.array([0, 0, 1 ]), atol = 1e-10)
+
 
 
 

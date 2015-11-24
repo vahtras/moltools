@@ -1,7 +1,10 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Property, Water, Rotator
+from molecules import Cluster, Water
+from nose.plugins.attrib import attr
+from property import Property
+from rotator import Rotator
 from use_generator import Generator
 from template import Template
 
@@ -45,6 +48,7 @@ H      36.83076  29.64980  33.52374
 H      34.33632  28.44038  34.26073
 """
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
@@ -86,7 +90,7 @@ class WaterTest( unittest.TestCase ):
                 loprop, "0.0" ))
             for at in wat:
                 at.p = Property.from_template( at.name, kwargs_dict )
-                at.Property.transform_ut_properties( t1, t2 ,t3)
+                at.p = at.p.rotate( t1, t2 ,t3)
 
 # Read in the properties for the oxygen atom, the projected dipole vector should
 # be the same
@@ -194,17 +198,33 @@ class WaterTest( unittest.TestCase ):
         w.attach_properties( force_template = True)
 
         w.rotate( 0, np.pi/3.0, 0 )
-        for at in w:
-            at.p.transform_ut_properties( 0, np.pi/3.0, 0 )
 
         b_ref = w.p.b_proj.copy()
         d_ref = w.p.d.copy()
-        w.reflect( lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r, x.h1.r ) )
+        w.reflect( plane = 'zy' )
 
         np.testing.assert_allclose( w.p.q, 0.0, atol = 1e-7 )
         np.testing.assert_allclose( w.p.b_proj, b_ref, atol = 1e-7 )
         np.testing.assert_allclose( abs(w.p.d), abs( d_ref ), atol = 1e-5 )
-        
+
+    def test_reflection2(self):
+        w = Water.get_standard()
+        w.attach_properties( force_template = True )
+
+        q = w.p.q
+        d = w.p.d.copy()
+        Q = w.p.Q.copy()
+        a = w.p.a.copy()
+        b = w.p.b.copy()
+        w.rotate( 0, np.pi/2, 0, )
+        w.reflect( 'zy' )
+        w.rotate( 0, np.pi/2, 0, )
+        np.testing.assert_allclose( q, w.p.q, atol = 1e-7 )
+        np.testing.assert_allclose( d, w.p.d, atol = 1e-7 )
+        np.testing.assert_allclose( Q, w.p.Q, atol = 1e-7 )
+        np.testing.assert_allclose( a, w.p.a, atol = 1e-7 )
+        np.testing.assert_allclose( b, w.p.b, atol = 1e-7 )
+
     def eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
 

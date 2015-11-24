@@ -2,11 +2,13 @@ import unittest, pytest
 import numpy as np
 from numpy.linalg import norm
 
+from nose.plugins.attrib import attr
 import utilz
 from use_generator import Generator
 from template import Template
 from molecules import Water, Atom, Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
@@ -115,16 +117,18 @@ class WaterTest( unittest.TestCase ):
                 basis = 'ANOPVDZ') )
         w.LoProp = True
 
-        np.testing.assert_allclose( w.p.d ,[0, 0, 0.78704747], atol = 1e-7)
+        dip = 0.7870603
+
+        np.testing.assert_allclose( w.p.d ,[0, 0, dip ], atol = 1e-7)
 
         w.rotate( np.pi/2, 0, 0 )
 
-        self.eq( w.p.d ,[0, 0, 0.78704747])
+        self.eq( w.p.d ,[0, 0, dip])
 
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.rotate( 0, np.pi/2 , 0 )
-        self.eq( w.p.d ,[-0.78704747,  0, 0])
+        self.eq( w.p.d ,[-dip,  0, 0])
 
         print "After 90 around Y-axis: clock"
         print w.p.d

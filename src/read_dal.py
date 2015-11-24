@@ -27,14 +27,6 @@ freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
 
-def make_para( shape = ( 0,) ):                                                      
-    arr = np.zeros( shape )                                                          
-    sb = multiprocessing.Array( ctypes.c_double, reduce(lambda a,b:a*b, arr.shape) )              
-    sb = np.ctypeslib.as_array( sb.get_obj())                                        
-    sb[:] = None                                                                     
-    return sb.reshape( shape )  
-
-
 def polar_to_cartesian( r, tau, theta):
     x, y, z = r* np.sin( theta )*np.cos( tau ) \
            , r* np.sin(  theta )*np.sin( tau )  \
@@ -75,18 +67,6 @@ def o_filter(
                 continue
         out.append( f )
     return out
-
-def unique(arr, key = lambda x: x, get_original = False ):
-    tmp = []
-    have = []
-    for i in arr:
-        inew = key( i )
-        if inew not in have:
-            tmp.append( i )
-            have.append( inew )
-    if get_original:
-        return tmp
-    return have
 
 def write_related( args ):
 
@@ -964,7 +944,7 @@ def is_ccsd( filename):
             return True
     return False
 
-def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
+def read_alpha_hf( fstr, freq = '0.0', in_AA = False, freqs = 1 ):
 # If freqs > 1, will return a tuple of all alphas for each frequency
 #
 # Reading in Alpha tensor
@@ -978,8 +958,9 @@ def read_alpha( file_, freq = '0.0', in_AA = False, freqs = 1 ):
 # element, otherwise, first column is first frequency by default
     freqlist = None
 
-    for i in open( file_ ).readlines():
+    lines = fstr.split('\n')
 
+    for i in lines:
         if pat_new_freq.search( i ):
             if freqlist is None:
                 freqlist = []
@@ -1021,6 +1002,50 @@ def read_energy( fname, calctype = 'HF' ):
     for line in open(fname).readlines():
         if re.compile(r'.*Final.*energy').match(line):
             return line.split()[-1]
+
+def read_alpha_ccsd( fstr ):
+
+    mol_dip = np.zeros(3)
+    alpha = np.zeros(  [3,3])
+    beta = np.zeros(   [3,3,3])
+    beta_dict = {}
+    atoms = []
+    lab = ["X", "Y", "Z"]
+
+    pat_dipole = re.compile(r'Total Molecular Dipole Moment')
+    pat_xyz = re.compile(r'^\s*(\w+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
+    pat_pol = re.compile(r'([XYZ])DIPLEN.*total.*:')
+
+    pat_alpha= re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*')
+    pat_beta=  re.compile(r'([XYZ])DIPLEN.*([XYZ])DIPLEN.*([XYZ])DIPLEN')
+
+    lines = fstr.split('\n')
+# Reading in Alfa 
+    for i in lines:
+        if pat_alpha.search( i ):
+            if len(i.split()) < 8:
+                try:
+                    if "D" in i.split()[-1]:
+                        frac = float( i.split()[-1].replace("D","E") )
+                    else:
+                        frac = float( i.split()[-1] )
+                except IndexError:
+                    if "D" in i.split()[-1]:
+                        frac = float( i.split()[-1].strip("=").replace("D","E") )
+                    else:
+                        frac = float( i.split()[-1].strip("=") )
+                A = pat_alpha.search(i).groups(1)[0]
+                B = pat_alpha.search(i).groups(1)[1]
+                alpha[ lab.index( A ) , lab.index( B ) ]  = frac
+                if A == "X" and B == "Y":
+                    alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                if A == "X" and B == "Z":
+                    alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+                if A == "Y" and B == "Z":
+                    alpha[ lab.index( B ) , lab.index( A ) ]  = frac
+    return alpha
+
+
 
 def read_beta_ccsd( fstr ):
 
@@ -1096,7 +1121,44 @@ def read_beta_ccsd( fstr ):
 
     return atoms, mol_dip, alpha , beta
 
-def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
+
+def read_beta( fstr, freq = "0.0",  in_AA = False, out_AA = False ):
+    nuc_dip = np.zeros(3)
+    el_dip = np.zeros(3)
+    alpha = np.zeros([3,3])
+    beta = np.zeros([3,3,3])
+    tmp = []
+    atoms = []
+    missing = {}
+    exists = {}
+
+# Reading in Beta tensor
+    fre = str("%.5f" % float(freq))
+    lab = ['X', 'Y', 'Z', ]
+    pat_beta = re.compile(r'@ B-freq')
+    lines = fstr.split('\n')
+    for i in lines:
+        if pat_beta.match(i):
+            try:
+                if i.split()[7].lstrip("beta") in exists:
+                    continue
+                exists[ i.split()[7].lstrip("beta") ] = float(i.split()[9] )
+            except ValueError:
+                a, b, c = i.split()[9].lstrip("beta").strip("()").split(",")
+                if i.split()[7].lstrip("beta") in missing:
+                    continue
+                missing[ i.split()[7].lstrip("beta") ] =  "(%s;%s,%s)"%(a,b,c)
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+                try:
+                    beta[i][j][k] = exists[ "(%s;%s,%s)" %(lab[i],lab[j],lab[k])]
+                except KeyError:
+                    beta[i][j][k] = exists[ missing["(%s;%s,%s)"%(lab[i],lab[j],lab[k]) ] ]
+    return beta
+
+
+def read_beta_hf( fstr, freq = "0.0",  in_AA = False, out_AA = False ):
     nuc_dip = np.zeros(3)
     el_dip = np.zeros(3)
     alpha = np.zeros([3,3])
@@ -1115,7 +1177,8 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
 
     pat_labels_xyz = re.compile(r'^\s*(\S+-+\S+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+)\s+(-*\d*\.+\d+) *$')
 # Reading in dipole and charge
-    for i in open( file_ ).readlines():
+    lines = fstr.split( '\n' )
+    for i in lines:
         if pat_Q.search( i ):
             Q = float(i.split()[-1])
         if pat_xyz.match(i):
@@ -1206,7 +1269,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
     alpha = np.zeros( [3,3,] )
     lab = ['X', 'Y', 'Z', ]
 
-    for i in open( file_ ).readlines():
+    for i in lines:
         if pat_alpha.match( i ):
             try:
                 if "D" in i.split()[-1]:
@@ -1229,7 +1292,7 @@ def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
                 alpha[ lab.index( B ) , lab.index( A ) ]  = frac
 
     pat_beta = re.compile(r'@ B-freq')
-    for i in open( file_ ).readlines():
+    for i in lines:
         if pat_beta.match(i):
             try:
                 if i.split()[7].lstrip("beta") in exists:
@@ -1429,6 +1492,31 @@ def main():
     if args.write:
         write_related( args )
     
+def read_h5_info( _file ):
+    """Usage:
+>>> print read_h5_info( 'test.h5' ):
+test.h5
+asdf/random : random numbers 3 columns
+        """
+
+    st = "%s\nfield       description\n" %_file
+    li = []
+
+    f = h5py.File( _file , 'r' )
+    f.visit( li.append )
+
+    for i in li:
+        line = ""
+        if isinstance( f[i], h5py.Group):
+            continue
+        line = line + i + ': '
+        for elem in f[i].attrs.keys():
+            line = line + f[i].attrs[ elem ] + '\n'
+        if len(f[i].attrs) == 0:
+            line = line + "-\n"
+        st += line
+    f.close()
+    return st
 
 if __name__ == '__main__':
     main()

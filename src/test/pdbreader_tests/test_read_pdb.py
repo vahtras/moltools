@@ -1,9 +1,9 @@
-#!/usr/bin/env python
 import os, re, math, sys, argparse, subprocess, numpy, tarfile
 from daltools import one, mol, dens, prop, lr
 from daltools.util import full, blocked, subblocked, timing
 from operator import attrgetter
 from pdbreader import *
+from nose.plugins.attrib import attr
 import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'snapshot1.pdb')
@@ -8854,6 +8854,7 @@ ENDMDL
 """
 
 #@unittest.skip('Skip due to being too slow')
+@attr(speed = 'slow' )
 class ReadPdb( unittest.TestCase ):
 
     def setUp(self):

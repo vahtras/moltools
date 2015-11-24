@@ -285,6 +285,16 @@ class Monomer( pdbreader.Residue ):
             self.bri = tmp_residue
 
     @property
+    def HN(self):
+        return self.first_h
+    @property
+    def HC(self):
+        return self.last_h
+    @property
+    def CX(self):
+        return self.get_atom_by_pdb_name( 'CX' )
+
+    @property
     def first_h(self):
         for at in self.hidden:
             if at.pdb_name == 'HN':
@@ -428,7 +438,7 @@ class Monomer( pdbreader.Residue ):
             tmp_atom._res_id = res_id
             #tmp_atom.label = "%d-%s-%s" %( res_id, res_name, pdb_name )
             tmp_mono._res_name = res_name
-            tmp_mono.chain_id = chain_id
+            tmp_mono._chain_id = chain_id
             tmp_mono.add_atom( tmp_atom )
         if in_AA and not out_AA:
             tmp_mono.to_AU()
@@ -487,11 +497,10 @@ class Monomer( pdbreader.Residue ):
 
     def inv_rotate(self, t1, t2, t3):
         """Need to override class.Molecules and also include hidden hydrogens"""
-        super( Monomer, self ).inv_rotate( t1, t2, t3 )
         r1 = utilz.Rz_inv(t1)
         r2 = utilz.Ry(t2)
         r3 = utilz.Rz_inv(t3)
-        for at in self.hidden:
+        for at in self + self.hidden:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
