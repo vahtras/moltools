@@ -2,6 +2,7 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Water
+from nose.plugins.attrib import attr
 from property import Property
 from rotator import Rotator
 from use_generator import Generator
@@ -47,6 +48,7 @@ H      36.83076  29.64980  33.52374
 H      34.33632  28.44038  34.26073
 """
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):

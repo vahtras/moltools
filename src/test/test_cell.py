@@ -2,6 +2,7 @@ import unittest, os
 import numpy as np
 from particles import PointDipoleList
 from molecules import Cluster, Atom
+from nose.plugins.attrib import attr
 from use_generator import Generator
 import dstruct
 
@@ -19,6 +20,7 @@ POTSTRING = """AU
 
 
 from dstruct import Cell
+@attr(speed = 'fast' )
 class CellTest( unittest.TestCase ):
     def setUp(self):
         pass

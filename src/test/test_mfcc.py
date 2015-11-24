@@ -2,10 +2,12 @@
 import unittest, os
 import numpy as np
 
+from nose.plugins.attrib import attr
 import utilz
 from pdbreader import NewResidue, NewAtom
 from property import Property
 
+@attr(speed = 'fast' )
 class MfccTestCase( unittest.TestCase ):
 
     def test_mfcc(self):

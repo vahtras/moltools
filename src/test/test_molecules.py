@@ -2,9 +2,11 @@ import unittest, mock, os
 import numpy as np
 
 from use_generator import Generator
+from nose.plugins.attrib import attr
 from molecules import Water, Molecule, Property
 from template import Template
 
+@attr(speed = 'fast' )
 class MoleculesTestCase( unittest.TestCase ):
     def setUp(self):
         wat = Water.get_standard()

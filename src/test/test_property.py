@@ -2,9 +2,11 @@ import unittest, os
 import numpy as np
 
 import utilz
+from nose.plugins.attrib import attr
 from molecules import Water
 from property import Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):

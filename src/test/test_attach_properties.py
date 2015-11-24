@@ -2,6 +2,7 @@ import unittest, os
 import numpy as np
 
 import utilz
+from nose.plugins.attrib import attr
 from molecules import Molecule, Property, Water
 
 WATER = """3
@@ -10,6 +11,7 @@ OW               22.96300  30.31700  45.73800
 HW1              23.12300  30.72100  46.59000
 HW2              22.51700  30.99500  45.23000"""
 
+@attr(speed = 'fast' )
 class AttachPropertyTest( unittest.TestCase ):
 
     def setUp(self):

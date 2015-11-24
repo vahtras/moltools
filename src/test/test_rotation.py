@@ -2,11 +2,13 @@ import unittest, pytest
 import numpy as np
 from numpy.linalg import norm
 
+from nose.plugins.attrib import attr
 import utilz
 from use_generator import Generator
 from template import Template
 from molecules import Water, Atom, Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):

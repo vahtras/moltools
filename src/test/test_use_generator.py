@@ -2,12 +2,14 @@ import unittest, mock, os
 import numpy as np
 
 from molecules import Water, Molecule
+from nose.plugins.attrib import attr
 from generator import Generator
 
 
 FILE_XYZ =os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), "tmp.xyz" )
 
 
+@attr(speed = 'fast' )
 class GeneratorTestCase( unittest.TestCase ):
 
     def setUp(self):

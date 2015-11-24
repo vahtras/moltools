@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from utilz import *
+from nose.plugins.attrib import attr
 from molecules import Water
 import utilz
 
@@ -1191,6 +1192,7 @@ File label for MO orbitals:  23Jun15   FOCKDIIS
      Host name              : archer                                  
 """
 
+@attr(speed = 'fast' )
 class UtilzTestCase( unittest.TestCase ):
 
     def setUp(self):

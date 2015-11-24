@@ -2,12 +2,14 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Atom, Water, Molecule, Property
+from nose.plugins.attrib import attr
 from use_generator import Generator
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
     def setUp(self):
         self.c = Cluster.get_water_cluster(

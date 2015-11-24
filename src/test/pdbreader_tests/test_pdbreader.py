@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 from pdbreader import *
 import unittest
+from nose.plugins.attrib import attr
 
 _string_ppg = """
 ATOM      1 N    PRO A   1       9.225  23.976 174.522  1.00  0.00           N
@@ -1203,6 +1203,7 @@ ATOM    148  HW2 SOL     6      36.920  41.734  45.024  1.00  0.00
 TER
 """
 
+@attr(speed = 'slow' )
 class SystemTestCase( unittest.TestCase ):
     def setUp(self):
         pass

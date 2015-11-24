@@ -2,9 +2,11 @@ import unittest
 import numpy as np
 
 from use_generator import Generator
+from nose.plugins.attrib import attr
 from template import Template
 from molecules import Molecule, Water, Atom, Property
 
+@attr(speed = 'fast' )
 class WaterEulerTest( unittest.TestCase ):
 
     def setUp(self):

@@ -2,11 +2,13 @@
 import unittest, os
 import numpy as np
 
+from nose.plugins.attrib import attr
 from molecules import Cluster, Atom, Water
 from pdbreader import NewSystem, NewChain
 from use_generator import Generator
 
 
+@attr(speed = 'fast' )
 class SystemText( unittest.TestCase ):
 
     def test_three_waters(self):
