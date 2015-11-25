@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 
 import utilz
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from molecules import Molecule, Property, Water
 
@@ -17,13 +19,13 @@ class AttachPropertyTest( unittest.TestCase ):
     def setUp(self):
         pass
 
-    def test_attach_properties(self):
+    def test_attach_properties2(self):
         w = Water.get_standard()
         t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r - w.h2.r)/2.0 + w.h2.r, w.h1.r )
         w.o.pdb_name = 'OW'
         w.h1.pdb_name = 'HW1'
         w.h2.pdb_name = 'HW2'
-        w.attach_properties( 
+        w.attach_properties2( 
                 model = 'TIP3P_PDB',
                 method = 'B3LYP',
                 basis ='ANO631',
@@ -40,7 +42,7 @@ class AttachPropertyTest( unittest.TestCase ):
         w[0].pdb_name = 'OW'
         w[1].pdb_name = 'HW1'
         w[2].pdb_name = 'HW2'
-        w.attach_properties( 
+        w.attach_properties2( 
                 model = 'TIP3P_PDB',
                 method = 'B3LYP',
                 basis ='ANO631',
@@ -54,7 +56,7 @@ class AttachPropertyTest( unittest.TestCase ):
         w = Molecule.from_xyz_string( WATER )
         p1, p2, p3 = w[0].r, (w[1].r - w[2].r)/2.0 + w[2].r, w[1].r 
         t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
-        w.attach_properties( 
+        w.attach_properties2( 
                 model = 'TIP3P',
                 method = 'B3LYP',
                 basis ='ANO631',
@@ -70,12 +72,12 @@ class AttachPropertyTest( unittest.TestCase ):
 
         w = Water.get_standard()
 
-        w.attach_properties()
+        w.attach_properties2()
         w.rotate( *np.random.random( (3,) ))
         w.t( np.random.uniform( 0, 5, (3,) ))
         p_ref = w.p.copy()
 
-        w.attach_properties()
+        w.attach_properties2()
         np.testing.assert_allclose( w.p.d, p_ref['dipole'], atol = 1e-7 )
         np.testing.assert_allclose( w.p.b, p_ref['beta'], atol = 1e-7 )
         np.testing.assert_allclose( w.p.a, p_ref['alpha'], atol = 1e-7 )
@@ -84,12 +86,12 @@ class AttachPropertyTest( unittest.TestCase ):
 
         w = Water.get_standard()
 
-        w.attach_properties(loprop = 0)
+        w.attach_properties2( loprop = 0 )
         w.rotate( *np.random.random( (3,) ))
         w.t( np.random.uniform( 0, 5, (3,) ))
         p_ref = w.p.copy()
 
-        w.attach_properties(loprop = 0)
+        w.attach_properties2( loprop = 0 )
         np.testing.assert_allclose( w.p.d, p_ref['dipole'], atol = 1e-7 )
         np.testing.assert_allclose( w.p.b, p_ref['beta'], atol = 1e-7 )
         np.testing.assert_allclose( w.p.a, p_ref['alpha'], atol = 1e-7 )
@@ -97,7 +99,7 @@ class AttachPropertyTest( unittest.TestCase ):
 
 
 #
-#        w.attach_properties( 
+#        w.attach_properties2( 
 #                model = 'TIP3P',
 #                method = 'B3LYP',
 #                basis ='ANO631',

@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Atom, Water, Molecule, Property
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from use_generator import Generator
 

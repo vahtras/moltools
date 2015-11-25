@@ -2,6 +2,8 @@ import unittest, mock, os
 import numpy as np
 
 from molecules import Water, Molecule
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from generator import Generator
 

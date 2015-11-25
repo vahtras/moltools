@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 
 from utilz import *
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from molecules import Water
 import utilz
@@ -1309,7 +1311,7 @@ class UtilzTestCase( unittest.TestCase ):
 
     def test_beta_par(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         d = w.p.d
         b = ut2s( w.p.b )
 

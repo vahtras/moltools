@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Water
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from property import Property
 from rotator import Rotator
@@ -106,10 +108,11 @@ class WaterTest( unittest.TestCase ):
                 a += Rotator.ut_2_square( at.Property["alpha"] )
                 b += Rotator.ut_3_square( at.Property["beta"] )
 
+#False loprop means we just label the point by 'X'
             kwargs_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
                 False , "0.0" ))
-            d_ref = kwargs_dict[('O1','dipole')]
-            b_ref = Rotator.ut_3_square( kwargs_dict[('O1','beta')] )
+            d_ref = kwargs_dict[('X','dipole')]
+            b_ref = Rotator.ut_3_square( kwargs_dict[('X','beta')] )
 
             self.eq( q, 0.0 )
             self.eq( np.dot( np.einsum('iij->j',b), d)/np.linalg.norm(d), 
@@ -195,7 +198,7 @@ class WaterTest( unittest.TestCase ):
     def test_reflection(self):
         """docstring for test_reflection"""
         w = Water.get_standard()
-        w.attach_properties( force_template = True)
+        w.attach_properties2( force_template = True)
 
         w.rotate( 0, np.pi/3.0, 0 )
 
@@ -209,7 +212,7 @@ class WaterTest( unittest.TestCase ):
 
     def test_reflection2(self):
         w = Water.get_standard()
-        w.attach_properties( force_template = True )
+        w.attach_properties2( force_template = True )
 
         q = w.p.q
         d = w.p.d.copy()

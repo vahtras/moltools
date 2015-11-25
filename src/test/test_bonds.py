@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Atom, Molecule, Water
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from use_generator import Generator
 
@@ -20,14 +22,14 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_1(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
         w.o.transfer_props( {'beta' : 1} )
         np.testing.assert_allclose( w.o.p.b, np.zeros(10), atol = 1e-7 )
 
     def test_transfer_props_2(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
         B = w.p.b.copy()
 
@@ -37,7 +39,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_3(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
         C = w.p.q.copy()
         #C = w.p.q.copy()
@@ -61,7 +63,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_4(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
 
         q_h1 = w.h1.p.q
@@ -84,7 +86,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_5(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
 
         q_h1 = w.h1.p.q
@@ -101,7 +103,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_6(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
 
         q_h1 = w.h1.p.q
@@ -118,7 +120,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_7(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
 
         q_h1 = w.h1.p.q
@@ -137,7 +139,7 @@ class BondTestCase( unittest.TestCase ):
 
     def test_transfer_props_8(self):
         w = Water.get_standard()
-        w.attach_properties()
+        w.attach_properties2()
         w.populate_bonds()
 
         q_h1 = w.h1.p.q

@@ -2,6 +2,8 @@
 import unittest, os
 import numpy as np
 
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 import utilz
 from pdbreader import NewResidue, NewAtom

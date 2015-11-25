@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 
 import utilz
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from molecules import Water
 from property import Property

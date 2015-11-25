@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 
 from read_dal import o_filter
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
 @attr(speed = 'fast' )

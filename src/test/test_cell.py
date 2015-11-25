@@ -2,6 +2,8 @@ import unittest, os
 import numpy as np
 from particles import PointDipoleList
 from molecules import Cluster, Atom
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from use_generator import Generator
 import dstruct

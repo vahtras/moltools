@@ -1315,6 +1315,8 @@ class Molecule( list ):
 
         if isinstance(self, Water):
             R = np.einsum('ij->ji', utilz.get_rotation( self.o.r, (self.h1.r - self.h2.r)/2 + self.h2.r, self.h1.r) )
+        else:
+            R = np.einsum('ij->ji', utilz.get_rotation( *euler_key( self ) ))
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         if loprop:
@@ -1845,8 +1847,8 @@ class Molecule( list ):
         if val is None:
             self._Property = val
             return
-        if self.LoProp is None:
-            warnings.warn("Setting property despite LoProp being False")
+        #if self.LoProp is None:
+        #    warnings.warn("Setting property despite LoProp being False")
         self.LoProp = None
         self._Property = val
         self.is_Property = True

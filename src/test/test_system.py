@@ -2,6 +2,8 @@
 import unittest, os
 import numpy as np
 
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from molecules import Cluster, Atom, Water
 from pdbreader import NewSystem, NewChain

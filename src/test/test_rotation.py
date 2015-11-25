@@ -2,6 +2,8 @@ import unittest, pytest
 import numpy as np
 from numpy.linalg import norm
 
+import warnings
+warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 import utilz
 from use_generator import Generator
