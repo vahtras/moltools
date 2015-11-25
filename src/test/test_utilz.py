@@ -1311,7 +1311,7 @@ class UtilzTestCase( unittest.TestCase ):
 
     def test_beta_par(self):
         w = Water.get_standard()
-        w.attach_properties2()
+        w.attach_properties()
         d = w.p.d
         b = ut2s( w.p.b )
 
