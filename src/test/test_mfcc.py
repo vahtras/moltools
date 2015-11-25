@@ -22,8 +22,6 @@ class MfccTestCase( unittest.TestCase ):
                NewAtom(x=1, y = 1),
                NewAtom(x=3, y = 1),
                )
-        raise SystemExit
-        assert 0
 
 if __name__ == '__main__':
     unittest.main()

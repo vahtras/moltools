@@ -25,6 +25,7 @@ from generator import Generator
 
 from loprop.loprop import *
 
+
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
@@ -71,6 +72,12 @@ bonding_cutoff = {
 for key1, key2 in bonding_cutoff.keys():
     bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
 
+class UnitException( Exception ):
+    def __init__( self, unit, label ):
+        """unit is bool, labeltom is string label of atom"""
+        self.unit = unit
+        self.label = label
+        
 
 class Atom(object):
 
@@ -678,7 +685,7 @@ class Molecule( list ):
         self._in_qmmm = False
 
 #By default, AU 
-        self.AA = False
+        #self.AA = False
 
 #if supplied a dictionary with options, gather these in self.info
         self.info = {}
@@ -2260,14 +2267,20 @@ Angstrom [ out_AA = True ]
                 m.to_AU()
         return m
 
+    @property
     def AA(self):
         AA = self[0].AA
         for at in self:
             try:
-                assert AA == at
+                assert AA == at.AA
             except AssertionError:
                 logging.error("Not all atoms same unit in molecule %s" %self)
         return AA
+
+    @AA.setter
+    def AA(self, val):
+        assert type(val) == bool
+        self._AA = val
 
 
     def to_AU(self):
@@ -2321,8 +2334,6 @@ class Water( Molecule ):
         self.h2 = False
         self.o  = False
 
-        self.AA = False
-
         self._coc = None
 
         self.in_qm = False
@@ -2342,9 +2353,6 @@ class Water( Molecule ):
                     self.h2 = atom
 
 
-
-        if kwargs is not {}:
-            self.AA = kwargs.get( "AA", False )
 
 #Water - Properties for grabbing uniquely PDB named atoms
     @property
@@ -2435,7 +2443,7 @@ other models:
         o.order = 1
         h1.order = 2
         h2.order = 3
-        w = Water( AA = AA)
+        w = Water( )
         w.add_atom( o )
         w.add_atom( h1 )
         w.add_atom( h2 )
@@ -2772,7 +2780,20 @@ class Cluster(list):
             cnt += 1
         return c
 
-
+#New implementation for Angstroms in clusters
+    @property
+    def AA(self):
+        AA = [at for res in self for at in res ][0].AA
+        for each in [at for res in self for at in res ]:
+            try:
+                assert each.AA == AA
+            except AssertionError:
+                logging.error("All objects in cluster are not of same unit")
+        return AA
+    @AA.setter
+    def AA(self, val):
+        assert type(val) == bool
+        self._AA = val
 
     def dump_xyz(self):
         """Quickl;y wrote xyz file for fancier visualization in avogadro/vmd"""
@@ -3010,17 +3031,6 @@ class Cluster(list):
                 return result
         else:
             return super(Cluster,self).__getitem__( item )
-
-    @property
-    def AA(self):
-        AA = [at for res in self for at in res ][0].AA
-        for each in [at for res in self for at in res ]:
-            try:
-                assert each.AA == AA
-            except AssertionError:
-                logging.error("All objects in cluster are not of same unit")
-        return AA
-
 #Cluster string method
     def __str__(self):
         return " ".join( [ str(i) for i in self ] )
