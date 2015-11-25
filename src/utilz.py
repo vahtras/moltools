@@ -7,19 +7,13 @@ This will replace read_dal.py as general functions module with no dependencies
 on other modules or files in this repository
 """
 
-import os,sys, re, argparse, ctypes, multiprocessing, functools, warnings
+import os,sys, re, argparse, ctypes
+import multiprocessing, functools, warnings
 import itertools
 import numpy as np
-import math as m
-
-#from particles import *
-from pd.gaussian import *
 
 import molecules 
-#from template import Template
 import matplotlib as mpl
-import logging
-#from use_calculator import *
 
 import h5py
 
@@ -34,7 +28,6 @@ mass_dict = {"H": 1.008,  "C": 6.0, "N": 7.0, "O": 15.999, "S": 16.0}
 freq_dict = {"0.0": "static","0.0238927": "1907_nm", "0.0428227" : "1064_nm",
         "0.0773571" : "589_nm" }
 allowed_elements = ( 'H', 'O' )
-
 def nm_to_au( val ):
     conv = 45.563352491687866
     if val == 'inf':
@@ -1077,3 +1070,20 @@ def file_is_used( _f ):
     open_fds = reduce( lambda a, x: a+x, all_files )
     
     return _f in open_fds
+
+
+# Special decorator used to cast time exception for functions taking more than 10 ms
+class TimeException( Exception ):
+    def __init__(self, val):
+        self.val = val
+def takes_time( func, *args, **kwargs ):
+    def wrapped( *args, **kwargs ):
+        d1 = time.time()
+        val = func( *args, **kwargs )
+        delta = time.time() - d1
+        if delta > 0.01:
+            raise TimeException( delta )
+        return val
+    return wrapped
+
+
