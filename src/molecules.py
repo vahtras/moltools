@@ -1295,7 +1295,7 @@ class Molecule( list ):
     def b_proj(self):
         return utilz.b_para( self.b, self.p )
 
-    def attach_properties2(self, 
+    def attach_properties(self, 
             model = "TIP3P_PDB",
             method = "B3LYP",
             basis = "ANO631",
@@ -1347,45 +1347,6 @@ class Molecule( list ):
 
 
 
-    def attach_properties(self, 
-            model = "TIP3P_PDB",
-            method = "B3LYP",
-            basis = "ANO631",
-            loprop = True,
-            freq = "0.0",
-            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
-            template_key = lambda x: x.pdb_name,
-            force_template = False,
-            centered = None,
-            ):
-        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
-        self.Property = None
-        if centered is None:
-            centered = self.com
-        if isinstance(self, Water) and not force_template:
-            template_key = lambda x: x.element + str(x.order)
-
-        if isinstance(self, Water):
-            euler_key = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2 + x.h2.r, x.h1.r)
-
-        templ = Template().get( *(model, method, basis, loprop, freq) )
-        if loprop:
-            for at in self:
-                at.p = Property.from_template( template_key(at), templ )
-        else:
-            self.Property = Property.from_template( 'X', templ )
-
-        t1, t2, t3 = self.get_euler( key = euler_key )
-        for at in self:
-            at.p = at.p.rotate( t1, t2, t3 )
-        if loprop:
-            self.is_Property = False
-            self.LoProp = True
-        else:
-            self.is_Property = True
-            self.LoProp = False
-            self.property_r = centered
-            self.Property = self.Property.rotate( t1, t2, t3 )
 
     def dist_to_point( self , point ):
         return np.sqrt(np.sum((self.com - np.array(point))**2))
@@ -3644,28 +3605,6 @@ Return a cluster of water molecules given file.
                         return True
         return False
 
-    def attach_properties2(self, 
-            model = "TIP3P_PDB",
-            method = "B3LYP",
-            basis = "ANO631",
-            loprop = True,
-            freq = "0.0",
-            euler_key = lambda x: (x[0].r, x[1].r, x[2].r),
-            template_key = lambda x: x.pdb_name,
-            force_template = False,
-            centered = None,
-            ):
-        """Attach properties to all molecules in this cluster"""
-        for mol in self:
-            mol.attach_properties2( model = model,
-                    method = method,
-                    basis = basis,
-                    loprop = loprop,
-                    freq = freq,
-                    euler_key = euler_key,
-                    template_key = template_key,
-                    force_template = force_template,
-                    centered = centered )
     def attach_properties(self, 
             model = "TIP3P_PDB",
             method = "B3LYP",
@@ -3679,7 +3618,7 @@ Return a cluster of water molecules given file.
             ):
         """Attach properties to all molecules in this cluster"""
         for mol in self:
-            mol.attach_properties( model = model,
+            mol.attach_properties2( model = model,
                     method = method,
                     basis = basis,
                     loprop = loprop,
