@@ -2044,13 +2044,16 @@ Plot Molecule in a 3D frame
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
-        uni = utilz.unique([ at.element for at in self])
+        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
+
+        uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
+
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
-                    len( [all_el for all_el in self if (all_el.element == el)] ),
+                    len( [all_el for all_el in ats if (all_el.element == el)] ),
                     basis[ el_to_rowind[el] ])
-            for i in [all_el for all_el in self if (all_el.element == el) ]:
+            for i in [all_el for all_el in ats if (all_el.element == el) ]:
                 st += i.get_mol_line()
         return st
 
