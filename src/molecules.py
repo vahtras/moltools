@@ -78,6 +78,38 @@ class UnitException( Exception ):
         self.unit = unit
         self.label = label
         
+class Bond(object):
+    """Docstring for Bond. """
+    def __init__(self, at1, at2 ):
+        """TODO: to be defined1. """
+        self._r = None
+        self._Property = None
+        self._Atom = at2
+        self._r = (at2.r - at1.r)/2.0 + at1.r
+
+    def get_mol_line(self, lab):
+        return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( lab, self.r[0], self.r[1], self.r[2] ) 
+
+    @property
+    def r(self):
+        if self._r is not None:
+            return self._r
+    @r.setter
+    def r(self, val):
+        assert len(val) == 3
+        self._r = val
+
+
+
+    @property
+    def p(self):
+        if self._Property is not None:
+            return self._Property
+        return Property()
+ 
+    @p.setter
+    def p(self, val):
+        self._Property = val
 
 class Atom(object):
 
@@ -136,7 +168,9 @@ AA       True     bool
 
 
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
-        self.bonds = {}
+#bonds is list of class Bond
+        self._bonds = None
+
         self.angles = {}
         self.dihedrals = {}
 
@@ -187,6 +221,25 @@ AA       True     bool
             return True
         return False
 
+    @property
+    def bonds( self ):
+        if self._bonds is not None:
+            return self._bonds
+        self._bonds = []
+        #Can add other stuff here later
+        return self._bonds
+
+    @bonds.setter
+    def bonds( self, val ):
+        self._bonds  = val
+
+#Add a bond for this atom to the other atom
+    def add_bond( self, atom ):
+        b = Bond( self, atom )
+        if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
+            logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
+            return
+        self.bonds.append( b )
 
 #Chain for this atom
     @property
@@ -625,6 +678,8 @@ Return the distance to a point
             self.x /= a0
             self.y /= a0
             self.z /= a0
+            for b in self.bonds:
+                b.r /= a0
             self.AA = False
 
     def to_AA(self):
@@ -632,6 +687,8 @@ Return the distance to a point
             self.x *= a0
             self.y *= a0
             self.z *= a0
+            for b in self.bonds:
+                b.r *= a0
             self.AA = True
 
 class Molecule( list ):
@@ -725,6 +782,10 @@ class Molecule( list ):
             return "_".join( map(str, [self.res_name, self.res_id ]) )
 
 
+    @property
+    def bonds(self):
+        b = reduce(lambda a, x: a + x, [a.bonds for a in self], [] )
+        return b
 
 #Molecule chain_id
     @property
@@ -1447,7 +1508,8 @@ class Molecule( list ):
             log = None,
             keep_outfile = False,
             keep_targzfile = False,
-            freq = None
+            freq = None,
+            bonds = False,
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1607,6 +1669,7 @@ class Molecule( list ):
                             pol = pol,
                             hyper = hyper,
                             decimal = decimal,
+                            bond_centers = bonds, 
                             )
         except UnboundLocalError:
             logging.error("Some error in LoProp, check so that the latest source is in PYTHONPATH")
@@ -1679,41 +1742,28 @@ class Molecule( list ):
             i.name = i.element + str(i.number)
 
     def populate_bonds(self, cluster = False):
+        for at in self:
+            at.bonds = []
 #Implement later that it can only be called once
-        for i, at in enumerate( self ):
-            at.bonds = {}
-
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
 
 #Populate bonds on cluster level
-        if cluster:
-            for a1, a2 in itertools.product( self.Cluster.atoms, self.Cluster.atoms ):
-                if a1 == a2:
-                    continue
-                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    if a1 not in a2.Molecule:
-                        if a1.element != 'C':
-                            continue
-                    a1.bonds[ a2.name ] = a2
-                    a2.bonds[ a1.name ] = a1
-        else:
-            for a1, a2 in itertools.product( self, self ):
-                if a1 == a2:
-                    continue
-                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    a1.bonds[ a2.name ] = a2
-                    a2.bonds[ a1.name ] = a1
-
+        for i2 in range( 1, len(self) ):
+            for i1 in range( i2 ):
+                if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
+                    self[i1].add_bond( self[i2] )
+                    self[i2].add_bond( self[i1] )
 
     def populate_angles(self):
-        self.populate_bonds()
-        for at1 in self:
-            for at2 in [at2 for at2 in at1.bonds.values()]:
-                for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
-                    at1.angles[(at2.name,at3.name)] = at3
+        pass
+    #    self.populate_bonds()
+    #    for at1 in self:
+    #        for at2 in [at2 for at2 in at1.bonds.values()]:
+    #            for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
+    #                at1.angles[(at2.name,at3.name)] = at3
 
     @staticmethod
     def from_charmm_file( f):
@@ -2034,6 +2084,7 @@ Plot Molecule in a 3D frame
     def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" )):
         return self.get_mol_string( basis = basis)
+
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
@@ -2056,6 +2107,27 @@ Plot Molecule in a 3D frame
             for i in [all_el for all_el in ats if (all_el.element == el) ]:
                 st += i.get_mol_line()
         return st
+
+    def get_bond_and_xyz(self, ):
+        st = ''
+        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
+        uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
+
+        self.populate_bonds()
+        bonds_outputted = []
+        for el in uni:
+            for at in [all_el for all_el in ats if (all_el.element == el) ]:
+                st += at.get_mol_line()
+                for b in at.bonds:
+                    if any( (b.r == x).all() for x in bonds_outputted ):
+                        continue
+                    st += b.get_mol_line( lab = 'XX-%s-%s' %(at.pdb_name, b._Atom.pdb_name))
+                    bonds_outputted.append( b.r )
+                         
+
+        return st
+
+
 
     def get_pdb_string(self):
         st = """"""
@@ -3672,9 +3744,8 @@ Return a cluster of water molecules given file.
 #Special cluster method when dealing with different molecules in a clusters
 # By defalt only connet atoms in the peptide, meaning carbons
     def populate_bonds(self ):
-
-        for i, at in enumerate( self.atoms ):
-            at.bonds = {}
+        for at in self:
+            at.bonds = []
         if self.AA:
             conv = 1.0
         else:
@@ -3771,6 +3842,7 @@ Return a cluster of water molecules given file.
             log = None,
             keep_outfile = False,
             freq = None,
+            bonds = False,
             ):
         """Put properties on all class/sublass of Molecules in Cluster"""
         for mol in [m for m in self if isinstance(m, Molecule)]:
@@ -3788,6 +3860,7 @@ Return a cluster of water molecules given file.
                     log = log,
                     keep_outfile = False,
                     freq = freq,
+                    bonds = bonds,
                     )
 
 
