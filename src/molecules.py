@@ -89,7 +89,6 @@ class Bond(object):
 
     def get_mol_line(self, lab):
         return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( lab, self.r[0], self.r[1], self.r[2] ) 
-
     @property
     def r(self):
         if self._r is not None:
@@ -98,15 +97,11 @@ class Bond(object):
     def r(self, val):
         assert len(val) == 3
         self._r = val
-
-
-
     @property
     def p(self):
         if self._Property is not None:
             return self._Property
         return Property()
- 
     @p.setter
     def p(self, val):
         self._Property = val
@@ -2050,11 +2045,11 @@ Plot Molecule in a 3D frame
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 #Plot bonds
-        for atom in copy:
-            for key in atom.bonds.values():
-                ax.plot( [key.x, atom.x],
-                         [key.y, atom.y],
-                         [key.z, atom.z], color = 'black' )
+        for at in copy:
+            for bond in at.bonds:
+                ax.plot( [at.x, bond._Atom.x],
+                         [at.y, bond._Atom.y],
+                         [at.z, bond._Atom.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
