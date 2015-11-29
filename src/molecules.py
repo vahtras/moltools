@@ -209,7 +209,6 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", None )
             self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
-
 #Check if atom has same coordinate and element as other
     def equal(self, other):
         if np.allclose( self.r, other.r, atol = 1e-5 ) and self.element == other.element:
@@ -624,16 +623,17 @@ Plot Atom in a 3D frame
 #Atom string method
     def __str__(self):
         return "%s %f %f %f" %(self.label, self.x, self.y, self.z)
-    def __repr__(self):
-        st = '"A%d' %self.order
-        if self.Molecule:
-            st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
-            if self.Molecule.Cluster:
-                st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
-                if self.Molecule.Cluster.System:
-                    st.rstrip('"')
-                    st += '-S"'
-        return st
+
+    #def __repr__(self):
+    #    st = '"A%d' %self.order
+    #    if self.Molecule:
+    #        st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
+    #        if self.Molecule.Cluster:
+    #            st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
+    #            if self.Molecule.Cluster.System:
+    #                st.rstrip('"')
+    #                st += '-S"'
+    #    return st
 
     def __add__(self, other):
         return Molecule( self, other )
@@ -757,6 +757,21 @@ class Molecule( list ):
             for i in kwargs:
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
+
+
+#To return all atoms and bonds in molecule
+    def get_ats_and_bonds(self):
+        self.populate_bonds()
+        tot = []
+        bond_visited = []
+        for at in self:
+            tot.append( at )
+            for b in at.bonds:
+                if any( (b.r == x.r).all() for x in bond_visited ):
+                    continue
+                bond_visited.append( b )
+                tot.append( b )
+        return tot
 
 #Unique identifier which will produce file name string unique to this residue
     def file_label( self, freq = True ):
@@ -1444,6 +1459,7 @@ class Molecule( list ):
             hyp = 2,
             decimal = 7,
             freqs = None,
+            bonds = None,
             ):
         if tmpdir is None:
             tmpdir = "/tmp"
@@ -1464,6 +1480,7 @@ class Molecule( list ):
                             pol = pol,
                             hyper = hyp,
                             decimal = decimal,
+                            bond_centers = bonds,
                             )
         except IOError:
             print tmpdir
@@ -1472,7 +1489,7 @@ class Molecule( list ):
             print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
             raise SystemExit
 
-        f_at = lambda x: map(float,x.get_mol_line().split()[1:])
+        f_at = lambda x: map(float,x.get_bond_and_xyz().split()[1:])
         f_prop = lambda x: map(float,x.split()[1:4])
         try:
             assert len( self ) == len( lines )
