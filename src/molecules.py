@@ -84,10 +84,14 @@ class Bond(object):
         """TODO: to be defined1. """
         self._r = None
         self._Property = None
-        self._Atom = at2
+        self._Atom1 = at1
+        self._Atom2 = at2
         self._r = (at2.r - at1.r)/2.0 + at1.r
+        self.element = 'X'
 
-    def get_mol_line(self, lab):
+    def get_mol_line(self, lab = None):
+        if lab is None:
+            lab = 'X-%s-%s' %(self._Atom1.pdb_name, self._Atom2.pdb_name, )
         return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( lab, self.r[0], self.r[1], self.r[2] ) 
     @property
     def r(self):
@@ -97,6 +101,7 @@ class Bond(object):
     def r(self, val):
         assert len(val) == 3
         self._r = val
+
     @property
     def p(self):
         if self._Property is not None:
@@ -761,7 +766,7 @@ class Molecule( list ):
 
 #To return all atoms and bonds in molecule
     def get_ats_and_bonds(self):
-        self.populate_bonds()
+        """Important not to overwrite bonds which has properties, just return"""
         tot = []
         bond_visited = []
         for at in self:
@@ -1458,7 +1463,7 @@ class Molecule( list ):
             pol = 22,
             hyp = 2,
             decimal = 7,
-            freqs = None,
+            freq = None,
             bonds = None,
             ):
         if tmpdir is None:
@@ -1466,6 +1471,11 @@ class Molecule( list ):
         if f_ is None:
             print "Supply .tar.gz file from dalton quadratic .QLOP calculation"
             return
+        if freq == None:
+            freq = 0.0
+        else:
+            freq = float(freq)
+ 
         import tarfile
 #Using Olavs external scripts
         tarfile.open( f_, 'r:gz' ).extractall( tmpdir )
@@ -1474,7 +1484,7 @@ class Molecule( list ):
                     max_l = maxl,
                     pol = pol,
                     pf = penalty_function( 2.0 ),
-                    freqs = (freqs,)
+                    freqs = (freq,)
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
@@ -1484,24 +1494,29 @@ class Molecule( list ):
                             )
         except IOError:
             print tmpdir
-        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
-        if not len(lines) == len(self):
-            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
-            raise SystemExit
 
-        f_at = lambda x: map(float,x.get_bond_and_xyz().split()[1:])
+        f_at = lambda x: map(float, x.get_mol_line().split()[1:] )
         f_prop = lambda x: map(float,x.split()[1:4])
+        if bonds:
+            self.populate_bonds()
+            relevant = sorted( self.get_ats_and_bonds(), key = f_at)
+        else:
+            relevant = sorted( self, key = f_at)
+
+        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         try:
-            assert len( self ) == len( lines )
+            assert len( relevant ) == len( lines )
         except:
             logging.error("Some error went undetected despite creating .tar.gz and .out files")
             return
-        for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
-            at.Property = Property.from_propline( prop ,
+
+
+        for center, prop in zip( relevant, sorted( lines, key = f_prop )):
+            center.p = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
                     hyper = hyp )
-        self.freq = freqs
+            center.p.freq = freq
         self.LoProp = True
         self.Property = False
 
@@ -1867,7 +1882,7 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
-        if val is None:
+        if val is None or val is False:
             self._Property = val
             return
         #if self.LoProp is None:
@@ -1893,17 +1908,22 @@ Return the sum properties of all properties in molecules
             return self.Property
         coc = self.coc
         conv = 1.0
+        p = Property()
+
         if self.AA:
             conv = 1/a0
-        el_dip = np.array([ conv*(at.r-coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ conv*(at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
-        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        el_dip = np.array([ conv*(center.r-coc)*center.p.q for center in self.get_ats_and_bonds() ])
+
+        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for center in self.get_ats_and_bonds()])
+
+        dip_lop = np.array([center.p.d for center in self.get_ats_and_bonds()])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
-        p = Property()
-        for at in self:
-            p += at.Property
-        p['dipole'] = d
+        p.d = d
+        for center in self.get_ats_and_bonds():
+            p.q += center.p.q
+            p.a += center.p.a
+            p.b += center.p.b
         return p
 
 #Vector pointing to center of atom position
@@ -2064,9 +2084,9 @@ Plot Molecule in a 3D frame
 #Plot bonds
         for at in copy:
             for bond in at.bonds:
-                ax.plot( [at.x, bond._Atom.x],
-                         [at.y, bond._Atom.y],
-                         [at.z, bond._Atom.z], color = 'black' )
+                ax.plot( [at.x, bond._Atom2.x],
+                         [at.y, bond._Atom2.y],
+                         [at.z, bond._Atom2.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -2133,7 +2153,7 @@ Plot Molecule in a 3D frame
                 for b in at.bonds:
                     if any( (b.r == x).all() for x in bonds_outputted ):
                         continue
-                    st += b.get_mol_line( lab = 'XX-%s-%s' %(at.pdb_name, b._Atom.pdb_name))
+                    st += b.get_mol_line( lab = 'XX-%s-%s' %(at.pdb_name, b._Atom2.pdb_name))
                     bonds_outputted.append( b.r )
                          
 
