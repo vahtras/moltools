@@ -3812,7 +3812,7 @@ Return a cluster of water molecules given file.
         if len(self) == 0:return np.zeros(3)
         return sum([at.r*at.mass for mol in self for at in mol]) / sum([at.mass for mol in self for at in mol] )
 
-#Wrapper func for cluster
+#Function for cluster
     @property
     def p(self):
         return self.sum_property
@@ -3824,16 +3824,23 @@ Return a cluster of water molecules given file.
         Now it is dead wrong, need to adjust dipoles and quadrupoles to coc
         """
         coc = self.coc
-        #el_dip = np.array([ (at.r-coc)*at.Property['charge'] for mol in self for at in mol])
-        #nuc_dip = np.array([ (at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
-        #dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
-        #dip = el_dip + nuc_dip
-        #dip_tot = (dip + dip_lop).sum(axis=0)
+        conv = 1.0
         p = Property()
-        for mol in [m for m in self if m.LoProp]:
-            p += mol.sum_property
-        for mol in [m for m in self if m.is_Property]:
-            p += mol.Property
+
+        if self.AA:
+            conv = 1/a0
+        el_dip = np.array([ conv*(center.r-coc)*center.p.q for center in mol.get_ats_and_bonds() for mol in self ])
+
+        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for center in mol.get_ats_and_bonds() for mol in self])
+
+        dip_lop = np.array([center.p.d for center in mol.get_ats_and_bonds() for mol in self])
+        dip = el_dip + nuc_dip
+        d = (dip + dip_lop).sum(axis=0)
+        p.d = d
+        for center in [c for c in mol.get_ats_and_bonds() for mol in self]:
+            p.q += center.p.q
+            p.a += center.p.a
+            p.b += center.p.b
         return p
 
     def to_AA(self):
