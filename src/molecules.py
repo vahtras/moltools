@@ -111,6 +111,13 @@ class Bond(object):
     def p(self, val):
         self._Property = val
 
+#Method of Bond
+    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
+        return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
+                str(self._Atom1.Molecule.cluster_order), *self.r ) + self.p.potline( max_l, pol, hyper, fmt ) + "\n"
+
+
+
 class Atom(object):
 
     """
@@ -621,9 +628,9 @@ Plot Atom in a 3D frame
         return 0
 
 #Method of Atom
-    def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
+    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
-                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, fmt ) + "\n"
+                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l = max_l, pol = pol, hyper = hyper , fmt = fmt ) + "\n"
 
 #Atom string method
     def __str__(self):
@@ -1012,7 +1019,7 @@ class Molecule( list ):
             at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
-    def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
+    def potline(self, max_l = 2 , pol = 22, hyper=2, fmt = "%.5f ",
             prop_point = None,
             ):
         string = ""
@@ -1497,11 +1504,14 @@ class Molecule( list ):
 
         f_at = lambda x: map(float, x.get_mol_line().split()[1:] )
         f_prop = lambda x: map(float,x.split()[1:4])
+
+        self.populate_bonds()
         if bonds:
-            self.populate_bonds()
             relevant = sorted( self.get_ats_and_bonds(), key = f_at)
         else:
             relevant = sorted( self, key = f_at)
+        for center in relevant:
+            center.p = Property()
 
         lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         try:
@@ -3445,7 +3455,7 @@ Plot Cluster a 3D frame in the cluster
 # This is the old *QMMM input style in dalton, also valid for PointDipoleList
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
-            hyp = 1,
+            hyp = 2,
 #set center to true to avoid emply loprop atom lines in output, good to make matrices smaller in pointdipole list
             center = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
@@ -3465,8 +3475,10 @@ Plot Cluster a 3D frame in the cluster
 
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
+            st += "%d %d %d %d\n" % (sum([len(center.get_ats_and_bonds()) for center in self if center.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
+
+            st += "".join( [center.potline(max_l, pol, hyp) for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp] )
+
             st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_Property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
