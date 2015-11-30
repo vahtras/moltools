@@ -3467,6 +3467,7 @@ Return a cluster of water molecules given file.
                             "x" : float(i[30:38].strip()),
                             "y" : float(i[38:46].strip()),
                             "z" : float(i[46:54].strip()),
+                            "pdb_name" : i[11:16].strip(),
                             "element": i[11:16].strip()[0],
                             "number" : i[6:11].strip()  }
                     tmpAtom = Atom( **kwargs )
