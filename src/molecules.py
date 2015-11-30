@@ -3738,7 +3738,7 @@ Return a cluster of water molecules given file.
             ):
         """Attach properties to all molecules in this cluster"""
         for mol in self:
-            mol.attach_properties2( model = model,
+            mol.attach_properties( model = model,
                     method = method,
                     basis = basis,
                     loprop = loprop,
