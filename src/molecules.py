@@ -78,6 +78,45 @@ class UnitException( Exception ):
         self.unit = unit
         self.label = label
         
+class Bond(object):
+    """Docstring for Bond. """
+    def __init__(self, at1, at2 ):
+        """TODO: to be defined1. """
+        self._r = None
+        self._Property = None
+        self._Atom1 = at1
+        self._Atom2 = at2
+        self._r = (at2.r - at1.r)/2.0 + at1.r
+        self.element = 'X'
+
+    def get_mol_line(self, lab = None):
+        if lab is None:
+            lab = 'X-%s-%s' %(self._Atom1.pdb_name, self._Atom2.pdb_name, )
+        return "{0:15s}{1:10.5f}{2:10.5f}{3:10.5f}\n".format( lab, self.r[0], self.r[1], self.r[2] ) 
+    @property
+    def r(self):
+        if self._r is not None:
+            return self._r
+    @r.setter
+    def r(self, val):
+        assert len(val) == 3
+        self._r = val
+
+    @property
+    def p(self):
+        if self._Property is not None:
+            return self._Property
+        return Property()
+    @p.setter
+    def p(self, val):
+        self._Property = val
+
+#Method of Bond
+    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
+        return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
+                str(self._Atom1.Molecule.cluster_order), *self.r ) + self.p.potline( max_l, pol, hyper, fmt ) + "\n"
+
+
 
 class Atom(object):
 
@@ -136,7 +175,9 @@ AA       True     bool
 
 
 # Use populate_bonds in class Molecule to attach all atoms to their neighbours
-        self.bonds = {}
+#bonds is list of class Bond
+        self._bonds = None
+
         self.angles = {}
         self.dihedrals = {}
 
@@ -180,13 +221,30 @@ AA       True     bool
             self._res_id = kwargs.get( "res_id", None )
             self._chain_id = kwargs.get( "chain_id", None )
         self._mass = None
-
 #Check if atom has same coordinate and element as other
     def equal(self, other):
         if np.allclose( self.r, other.r, atol = 1e-5 ) and self.element == other.element:
             return True
         return False
 
+    @property
+    def bonds( self ):
+        if self._bonds is not None:
+            return self._bonds
+        self._bonds = []
+        #Can add other stuff here later
+        return self._bonds
+
+    @bonds.setter
+    def bonds( self, val ):
+        self._bonds  = val
+
+#Add a bond for this atom to the other atom
+    def add_bond( self, b ):
+        if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
+            logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
+            return
+        self.bonds.append( b )
 
 #Chain for this atom
     @property
@@ -569,23 +627,24 @@ Plot Atom in a 3D frame
         return 0
 
 #Method of Atom
-    def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
+    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
-                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l, pol, hyper, fmt ) + "\n"
+                str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l = max_l, pol = pol, hyper = hyper , fmt = fmt ) + "\n"
 
 #Atom string method
     def __str__(self):
         return "%s %f %f %f" %(self.label, self.x, self.y, self.z)
-    def __repr__(self):
-        st = '"A%d' %self.order
-        if self.Molecule:
-            st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
-            if self.Molecule.Cluster:
-                st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
-                if self.Molecule.Cluster.System:
-                    st.rstrip('"')
-                    st += '-S"'
-        return st
+
+    #def __repr__(self):
+    #    st = '"A%d' %self.order
+    #    if self.Molecule:
+    #        st = st.rstrip('"') +  '-M%d"' %self.Molecule.cluster_order
+    #        if self.Molecule.Cluster:
+    #            st = st.rstrip('"') + '-C%d"' %self.Molecule.Cluster.system_order
+    #            if self.Molecule.Cluster.System:
+    #                st.rstrip('"')
+    #                st += '-S"'
+    #    return st
 
     def __add__(self, other):
         return Molecule( self, other )
@@ -625,6 +684,8 @@ Return the distance to a point
             self.x /= a0
             self.y /= a0
             self.z /= a0
+            for b in self.bonds:
+                b.r /= a0
             self.AA = False
 
     def to_AA(self):
@@ -632,6 +693,8 @@ Return the distance to a point
             self.x *= a0
             self.y *= a0
             self.z *= a0
+            for b in self.bonds:
+                b.r *= a0
             self.AA = True
 
 class Molecule( list ):
@@ -706,6 +769,21 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+
+#To return all atoms and bonds in molecule
+    def get_ats_and_bonds(self):
+        """Important not to overwrite bonds which has properties, just return"""
+        tot = []
+        bond_visited = []
+        for at in self:
+            tot.append( at )
+            for b in at.bonds:
+                if any( (b.r == x.r).all() for x in bond_visited ):
+                    continue
+                bond_visited.append( b )
+                tot.append( b )
+        return tot
+
 #Unique identifier which will produce file name string unique to this residue
     def file_label( self, freq = True ):
         if freq:
@@ -725,6 +803,10 @@ class Molecule( list ):
             return "_".join( map(str, [self.res_name, self.res_id ]) )
 
 
+    @property
+    def bonds(self):
+        b = reduce(lambda a, x: a + x, [a.bonds for a in self], [] )
+        return b
 
 #Molecule chain_id
     @property
@@ -936,7 +1018,7 @@ class Molecule( list ):
             at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
-    def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
+    def potline(self, max_l = 2 , pol = 22, hyper=2, fmt = "%.5f ",
             prop_point = None,
             ):
         string = ""
@@ -1387,13 +1469,19 @@ class Molecule( list ):
             pol = 22,
             hyp = 2,
             decimal = 7,
-            freqs = None,
+            freq = None,
+            bonds = None,
             ):
         if tmpdir is None:
             tmpdir = "/tmp"
         if f_ is None:
             print "Supply .tar.gz file from dalton quadratic .QLOP calculation"
             return
+        if freq == None:
+            freq = 0.0
+        else:
+            freq = float(freq)
+ 
         import tarfile
 #Using Olavs external scripts
         tarfile.open( f_, 'r:gz' ).extractall( tmpdir )
@@ -1402,33 +1490,42 @@ class Molecule( list ):
                     max_l = maxl,
                     pol = pol,
                     pf = penalty_function( 2.0 ),
-                    freqs = (freqs,)
+                    freqs = (freq,)
                     ).output_potential_file(
                             maxl = maxl,
                             pol = pol,
                             hyper = hyp,
                             decimal = decimal,
+                            bond_centers = bonds,
                             )
         except IOError:
             print tmpdir
-        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
-        if not len(lines) == len(self):
-            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
-            raise SystemExit
 
-        f_at = lambda x: map(float,x.get_mol_line().split()[1:])
+        f_at = lambda x: map(float, x.get_mol_line().split()[1:] )
         f_prop = lambda x: map(float,x.split()[1:4])
+
+        self.populate_bonds()
+        if bonds:
+            relevant = sorted( self.get_ats_and_bonds(), key = f_at)
+        else:
+            relevant = sorted( self, key = f_at)
+        for center in relevant:
+            center.p = Property()
+
+        lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
         try:
-            assert len( self ) == len( lines )
+            assert len( relevant ) == len( lines )
         except:
             logging.error("Some error went undetected despite creating .tar.gz and .out files")
             return
-        for at, prop in zip(sorted(self, key = f_at), sorted( lines, key = f_prop )):
-            at.Property = Property.from_propline( prop ,
+
+
+        for center, prop in zip( relevant, sorted( lines, key = f_prop )):
+            center.p = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
                     hyper = hyp )
-        self.freq = freqs
+            center.p.freq = freq
         self.LoProp = True
         self.Property = False
 
@@ -1447,7 +1544,8 @@ class Molecule( list ):
             log = None,
             keep_outfile = False,
             keep_targzfile = False,
-            freq = None
+            freq = None,
+            bonds = False,
             ):
         """
         Will generate a .mol file of itself, run a DALTON calculation as a
@@ -1607,6 +1705,7 @@ class Molecule( list ):
                             pol = pol,
                             hyper = hyper,
                             decimal = decimal,
+                            bond_centers = bonds, 
                             )
         except UnboundLocalError:
             logging.error("Some error in LoProp, check so that the latest source is in PYTHONPATH")
@@ -1679,41 +1778,30 @@ class Molecule( list ):
             i.name = i.element + str(i.number)
 
     def populate_bonds(self, cluster = False):
+        for at in self:
+            at.bonds = []
 #Implement later that it can only be called once
-        for i, at in enumerate( self ):
-            at.bonds = {}
-
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
 
 #Populate bonds on cluster level
-        if cluster:
-            for a1, a2 in itertools.product( self.Cluster.atoms, self.Cluster.atoms ):
-                if a1 == a2:
-                    continue
-                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    if a1 not in a2.Molecule:
-                        if a1.element != 'C':
-                            continue
-                    a1.bonds[ a2.name ] = a2
-                    a2.bonds[ a1.name ] = a1
-        else:
-            for a1, a2 in itertools.product( self, self ):
-                if a1 == a2:
-                    continue
-                if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                    a1.bonds[ a2.name ] = a2
-                    a2.bonds[ a1.name ] = a1
+        for i2 in range( 1, len(self) ):
+            for i1 in range( i2 ):
+                if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
 
+                    b = Bond( self[i1], self[i2] )
+                    self[i1].add_bond( b )
+                    self[i2].add_bond( b )
 
     def populate_angles(self):
-        self.populate_bonds()
-        for at1 in self:
-            for at2 in [at2 for at2 in at1.bonds.values()]:
-                for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
-                    at1.angles[(at2.name,at3.name)] = at3
+        pass
+    #    self.populate_bonds()
+    #    for at1 in self:
+    #        for at2 in [at2 for at2 in at1.bonds.values()]:
+    #            for at3 in [at3 for at3 in at2.bonds.values() if at3 is not at1 ]:
+    #                at1.angles[(at2.name,at3.name)] = at3
 
     @staticmethod
     def from_charmm_file( f):
@@ -1805,7 +1893,7 @@ class Molecule( list ):
         return self._Property
     @Property.setter
     def Property(self, val):
-        if val is None:
+        if val is None or val is False:
             self._Property = val
             return
         #if self.LoProp is None:
@@ -1831,17 +1919,22 @@ Return the sum properties of all properties in molecules
             return self.Property
         coc = self.coc
         conv = 1.0
+        p = Property()
+
         if self.AA:
             conv = 1/a0
-        el_dip = np.array([ conv*(at.r-coc)*at.Property['charge'] for mol in self for at in mol])
-        nuc_dip = np.array([ conv*(at.r-coc)*charge_dict[at.element] for mol in self for at in mol])
-        dip_lop = np.array([at.Property['dipole'] for mol in self for at in mol])
+        el_dip = np.array([ conv*(center.r-coc)*center.p.q for center in self.get_ats_and_bonds() ])
+
+        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for center in self.get_ats_and_bonds()])
+
+        dip_lop = np.array([center.p.d for center in self.get_ats_and_bonds()])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
-        p = Property()
-        for at in self:
-            p += at.Property
-        p['dipole'] = d
+        p.d = d
+        for center in self.get_ats_and_bonds():
+            p.q += center.p.q
+            p.a += center.p.a
+            p.b += center.p.b
         return p
 
 #Vector pointing to center of atom position
@@ -2000,11 +2093,11 @@ Plot Molecule in a 3D frame
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 #Plot bonds
-        for atom in copy:
-            for key in atom.bonds.values():
-                ax.plot( [key.x, atom.x],
-                         [key.y, atom.y],
-                         [key.z, atom.z], color = 'black' )
+        for at in copy:
+            for bond in at.bonds:
+                ax.plot( [at.x, bond._Atom2.x],
+                         [at.y, bond._Atom2.y],
+                         [at.z, bond._Atom2.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -2034,6 +2127,7 @@ Plot Molecule in a 3D frame
     def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" )):
         return self.get_mol_string( basis = basis)
+
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
         "ano-2 5 4 1" ) ):
         if len( basis ) > 1:
@@ -2056,6 +2150,27 @@ Plot Molecule in a 3D frame
             for i in [all_el for all_el in ats if (all_el.element == el) ]:
                 st += i.get_mol_line()
         return st
+
+    def get_bond_and_xyz(self, ):
+        st = ''
+        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
+        uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
+
+        self.populate_bonds()
+        bonds_outputted = []
+        for el in uni:
+            for at in [all_el for all_el in ats if (all_el.element == el) ]:
+                st += at.get_mol_line()
+                for b in at.bonds:
+                    if any( (b.r == x).all() for x in bonds_outputted ):
+                        continue
+                    st += b.get_mol_line( lab = 'XX-%s-%s' %(at.pdb_name, b._Atom2.pdb_name))
+                    bonds_outputted.append( b.r )
+                         
+
+        return st
+
+
 
     def get_pdb_string(self):
         st = """"""
@@ -3341,7 +3456,7 @@ Plot Cluster a 3D frame in the cluster
 # This is the old *QMMM input style in dalton, also valid for PointDipoleList
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
-            hyp = 1,
+            hyp = 2,
 #set center to true to avoid emply loprop atom lines in output, good to make matrices smaller in pointdipole list
             center = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
@@ -3361,8 +3476,10 @@ Plot Cluster a 3D frame in the cluster
 
 #Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
         if ignore_qmmm:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp) for mol in self for at in mol if mol.LoProp] )
+            st += "%d %d %d %d\n" % (sum([len(center.get_ats_and_bonds()) for center in self if center.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
+
+            st += "".join( [center.potline(max_l, pol, hyp) for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp] )
+
             st += "".join( [mol.potline(max_l, pol, hyp) for mol in self if mol.is_Property ] )
         else:
             st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
@@ -3673,9 +3790,8 @@ Return a cluster of water molecules given file.
 #Special cluster method when dealing with different molecules in a clusters
 # By defalt only connet atoms in the peptide, meaning carbons
     def populate_bonds(self ):
-
-        for i, at in enumerate( self.atoms ):
-            at.bonds = {}
+        for at in self:
+            at.bonds = []
         if self.AA:
             conv = 1.0
         else:
@@ -3772,6 +3888,7 @@ Return a cluster of water molecules given file.
             log = None,
             keep_outfile = False,
             freq = None,
+            bonds = False,
             ):
         """Put properties on all class/sublass of Molecules in Cluster"""
         for mol in [m for m in self if isinstance(m, Molecule)]:
@@ -3789,6 +3906,7 @@ Return a cluster of water molecules given file.
                     log = log,
                     keep_outfile = False,
                     freq = freq,
+                    bonds = bonds,
                     )
 
 
