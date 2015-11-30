@@ -240,8 +240,7 @@ AA       True     bool
         self._bonds  = val
 
 #Add a bond for this atom to the other atom
-    def add_bond( self, atom ):
-        b = Bond( self, atom )
+    def add_bond( self, b ):
         if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
             logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
             return
@@ -1791,8 +1790,10 @@ class Molecule( list ):
         for i2 in range( 1, len(self) ):
             for i1 in range( i2 ):
                 if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
-                    self[i1].add_bond( self[i2] )
-                    self[i2].add_bond( self[i1] )
+
+                    b = Bond( self[i1], self[i2] )
+                    self[i1].add_bond( b )
+                    self[i2].add_bond( b )
 
     def populate_angles(self):
         pass
