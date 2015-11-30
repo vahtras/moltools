@@ -115,7 +115,7 @@ class Property( dict ):
         return np.einsum('ijj,i', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
 
 #Method of Property
-    def potline(self, max_l =2 , pol= 22, hyper=2, fmt = "%.5f "):
+    def potline(self, max_l =2 , pol= 22, hyper=2, fmt = "%.7f "):
         string = ""
         if 0  <= max_l :
             string += fmt % self["charge"]
