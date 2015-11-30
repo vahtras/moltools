@@ -3947,15 +3947,15 @@ Return a cluster of water molecules given file.
 
         if self.AA:
             conv = 1/a0
-        el_dip = np.array([ conv*(center.r-coc)*center.p.q for center in mol.get_ats_and_bonds() for mol in self ])
+        el_dip = np.array([ conv*(center.r-coc)*center.p.q for mol in self for center in mol.get_ats_and_bonds()])
 
-        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for center in mol.get_ats_and_bonds() for mol in self])
+        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for mol in self for center in mol.get_ats_and_bonds()])
 
-        dip_lop = np.array([center.p.d for center in mol.get_ats_and_bonds() for mol in self])
+        dip_lop = np.array([center.p.d for mol in self for center in mol.get_ats_and_bonds() ])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
         p.d = d
-        for center in [c for c in mol.get_ats_and_bonds() for mol in self]:
+        for center in [c for mol in self for c in mol.get_ats_and_bonds()]:
             p.q += center.p.q
             p.a += center.p.a
             p.b += center.p.b
