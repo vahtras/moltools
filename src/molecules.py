@@ -89,6 +89,10 @@ class Bond(object):
         self._r = (at2.r - at1.r)/2.0 + at1.r
         self.element = 'X'
 
+    @property
+    def len(self):
+        return self._Atom1.dist_to_atom( self._Atom2 )
+
     def get_mol_line(self, lab = None):
         if lab is None:
             lab = 'X-%s-%s' %(self._Atom1.pdb_name, self._Atom2.pdb_name, )
