@@ -28,7 +28,7 @@ before_install:
   - git submodule update --init --recursive
 
 install:
-  pip install coveralls matplotlib numpy cython
+  pip install coveralls matplotlib numpy cython h5py
 
 #Build cythonized version of particles solver
 #before_script:
