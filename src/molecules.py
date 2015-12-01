@@ -3016,6 +3016,7 @@ class Cluster(list):
             pol = 22,
             hyp = 2,
             model = 'pointdipole',
+            bonds = False,
             cell = False,
             cell_cutoff = 25.0, 
             ):
@@ -3042,7 +3043,7 @@ class Cluster(list):
             init_f = functools.partial( opts[model].cell_from_string, co = float(cell_cutoff) ) 
         else:
             init_f = opts[model].from_string
-        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp))
+        g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp, bonds = bonds))
         if aa:
             self.to_AA()
         return g
@@ -3459,6 +3460,7 @@ Plot Cluster a 3D frame in the cluster
             center = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
             ignore_qmmm = True,
+            bonds = False,
             fmt = "%.7f "
             ):
 
@@ -3474,18 +3476,26 @@ Plot Cluster a 3D frame in the cluster
         if hyp == 0:
             hyp_int = 1
 
-#Temporary fix for beta_water project, ignore_qmmm can't have centralized properties
-        if ignore_qmmm:
+#If bonds is true, put all bond points in
+        if bonds:
             st += "%d %d %d %d\n" % (sum([len(center.get_ats_and_bonds()) for center in self if center.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
 
             st += "".join( [center.potline(max_l, pol, hyp, fmt = fmt) for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp] )
 
             st += "".join( [mol.potline(max_l, pol, hyp, fmt = fmt) for mol in self if mol.is_Property ] )
+
         else:
-            st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
-                    max_l, pol, 1 )
-            st += "".join( [at.potline(max_l, pol, hyp, fmt = fmt) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
-            st += "".join( [mol.potline(max_l, pol, hyp, fmt = fmt) for mol in self if mol.in_mm and mol.is_Property ] )
+            if ignore_qmmm:
+                st += "%d %d %d %d\n" % (sum([len(center) for center in self if center.LoProp]) + len([m for m in self if m.is_Property]), max_l, pol, 1 )
+
+                st += "".join( [center.potline(max_l, pol, hyp, fmt = fmt) for mol in self for center in mol if mol.LoProp] )
+
+                st += "".join( [mol.potline(max_l, pol, hyp, fmt = fmt) for mol in self if mol.is_Property ] )
+            else:
+                st += "%d %d %d %d\n" % (sum([len(i) for i in self if i.in_mm ]), 
+                        max_l, pol, 1 )
+                st += "".join( [at.potline(max_l, pol, hyp, fmt = fmt) for mol in self for at in mol if mol.in_mm and mol.LoProp] )
+                st += "".join( [mol.potline(max_l, pol, hyp, fmt = fmt) for mol in self if mol.in_mm and mol.is_Property ] )
         return st
 
     def get_xyz_string_qmmm(self, both= False, qm_region = False, mm_region = False ):
