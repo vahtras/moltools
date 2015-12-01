@@ -1,6 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/moltools/badge/?version=docs)](https://readthedocs.org/projects/moltools/?badge=docs)
 [![Build Status](https://travis-ci.org/fishstamp82/moltools.svg?branch=master)](https://travis-ci.org/fishstamp82/moltools)
-[![Coverage Status](https://img.shields.io/coveralls/fishstamp82/moltools.svg)](https://coveralls.io/r/fishstamp82/moltools?branch=master)
+[![Coverage Status](https://coveralls.io/repos/fishstamp82/moltools/badge.svg?branch=master&service=github)](https://coveralls.io/github/fishstamp82/moltools?branch=master)
 
 
 #Welcome to moltools!
