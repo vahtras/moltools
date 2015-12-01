@@ -6,6 +6,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from use_generator import Generator
+from utilz import takes_time
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )

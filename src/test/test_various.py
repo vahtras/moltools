@@ -198,7 +198,7 @@ class WaterTest( unittest.TestCase ):
     def test_reflection(self):
         """docstring for test_reflection"""
         w = Water.get_standard()
-        w.attach_properties2( force_template = True)
+        w.attach_properties( force_template = True)
 
         w.rotate( 0, np.pi/3.0, 0 )
 
@@ -212,7 +212,7 @@ class WaterTest( unittest.TestCase ):
 
     def test_reflection2(self):
         w = Water.get_standard()
-        w.attach_properties2( force_template = True )
+        w.attach_properties( force_template = True )
 
         q = w.p.q
         d = w.p.d.copy()
