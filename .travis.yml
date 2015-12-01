@@ -22,12 +22,16 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install libhdf5-serial-dev
   - git submodule update --init --recursive
+
+install:
+  pip install coveralls matplotlib numpy cython
+
+#Build cythonized version of particles solver
+before_script:
   - cd src/pd
   - python setup.py build_ext --inplace
   - cd ../..
 
-install:
-  pip install coveralls matplotlib numpy cython
 script: 
   nosetests -a 'speed=slow' -a 'speed=fast' --cover-erase --with-coverage --cover-package=pdbreader,molecules,read_dal,template,ut
 after_success:
