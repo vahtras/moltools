@@ -3260,11 +3260,10 @@ class Cluster(list):
     def molecules(self):
         for mol in [mol for mol in self if isinstance(mol,Molecule)]:
             yield mol
-# Atoms iterator
+# Atoms list for cluster
     @property
     def atoms(self):
-        for atom in [at for mol in self for at in mol]:
-            yield atom
+        return [at for mol in self for at in mol]
    
 # Center of charge of Cluster
     @property
@@ -3298,19 +3297,18 @@ Plot Cluster a 3D frame in the cluster
         if center:
             copy.translate( -self.com )
 
-        copy.populate_bonds()
 
 #Plot in nice xyz axis
+        copy.populate_bonds()
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d' )
 
 #Plot bonds
-        for mol in [mol for mol in copy if isinstance( mol, Molecule) ]:
-            for atom in mol:
-                for key in atom.bonds.values():
-                    ax.plot( [key.x, atom.x],
-                             [key.y, atom.y],
-                             [key.z, atom.z], color = 'black' )
+        for at in self.atoms:
+            for bond in at.bonds:
+                ax.plot( [at.x, bond._Atom2.x],
+                         [at.y, bond._Atom2.y],
+                         [at.z, bond._Atom2.z], color = 'black' )
 
         ax.plot( [0, 1, 0, 0, 0, 0], [0,0 ,0,1,0,0], [0,0,0,0,0,1] )
         ax.text( 1.1, 0, 0, "X", color = 'red' )
@@ -3791,22 +3789,23 @@ Return a cluster of water molecules given file.
 
 #Special cluster method when dealing with different molecules in a clusters
 # By defalt only connet atoms in the peptide, meaning carbons
-    def populate_bonds(self ):
-        for at in self:
+
+    def populate_bonds(self, cluster = False):
+        for at in self.atoms:
             at.bonds = []
+#Implement later that it can only be called once
         if self.AA:
             conv = 1.0
         else:
             conv = 1/a0
-        for a1, a2 in itertools.product( self.atoms, self.atoms ):
-            if a1 == a2:
-                continue
-            if a1.dist_to_atom( a2 ) < conv*bonding_cutoff[(a1.element, a2.element)]:
-                if (a1 in a1.Molecule) and (a2 not in a1.Molecule):
-                    if a1.element != 'C':
-                        continue
-                a1.bonds[ a2.name ] = a2
-                a2.bonds[ a1.name ] = a1
+
+#Populate bonds on cluster level
+        for i2 in range( 1, len(self.atoms) ):
+            for i1 in range( i2 ):
+                if self.atoms[i1].dist_to_atom( self.atoms[i2] ) < conv*bonding_cutoff[(self.atoms[i1].element, self.atoms[i2].element)]:
+                    b = Bond( self.atoms[i1], self.atoms[i2] )
+                    self.atoms[i1].add_bond( b )
+                    self.atoms[i2].add_bond( b )
 
 #Cluster method for angles
     def populate_angles(self):
