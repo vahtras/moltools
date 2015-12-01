@@ -1,6 +1,6 @@
 [submodule "src/loprop"]
 	path = src/loprop
-	url = git@github.com:fishstamp82/loprop.git
+	url = https://github.com/fishstamp82/loprop.git
 [submodule "src/pd"]
 	path = src/pd
-	url = git@github.com:fishstamp82/pd.git
+	url = https://github.com/fishstamp82/pd.git
