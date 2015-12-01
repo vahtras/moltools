@@ -2,18 +2,28 @@ language: python
 python:
   - 2.7.10
 
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-# install: PLEASE CHANGE ME
-# command to run tests, e.g. python setup.py test
-#
+#blacklist:
+branches:
+  except:
+    - dev
+    - bond_clas
 
+#whitelist:
+branches:
+  only:
+    - master
+    - stable
 
 before-install:
   - sudo apt-get update -qq
   - sudo apt-get install libhdf5-dev
+  - git submodule update --init --recursive
+
 install:
   pip install coveralls matplotlib numpy cython
 script: 
   nosetests -a 'speed=slow' -a 'speed=fast' --cover-erase --with-coverage --cover-package=pdbreader,molecules,read_dal,template,ut
 after_success:
   coveralls
+
+
