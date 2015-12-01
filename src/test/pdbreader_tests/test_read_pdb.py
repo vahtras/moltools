@@ -1,6 +1,6 @@
 import os, re, math, sys, argparse, subprocess, numpy, tarfile
-from daltools import one, mol, dens, prop, lr
-from daltools.util import full, blocked, subblocked, timing
+from loprop.daltools import one, mol, dens, prop, lr
+from loprop.daltools.util import full, blocked, subblocked, timing
 from operator import attrgetter
 from pdbreader import *
 from nose.plugins.attrib import attr

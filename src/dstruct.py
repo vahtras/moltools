@@ -2,7 +2,7 @@ import numpy as np
 import molecules
 import copy, itertools
 
-import particles
+from pd import particles
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092

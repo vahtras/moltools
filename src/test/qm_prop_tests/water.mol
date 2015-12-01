@@ -1,0 +1,9 @@
+ATOMBASIS
+
+
+Atomtypes=2 Charge=0 Nosymm
+Charge=1.0 Atoms=2 Basis=ano-1 2
+0-MOL-HW2        -1.43043   0.00000   1.10716
+0-MOL-HW1         1.43043   0.00000   1.10716
+Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
+0-MOL-OW          0.00000   0.00000   0.00000

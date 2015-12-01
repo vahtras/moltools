@@ -1,6 +1,6 @@
 import unittest, os
 import numpy as np
-from particles import PointDipoleList
+from pd.particles import PointDipoleList
 from molecules import Cluster, Atom
 import warnings
 warnings.simplefilter('error')
