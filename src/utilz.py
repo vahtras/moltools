@@ -308,6 +308,14 @@ def alpha_aniso( a ):
     assert a.shape == (3,3,)
     return np.sqrt( (np.einsum('ij,ij', 3*a, a) - np.einsum('ii,jj', a, a )) /2 )
 
+def alpha_aniso2( a ):
+    a = ut2s( a )
+    assert a.shape == (3,3,)
+    tot = np.sqrt ((a[ 0, 0 ] - a[ 1, 1 ])**2 + (a[ 1, 1 ] - a[ 2, 2 ])**2 + (a[ 2, 2 ] - a[ 0, 0 ])**2 + 6*a[0, 2]**2 + 6*a[0, 1]**2 +6*a[1, 2]**2 )
+    return np.sqrt(1/2.0)*tot
+
+
+
 
 def b_para( b, p = None ):
     """Given beta in either UT or full tensor form, and dipole moment

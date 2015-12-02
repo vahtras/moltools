@@ -1361,6 +1361,13 @@ class UtilzTestCase( unittest.TestCase ):
         m2 = electric_dipole_moment( p_n, q_n, p_e, q_e )
         np.testing.assert_allclose( m1, m2 )
 
+    def test_alpha_aniso2(self):
+        test = np.random.random( 6 )
+        a1 = utilz.alpha_aniso( test )
+        a2= utilz.alpha_aniso2( test )
+        np.testing.assert_allclose( a1, a2 , atol =1e-7 )
+
+
 
 if __name__ == '__main__':
     unittest.main()
