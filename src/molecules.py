@@ -1412,7 +1412,7 @@ class Molecule( list ):
         else:
             self.Property = Property.from_template( 'X', templ )
 
-        t1, t2, t3 = self.get_euler( key = euler_key )
+        #t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
             at.p.d = np.einsum('ij,j', R, at.p.d )
             at.p.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.a) ) )
