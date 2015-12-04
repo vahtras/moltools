@@ -3,6 +3,8 @@ from molecules import Property
 from nose.plugins.attrib import attr
 import unittest
 
+from nose.tools import nottest
+
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 first_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO1.p' )
 second_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO2.p' )
@@ -175,7 +177,9 @@ class TestConcapsLevel1( unittest.TestCase ):
         ats = reduce( lambda a,x : a+x, resi )
         assert len(ats) == 39
 
+    @nottest
     def test_mfcc_first(self):
+        logging.warning("Test not implemented")
         first = self.ch[0]
         second = self.ch[1]
 
