@@ -41,6 +41,15 @@ mass_dict = { "H" : 1.0 , "C" : 12.0 , "N" : 14.0 , "O" : 16.0 , "S" : 32.0 }
 pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
 
 
+pdb_dist_dict = { "CA" : 1.1, "CD" : 1.1, 
+        "SG" : 1.1, "N" : 1.1, "C": 1.1,
+        "N1" : 1.1, "C3" : 1.1, "CA1" : 1.1, "CA3" : 1.1,
+        "CB" : 1.1, "C1": 1.1 , "N3" : 1.1,
+        "CB1" :1.1, "CB2" :1.1,
+}
+
+
+
 
 def all_residues_from_pdb_file( _file,
         in_AA = True,
@@ -144,7 +153,7 @@ def get_rep_2( con_list, rep_list, pat_rep, pat_con ):
                 if at2.pdb_name == pat_con[at.pdb_name][0]:
                     real_at = at2.copy()
             C = real_at
-            dist = Pattern().pdb_dist_dict[ C.pdb_name ]
+            dist = pdb_dist_dict[ C.pdb_name ]
             C = C.r
             tmp_atom.x, tmp_atom.y, tmp_atom.z = C + (H - C) * dist / np.linalg.norm(H - C)
             tmp_atomlist.append( tmp_atom )
@@ -162,7 +171,7 @@ def get_replacement( atom_list, pat_rep, pat_con, same = True ):
                 if at2.pdb_name == pat_con[at.pdb_name][0]:
                     real_at = at2.copy()
             C = real_at
-            dist = Pattern().pdb_dist_dict[ C.pdb_name ]
+            dist = pdb_dist_dict[ C.pdb_name ]
             C = C.r
             tmp_atom.x, tmp_atom.y, tmp_atom.z = C + (H - C) * dist / np.linalg.norm(H - C)
             tmp_atomlist.append( tmp_atom )
@@ -228,7 +237,7 @@ class Pattern( dict ):
         init argument is an integer determining level of capping, (1, 2, 3 ) implemented (see below)
 
         XH is the label of a hydrogen which has replaced previously heavy atom, and scaled
-        with distance according to the heavy atom types distance in self.pdb_dist_dict
+        with distance according to the heavy atom types distance in pdb_dist_dict
 
         0: Cap with single hydrogens (not impl.)
 
@@ -266,13 +275,6 @@ class Pattern( dict ):
 
     def __init__(self):
         self.pat_xyz = re.compile(r'^\s*(\w|-)+\s+(-*\d*.+\d+)\s+(-*\d*.+\d+)\s+(-*\d*.+\d+) *$')
-        self.pdb_dist_dict = { "CA" : 1.0, "CD" : 1.0, 
-                "SG" : 1.0, "N" : 1.0, "C": 1.0,
-                "N1" : 1.0, "C3" : 1.0, "CA1" : 1.0, "CA3" : 1.0,
-                "CB" : 1.0, "C1": 1.0 , "N3" : 1.0,
-                "CB1" :1.0, "CB2" :1.0,
-                }
-
 #Residues level 1 to add
         self[ ( 'reg', 'res', 'p', 'add', 1 ) ] = re.compile(r'C$|O$')
         self[ ( 'cus', 'res', 'p', 'add', 1 ) ] = re.compile(r'C3$|O3$')
@@ -2163,7 +2165,7 @@ class Chain( molecules.Cluster ):
                         H = tmp_atom.r
                         for others in (Pat.con_bri_b_b[ tmp_atom.pdb_name ] ):
                             C = j.getAtom( others )
-                            dist = Pat.pdb_dist_dict[ C.pdb_name ]
+                            dist = pdb_dist_dict[ C.pdb_name ]
                             C = C.r
                             tmp_atom.setXyz (C + (H - C) * dist / np.linalg.norm(H - C))
                             tmp_residue.add_atom( tmp_atom )
@@ -2177,7 +2179,7 @@ class Chain( molecules.Cluster ):
                         H = tmp_atom.r
                         for others in (Pat.con_bri_b_b[ tmp_atom.pdb_name ] ):
                             C = j.Bridge.getAtom( others )
-                            dist = Pat.pdb_dist_dict[ C.pdb_name ]
+                            dist = pdb_dist_dict[ C.pdb_name ]
                             C = C.r
                             tmp_atom.setXyz (C + (H - C) * dist / np.linalg.norm(H - C))
                             tmp_residue.add_atom( tmp_atom )
