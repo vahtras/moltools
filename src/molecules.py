@@ -2872,6 +2872,16 @@ class Cluster(list):
                 for item in args:
                     self.add( item, copy = copy )
 
+    def get_distance_matrix(self):
+
+        N = len(self.atoms)
+        mat = np.zeros( (N,N ) )
+        for i in range(1, self.atoms):
+            for j in range( i ):
+                mat[i, j] = self.atoms[i].dist_to_atom( self.atoms[j] )
+        return mat
+
+
     @staticmethod
     def rand_water_cluster(N = 10):
         c = Cluster()
