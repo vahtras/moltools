@@ -913,18 +913,18 @@ class NewResidue( molecules.Molecule ):
                 R.populate_bonds()
                 for hx in R.get_dummy_h():
                     assert len ( hx.bonds ) == 1
-                    hx.bonds[0].Property += hx.Property
+                    hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
                     R.remove( hx )
                 for R_at in R:
                     if R_at.label == at.label:
-                        p += R_at.Property
+                        p += R_at.p
                         print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
                         print p.q
             for C in self.get_relevant_concaps():
                 C.populate_bonds()
                 for hx in C.get_dummy_h():
                     assert len ( hx.bonds ) == 1
-                    hx.bonds.values()[0].Property += hx.Property
+                    hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
                     C.remove( hx )
                 for C_at in C:
                     if C_at.label == at.label:
@@ -1717,19 +1717,19 @@ class Residue( molecules.Molecule ):
 
     def get_relevant_residues(self):
         if self.n_term:
-            return [self.ready.copy(), self.Next.ready.copy()]
+            return map(deepcopy, [ self.ready, self.Next.ready ] )
         elif self.c_term:
-            return [self.ready.copy(), self.Prev.ready.copy()]
+            return map(deepcopy, [ self.ready, self.Prev.ready ] )
         else:
-            return [self.ready.copy(), self.Next.ready.copy(), self.Prev.ready.copy()]
+            return map(deepcopy, [ self.ready, self.Next.ready, self.Prev.ready ] )
 
     def get_relevant_concaps(self):
         if self.n_term:
-            return [self.con.copy()]
+            return map( deepcopy, [ self.con ] )
         elif self.c_term:
-            return [self.Prev.con.copy()]
+            return map( deepcopy, [ self.Prev.con ] )
         else:
-            return [self.con.copy(), self.Prev.con.copy()]
+            return map( deepcopy, [ self.con, self.Prev.con ] )
 
     def mfcc_props(self):
         """After this functions all atoms here have final properties.
