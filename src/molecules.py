@@ -43,7 +43,7 @@ bonding_cutoff = {
         ('H','X') : 0.0,
         ('H','H') : 0.2,
         ('H','C') : 1.155,
-        ('H','N') : 1.1,
+        ('H','N') : 1.155,
         ('H','O') : 1.1,
         ('H','P') : 1.1,
         ('H','S') : 1.3,
@@ -84,6 +84,7 @@ class Bond(object):
         """TODO: to be defined1. """
         self._r = None
         self._Property = None
+        self._label = None
         self._Atom1 = at1
         self._Atom2 = at2
         self._r = (at2.r - at1.r)/2.0 + at1.r
@@ -120,7 +121,20 @@ class Bond(object):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self._Atom1.Molecule.cluster_order), *self.r ) + self.p.potline( max_l, pol, hyper, fmt = fmt ) + "\n"
 
+    @property
+    def label(self):
+        if self._label is None:
+            _str = "-".join( map(str, [ self._Atom1.Molecule.res_id,
+                self._Atom2.Molecule.res_id,
+                self._Atom1.pdb_name,
+                self._Atom2.pdb_name,
+                ] 
+                ))
+            return _str
+        return self._label
 
+    def __str__(self):
+        return self.label + " " + " ".join(map(str,self.r))
 
 class Atom(object):
 
