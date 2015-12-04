@@ -39,10 +39,5 @@ class MfccTestCase( unittest.TestCase ):
                NewAtom(x=3, y = 1),
                )
 
-    @attr(speed = 'slow' )
-    def test_props_from_targz(self):
-        assert 0
-        pass
-
 if __name__ == '__main__':
     unittest.main()

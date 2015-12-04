@@ -911,7 +911,7 @@ class NewResidue( molecules.Molecule ):
                 R.populate_bonds()
                 for hx in R.get_dummy_h():
                     assert len ( hx.bonds ) == 1
-                    hx.bonds.values()[0].Property += hx.Property
+                    hx.bonds[0].Property += hx.Property
                     R.remove( hx )
                 for R_at in R:
                     if R_at.label == at.label:
@@ -1740,22 +1740,22 @@ class Residue( molecules.Molecule ):
                 R.populate_bonds()
                 for hx in R.get_dummy_h():
                     assert len ( hx.bonds ) == 1
-                    hx.bonds.values()[0].Property += hx.Property
+                    hx.bonds[0].p += hx.p
                     R.remove( hx )
                 for R_at in R:
                     if R_at.label == at.label:
-                        p += R_at.Property
+                        p += R_at.p
                         print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
                         print p.q
             for C in self.get_relevant_concaps():
                 C.populate_bonds()
                 for hx in C.get_dummy_h():
                     assert len ( hx.bonds ) == 1
-                    hx.bonds.values()[0].Property += hx.Property
+                    hx.bonds[0].p += hx.p
                     C.remove( hx )
                 for C_at in C:
                     if C_at.label == at.label:
-                        p -= C_at.Property
+                        p -= C_at.p
                         print "Subtracting charge from %s" %C_at.label
                         print p.q
             print "Finished with %s" %at.label
