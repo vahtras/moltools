@@ -250,6 +250,12 @@ AA       True     bool
             return
         self.bonds.append( b )
 
+    def t(self, r):
+        """translate by vector r"""
+        self.x = self.x + r[0]
+        self.y = self.y + r[1]
+        self.z = self.z + r[2]
+
 #Chain for this atom
     @property
     def Chain(self):
