@@ -2187,7 +2187,6 @@ Plot Molecule in a 3D frame
         if self.AA: s_ += " Angstrom"
 
 # Start Residue.get_mol_string specifics
-        print "ASDF"
         if not self.is_concap:
             if self.n_term:
                 charge += 1
@@ -2206,7 +2205,6 @@ Plot Molecule in a 3D frame
                     charge -= 1
                     break
 ##  // end of Residue
-        print "ASDF"
 
         ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
         uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
