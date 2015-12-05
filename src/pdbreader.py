@@ -463,8 +463,11 @@ class Pattern( dict ):
         #Extra dummy patterns
         self[ ( 'pro', 'con', 'nn_n', 'con', 2 ) ] = { }
         self[ ( 'pro', 'con', 'p_t', 'con', 2 ) ] = { }
+        self[ ( 'pro', 'con', 'pp_p', 'con', 2 ) ] = {}
+
         self[ ( 'reg', 'con', 'nn_n', 'con', 2 ) ] = { }
         self[ ( 'reg', 'con', 'p_t', 'con', 2 ) ] = { }
+        self[ ( 'reg', 'con', 'pp_p', 'con', 2 ) ] = {}
 
 #Concap level 3
         self[ ( 'reg', 'con', 'pp', 'con', 3 ) ] = { }
@@ -586,8 +589,15 @@ class Pattern( dict ):
         #Extra dummy patterns
         self[ ( 'pro', 'con', 'nn_n', 'rep', 2 ) ] = re.compile(r'DUMMY')
         self[ ( 'pro', 'con', 'p_t', 'rep', 2 ) ] = re.compile(r'DUMMY')
+        self[ ( 'pro', 'con', 'pp_p', 'rep', 2 ) ] = re.compile(r'DUMMY')
+
         self[ ( 'reg', 'con', 'nn_n', 'rep', 2 ) ] = re.compile(r'DUMMY')
         self[ ( 'reg', 'con', 'p_t', 'rep', 2 ) ] = re.compile(r'DUMMY')
+        self[ ( 'reg', 'con', 'pp_p', 'rep', 2 ) ] = re.compile(r'DUMMY')
+
+        #Extra dummy patterns
+
+
 
 #Concaps level 3
         self[ ( 'reg', 'con', 'pp', 'rep', 3 ) ] = re.compile(r'N$')
