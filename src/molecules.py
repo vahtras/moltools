@@ -2211,7 +2211,7 @@ Plot Molecule in a 3D frame
         ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
         uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=%1.1f Nosymm%s\n" %(len(uni), charge,  s_)
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=%d Nosymm%s\n" %(len(uni), charge,  s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in ats if (all_el.element == el)] ),
