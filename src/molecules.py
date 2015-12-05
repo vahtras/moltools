@@ -2172,11 +2172,12 @@ Plot Molecule in a 3D frame
         plt.show()
 
     def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" )):
-        return self.get_mol_string( basis = basis)
+        "ano-2 5 4 1" ), terminal = False):
+        return self.get_mol_string( basis = basis, 
+                terminal = terminal)
 
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" ) ):
+        "ano-2 5 4 1" ), terminal = False  ):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "He" : 0, "Li" : 1, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2 }
@@ -2186,30 +2187,31 @@ Plot Molecule in a 3D frame
         s_ = ""
         if self.AA: s_ += " Angstrom"
 
-# Start Residue.get_mol_string specifics
-        if not self.is_concap:
-            if self.n_term:
-                charge += 1
-            elif self.c_term:
-                charge -= 1
-            if self.res_name in res_dict:
-                if res_dict[ self.res_name ] in chargeDict:
-                    charge += chargeDict[ res_dict[ self.res_name] ]
-        if self._level == 3:
-            charge = 0
-            for at in self:
-                if at.pdb_name == "H1":
+        charge = 0.0
+# Start Residue specifics that take terminal charge into account
+        if terminal:
+            if not self.is_concap:
+                if self.n_term:
                     charge += 1
-                    break
-                if at.pdb_name == "OC1":
+                elif self.c_term:
                     charge -= 1
-                    break
+                if self.res_name in res_dict:
+                    if res_dict[ self.res_name ] in chargeDict:
+                        charge += chargeDict[ res_dict[ self.res_name] ]
+            if self._level == 3:
+                charge = 0
+                for at in self:
+                    if at.pdb_name == "H1":
+                        charge += 1
+                        break
+                    if at.pdb_name == "OC1":
+                        charge -= 1
+                        break
 ##  // end of Residue
-
         ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
         uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=%1.1f Nosymm%s\n" %(len(uni), charge,  s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in ats if (all_el.element == el)] ),

@@ -1210,11 +1210,9 @@ class Chain( molecules.Cluster):
             self.chain_id = args[0][0]._chain_id
 
 # To define N- /C- terminals and set Next/ Prev attributes
-    def set_terminals(self,):
+    def connect_residues(self,):
         self[0].n_term = True
         self[-1].c_term = True
-
-    def connect_residues(self,):
         for i, res in enumerate(self):
             if self[i].n_term:
                 self[i]._Next = self[i + 1]
@@ -1335,12 +1333,10 @@ Return the sum properties of all properties in System
         return p
 
 # To define N- /C- terminals and set Next/ Prev attributes
-    def set_terminals(self,):
+    def connect_residues(self,):
         for ch in self:
             ch[0].n_term = True
             ch[-1].c_term = True
-    def connect_residues(self,):
-        for ch in self:
             for i, res in enumerate(ch):
                 if ch[i].n_term:
                     ch[i]._Next = ch[i + 1]
