@@ -68,6 +68,19 @@ bonding_cutoff = {
         ('S','X') : 0.0,
         ('S','S') : 2.1,
     }
+
+res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
+        'PHE':'F','TYR':'Y','TRP':'W','SER':'S','THR':'T','ASN':'N', 'CRO':'X1',
+        'CRO1':'X1', 'CRO2':"X2",'CRO3':'X3','CRO4':'X4',
+        'GLN':'Q','CYS':'C','CH6': 'X1' ,'GLY':'G','PRO':'P','ARG':'R','HIS':'H',
+        'LYS':'K','ASP':'D','GLU':'E','SEC':'U','PYL':'U', 'HIP':'Z',
+        'HIE':'H','CYX':'C','HSE':'H','HID':'H','HSD':'H','HSP':'H2',"TIP3": 'T3',
+        'HIP':'H2','HYP':'PX', 'MOL' : 'X', 'WAT' : 'W1', 'SOL' : 'W1' }
+chargeDict = {'ARG':1, "LYS" : 1, "ASP":-1, "GLU":-1,
+            'R':1 , 'K':1 ,'H':0, 'H2':1 , 'E':-1 , 'D':-1, 'X2': 1}
+proline_dict = { "PRO" : "P", "HYP" : "PX" }
+custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
+
 #Make permutations of all bonding pair tuples 
 for key1, key2 in bonding_cutoff.keys():
     bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
@@ -738,13 +751,19 @@ class Molecule( list ):
         self._chain_id = None
         self._res_name = None
         self._freq = None
-        self._res_id = 0
+        self._res_id = None
         self._r = None
         self._com = None
         self._Cluster = None
         self._order  = None
         self._cluster_order  = None
         self.no_hydrogens = True
+        self.is_concap = False
+        self.is_ready = False
+        self.is_bridge = False
+        self.n_term = False
+        self.c_term = False
+        self._level = None
 
 
 # This will be set True if Property is represented by a point on molecule
@@ -1134,6 +1153,9 @@ class Molecule( list ):
             except IndexError:
                 warnings.warn("Looking up molecule that is empty")
                 return None
+#Will return different type if reloaded import in ipython
+            #except TypeError:
+            #    return self[ item ]
                 
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
@@ -1238,7 +1260,7 @@ class Molecule( list ):
         if self._res_id is not None:
             return self._res_id
         else:
-            return 1
+            return 0
 
     @property
     def res_name(self):
@@ -2163,8 +2185,30 @@ Plot Molecule in a 3D frame
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
-        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
 
+# Start Residue.get_mol_string specifics
+        print "ASDF"
+        if not self.is_concap:
+            if self.n_term:
+                charge += 1
+            elif self.c_term:
+                charge -= 1
+            if self.res_name in res_dict:
+                if res_dict[ self.res_name ] in chargeDict:
+                    charge += chargeDict[ res_dict[ self.res_name] ]
+        if self._level == 3:
+            charge = 0
+            for at in self:
+                if at.pdb_name == "H1":
+                    charge += 1
+                    break
+                if at.pdb_name == "OC1":
+                    charge -= 1
+                    break
+##  // end of Residue
+        print "ASDF"
+
+        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
         uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
