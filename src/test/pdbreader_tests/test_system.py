@@ -2,7 +2,7 @@ import unittest, os
 import numpy as np
 
 from molecules import Cluster, Atom, Water
-from pdbreader import NewSystem
+from pdbreader import System
 from use_generator import Generator
 from nose.plugins.attrib import attr
 
@@ -4361,12 +4361,12 @@ TER
 """
 
 @attr(speed = 'slow' )
-class NewSystemTest( unittest.TestCase ):
+class SystemTest( unittest.TestCase ):
 
     def setUp(self):
-        self.s1 = NewSystem.from_pdb_string( _string1 )
-        self.s2 = NewSystem.from_pdb_string( _string2 )
-        self.s3 = NewSystem.from_pdb_string( _string3 )
+        self.s1 = System.from_pdb_string( _string1 )
+        self.s2 = System.from_pdb_string( _string2 )
+        self.s3 = System.from_pdb_string( _string3 )
 
     def test_system(self):
         assert len( self.s1 ) == len( self.s2 )
@@ -4384,7 +4384,7 @@ class NewSystemTest( unittest.TestCase ):
         assert len(self.s1.atoms) == 1645
 
     def test_connections(self):
-        s1 = NewSystem.from_pdb_string( _string1 )
+        s1 = System.from_pdb_string( _string1 )
         s1.connect_everything()
         assert s1[0].System == s1
         assert s1[1].System == s1

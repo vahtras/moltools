@@ -14,7 +14,8 @@ class TestConcapsLevel1( unittest.TestCase ):
         """ Default arguments used for program 
         equivalent of argparser in pdbreader """
 
-        self.ch = S = System.read_protein_from_file ( FILE )
+        self.ch = S = System.from_pdb_string( open(FILE).read() )
+
 
         for chain in self.ch:
             chain.connect_residues()
@@ -31,7 +32,7 @@ class TestConcapsLevel1( unittest.TestCase ):
                 if res.res_name == "PRO":
                     if res.c_term:
                         continue
-                    assert len( res.con ) == 6
+                    assert len( res.concap ) == 6
 
     @timed(0.1)
     def test_concaps_level1( self, ):
@@ -41,7 +42,7 @@ class TestConcapsLevel1( unittest.TestCase ):
                 if res.res_name != "PRO":
                     if res.c_term:
                         continue
-                    assert len( res.con ) == 6
+                    assert len( res.concap ) == 6
 
     @timed(0.1)
     def test_collagen_level_1( self, ):

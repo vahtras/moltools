@@ -6,7 +6,7 @@ warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
 from molecules import Water
-from pdbreader import NewSystem, NewResidue, NewAtom
+from pdbreader import System, Residue, Atom
 
 WATER_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'hfqua_water.tar.gz')
 
@@ -1051,7 +1051,7 @@ ATOM  14    HCO  PRO C  29       0.009   3.416 -37.871                       H
 class OptimizedPpgTestCase( unittest.TestCase ):
 
     def setUp(self):
-        self.sys = NewSystem.from_pdb_string( _ppg_string )
+        self.sys = System.from_pdb_string( _ppg_string )
         self.ch1 = self.sys[0]
         self.ch1.connect_residues()
 
