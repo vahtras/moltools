@@ -784,34 +784,44 @@ class Residue( molecules.Molecule ):
     def mfcc_props(self):
         """After this functions all atoms here have final properties.
         """
-        for at in self:
+        self.populate_bonds()
+        for center_1 in self.get_ats_and_bonds():
             p = molecules.Property()
-            print "\nStarting with %s" %at.label
+            print "\nStarting with %s" %center_1.label
             print "Property at %.2f" % p['beta'][9]
-            for R in self.get_relevant_residues():
-                print R
-                for hx in R.get_dummy_h():
+            for res in self.get_relevant_residues():
+                print res
+                for hx in res.get_dummy_h():
                     assert len ( hx.bonds ) == 1
+                    print "Transfer props from fake hydrogen replacing: %s" %hx.pdb_name
                     hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                    R.remove( hx )
-                for R_at in R:
-                    if R_at.label == at.label:
-                        p += R_at.p
-                        print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
+                    print hx.bonds[0]._Atom2.p.q
+                    res.remove( hx )
+                    res.bonds.remove( hx.bonds[0] )
+
+                for center_2 in res.get_ats_and_bonds():
+                    if np.allclose( center_1.r, center_2.r ):
+                        p += center_2.p
+                        print "Adding charge from res: %s, label: %s" %(res.res_name+str(res.res_id), center_2.label)
                         print p.q
-            for C in self.get_relevant_concaps():
-                for hx in C.get_dummy_h():
+            for con in self.get_relevant_concaps():
+                for hx in con.get_dummy_h():
                     assert len ( hx.bonds ) == 1
+                    print "Transfer props from fake hydrogen replacing: %s" %hx.pdb_name
                     hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                    C.remove( hx )
-                for C_at in C:
-                    if C_at.label == at.label:
-                        p -= C_at.Property
-                        print "Subtracting charge from %s" %C_at.label
+                    print hx.bonds[0]._Atom2.p.q
+                    con.remove( hx )
+                    con.bonds.remove( hx.bonds[0] )
+
+                for center_2 in con.get_ats_and_bonds():
+                    if np.allclose( center_1.r, center_2.r):
+                        print "YES"
+                        p -= center_2.p
+                        print "Subtracting charge from %s" %center_2.label
                         print p.q
-            print "Finished with %s" %at.label
+            print "Finished with %s" % center_1.label
             print p.q
-            at.Property = p
+            center_1.p = p
         self.LoProp = True
 
 
