@@ -1834,13 +1834,25 @@ class Molecule( list ):
             conv = 1/a0
 
 #Populate bonds on cluster level
-        for i2 in range( 1, len(self) ):
-            for i1 in range( i2 ):
-                if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
 
-                    b = Bond( self[i1], self[i2] )
-                    self[i1].add_bond( b )
-                    self[i2].add_bond( b )
+        if cluster:
+            ats = self.Cluster.atoms
+            for i1, at1 in enumerate( self ):
+                for i2, at2 in enumerate( ats ):
+                    if at1 == at2:
+                        continue
+                    if self[i1].dist_to_atom( ats[i2] ) < conv*bonding_cutoff[(self[i1].element, ats[i2].element)]:
+                        b = Bond( self[i1], ats[i2] )
+                        self[i1].add_bond( b )
+                        ats[i2].add_bond( b )
+        else:
+            for i2 in range( 1, len(self) ):
+                for i1 in range( i2 ):
+                    if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
+
+                        b = Bond( self[i1], self[i2] )
+                        self[i1].add_bond( b )
+                        self[i2].add_bond( b )
 
     def populate_angles(self):
         pass

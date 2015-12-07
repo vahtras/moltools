@@ -785,6 +785,16 @@ class Residue( molecules.Molecule ):
         """After this functions all atoms here have final properties.
         """
         self.populate_bonds()
+        for res in [self.ready + self.concap]:
+            for bond in res.get_ats_and_bonds():
+                if not isinstance( bond, molecules.Bond ):
+                    continue
+                res1, res2, _, _ = bond.label.split('-')
+                res1, res2 = map(int, [res1, res2] )
+                if self.res_id in [res1, res2] and res.res_id in [res1, res2]:
+                    print res1, res2
+
+        raise SystemExit
         for center_1 in self.get_ats_and_bonds():
             p = molecules.Property()
             print "\nStarting with %s" %center_1.label
