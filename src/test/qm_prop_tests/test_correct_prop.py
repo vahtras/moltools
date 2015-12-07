@@ -10,6 +10,12 @@ from pdbreader import System, Residue, Atom
 
 WATER_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'hfqua_water.tar.gz')
 
+PRO_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_1-PRO-ready.tar.gz')
+PRO_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_2-PRO-ready.tar.gz')
+PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_3-GLY-ready.tar.gz')
+CON_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_1-PRO-concap.tar.gz')
+CON_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_2-PRO-concap.tar.gz')
+
 _ppg_string = """ATOM  0     N    PRO A   1      -1.849  -2.684  38.880                       N
 ATOM  1     H1   PRO A   1      -1.416  -1.763  38.665                       H
 ATOM  2     CD   PRO A   1      -3.089  -2.462  39.690                       C
@@ -1047,7 +1053,7 @@ ATOM  13    OC1  PRO C  29      -1.114   3.048 -39.523                       O
 ATOM  14    HCO  PRO C  29       0.009   3.416 -37.871                       H
 """
 
-@attr(speed = 'fast' )
+@attr(speed = 'slow' )
 class OptimizedPpgTestCase( unittest.TestCase ):
 
     def setUp(self):
@@ -1066,18 +1072,20 @@ class OptimizedPpgTestCase( unittest.TestCase ):
 
         res1 = ch1[0].ready
         res2 = ch1[1].ready
-        con12 = ch1[1].concap
-        for each in [res1, res2, con12]:
+        con1 = ch1[1].concap
+        for each in [res1, res2, con1]:
             each.populate_bonds()
         self.res1  = res1 
         self.res2  = res2 
-        self.con12 = con12
+        self.con1 = con1
+
+        self.res = ch1[0]
 
 
     def test_atoms_and_bonds(self):
         res1  = self.res1
         res2  = self.res2  
-        con12 = self.con12 
+        con1 = self.con1 
 
 #bonds is actually counted twice, the 'Atom.get_ats_and_bonds' method returns
 #unique bonds only not duplicates
@@ -1087,15 +1095,15 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         assert len(res2) == 26
         assert len(res2.bonds) == 52
 
-        assert len(con12) == 12
-        assert len(con12.bonds) == 22
+        assert len(con1) == 12
+        assert len(con1.bonds) == 22
 
     def test_atoms_and_bonds(self):
         res1  = self.res1
         res2  = self.res2  
-        con12 = self.con12 
+        con1 = self.con1
 
-    def test_attach_from_targz(self):
+    def test_water_attach_from_targz(self):
         w1 = Water.get_standard()
         w2 = Water.get_standard()
 
@@ -1107,6 +1115,24 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         np.testing.assert_allclose( w1.p.d, w2.p.d, atol = 1e-7 )
         np.testing.assert_allclose( w1.p.a, w2.p.a, atol = 1e-7 )
         np.testing.assert_allclose( w1.p.b, w2.p.b, atol = 1e-7 )
+
+    def test_first_3_attach_from_targz(self):
+        res, res1, res2, con1 = self.res, self.res1, self.res2, self.con1
+
+        res1.props_from_targz( PRO_1_FILE_TARGZ  , maxl = 1, bonds = 1 )
+        res2.props_from_targz( PRO_2_FILE_TARGZ  , maxl = 1, bonds = 1 )
+        res3.props_from_targz( PRO_3_FILE_TARGZ  , maxl = 1, bonds = 1 )
+
+        res.mfcc_props()
+
+        np.testing.assert_allclose( res.C.p.q,  )
+
+        #con1.props_from_targz( CON_1_FILE_TARGZ, maxl = 1, bonds = 1 )
+        #con2.props_from_targz( CON_2_FILE_TARGZ, maxl = 1, bonds = 1 )
+
+        print res1.p.b[9]+ res2.p.b[9]- con1.p.b[9]
+        raise SystemExit
+
 
 
 if __name__ == '__main__':
