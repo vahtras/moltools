@@ -7,14 +7,15 @@ from nose.plugins.attrib import attr
 
 from molecules import Water
 from pdbreader import System, Residue, Atom
+from property import Property
 
 WATER_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'hfqua_water.tar.gz')
 
-PRO_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_1-PRO-ready.tar.gz')
-PRO_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_2-PRO-ready.tar.gz')
-PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_3-GLY-ready.tar.gz')
-CON_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_1-PRO-concap.tar.gz')
-CON_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_2-PRO-concap.tar.gz')
+PRO_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO1-ready.tar.gz')
+PRO_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-ready.tar.gz')
+PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-GLY3-ready.tar.gz')
+CON_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO1-concap.tar.gz')
+CON_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-concap.tar.gz')
 
 _ppg_string = """ATOM  0     N    PRO A   1      -1.849  -2.684  38.880                       N
 ATOM  1     H1   PRO A   1      -1.416  -1.763  38.665                       H
@@ -1062,8 +1063,8 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         self.ch1.connect_residues()
 
         ch1 = self.ch1
-        rel_resid = [1, 2]
-        rel_resname = ['PRO']
+        rel_resid = [1, 2, 3]
+        rel_resname = ['PRO', 'GLY']
         relevant = [res for res in ch1.molecules if res.res_id in rel_resid and res.res_name in rel_resname]
 
         for res in relevant:
@@ -1072,14 +1073,18 @@ class OptimizedPpgTestCase( unittest.TestCase ):
 
         res1 = ch1[0].ready
         res2 = ch1[1].ready
-        con1 = ch1[1].concap
+        con1 = ch1[0].concap
         for each in [res1, res2, con1]:
             each.populate_bonds()
         self.res1  = res1 
         self.res2  = res2 
         self.con1 = con1
-
         self.res = ch1[0]
+
+        self.res.to_AU()
+        self.res1.to_AU()
+        self.res2.to_AU()
+        self.con1.to_AU()
 
 
     def test_atoms_and_bonds(self):
@@ -1098,7 +1103,7 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         assert len(con1) == 12
         assert len(con1.bonds) == 22
 
-    def test_atoms_and_bonds(self):
+    def test_atoms_and_bonds_other(self):
         res1  = self.res1
         res2  = self.res2  
         con1 = self.con1
@@ -1119,20 +1124,19 @@ class OptimizedPpgTestCase( unittest.TestCase ):
     def test_first_3_attach_from_targz(self):
         res, res1, res2, con1 = self.res, self.res1, self.res2, self.con1
 
-        res1.props_from_targz( PRO_1_FILE_TARGZ  , maxl = 1, bonds = 1 )
-        res2.props_from_targz( PRO_2_FILE_TARGZ  , maxl = 1, bonds = 1 )
-        res3.props_from_targz( PRO_3_FILE_TARGZ  , maxl = 1, bonds = 1 )
+        res1.props_from_targz( PRO_1_FILE_TARGZ, maxl = 1, bonds = 1 )
+        res2.props_from_targz( PRO_2_FILE_TARGZ, maxl = 1, bonds = 1 )
+        con1.props_from_targz( CON_1_FILE_TARGZ, maxl = 1, bonds = 1 )
+
+        p = Property()
+
+        n1 = res1.get_atom_by_pdbname( 'N', dup = 1 )[0]
 
         res.mfcc_props()
-
-        np.testing.assert_allclose( res.C.p.q,  )
+        np.testing.assert_allclose( res.N.p.q, n1.q )
 
         #con1.props_from_targz( CON_1_FILE_TARGZ, maxl = 1, bonds = 1 )
         #con2.props_from_targz( CON_2_FILE_TARGZ, maxl = 1, bonds = 1 )
-
-        print res1.p.b[9]+ res2.p.b[9]- con1.p.b[9]
-        raise SystemExit
-
 
 
 if __name__ == '__main__':
