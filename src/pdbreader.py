@@ -726,19 +726,19 @@ class Residue( molecules.Molecule ):
 #Residue
     def get_relevant_residues(self):
         if self.n_term:
-            return [self.ready.copy(), self.Next.ready.copy()]
+            return map(deepcopy, [self.ready, self.Next.ready] )
         elif self.c_term:
-            return [self.ready.copy(), self.Prev.ready.copy()]
+            return map(deepcopy, [self.ready, self.Prev.ready] )
         else:
-            return [self.ready.copy(), self.Next.ready.copy(), self.Prev.ready.copy()]
+            return map(deepcopy, [self.ready, self.Next.ready, self.Prev.ready] )
 
     def get_relevant_concaps(self):
         if self.n_term:
-            return [self.concap.copy()]
+            return map(deepcopy, [self.concap] )
         elif self.c_term:
-            return [self.Prev.concap.copy()]
+            return map(deepcopy, [self.Prev.concap] )
         else:
-            return [self.concap.copy(), self.Prev.concap.copy()]
+            return map(deepcopy, [self.concap, self.Prev.concap] )
 
 #Residue
     def get_dummy_h(self):
@@ -790,7 +790,6 @@ class Residue( molecules.Molecule ):
             print "Property at %.2f" % p['beta'][9]
             for R in self.get_relevant_residues():
                 print R
-                R.populate_bonds()
                 for hx in R.get_dummy_h():
                     assert len ( hx.bonds ) == 1
                     hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
@@ -801,7 +800,6 @@ class Residue( molecules.Molecule ):
                         print "Adding charge from res: %s, label: %s" %(R.res_name+str(R.res_id), R_at.label)
                         print p.q
             for C in self.get_relevant_concaps():
-                C.populate_bonds()
                 for hx in C.get_dummy_h():
                     assert len ( hx.bonds ) == 1
                     hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
