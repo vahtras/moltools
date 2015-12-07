@@ -784,17 +784,8 @@ class Residue( molecules.Molecule ):
     def mfcc_props(self):
         """After this functions all atoms here have final properties.
         """
-        self.populate_bonds()
-        for res in [self.ready + self.concap]:
-            for bond in res.get_ats_and_bonds():
-                if not isinstance( bond, molecules.Bond ):
-                    continue
-                res1, res2, _, _ = bond.label.split('-')
-                res1, res2 = map(int, [res1, res2] )
-                if self.res_id in [res1, res2] and res.res_id in [res1, res2]:
-                    print res1, res2
+        self.populate_bonds( cluster = 1 )
 
-        raise SystemExit
         for center_1 in self.get_ats_and_bonds():
             p = molecules.Property()
             print "\nStarting with %s" %center_1.label
@@ -814,6 +805,11 @@ class Residue( molecules.Molecule ):
                         p += center_2.p
                         print "Adding charge from res: %s, label: %s" %(res.res_name+str(res.res_id), center_2.label)
                         print p.q
+                if isinstance(center_2, Bond):
+                    if center_2.is_inter_residue():
+                        self.get_atom_by_pdbname( center_2.p/2 )
+
+
             for con in self.get_relevant_concaps():
                 for hx in con.get_dummy_h():
                     assert len ( hx.bonds ) == 1
