@@ -137,8 +137,8 @@ class Bond(object):
     @property
     def label(self):
         if self._label is None:
-            _str = "-".join( map(str, [ self._Atom1.Molecule.res_id,
-                self._Atom2.Molecule.res_id,
+            _str = "-".join( map(str, [ self._Atom1.res_id,
+                self._Atom2.res_id,
                 self._Atom1.pdb_name,
                 self._Atom2.pdb_name,
                 ] 
