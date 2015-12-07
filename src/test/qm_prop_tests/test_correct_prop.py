@@ -1098,13 +1098,15 @@ class OptimizedPpgTestCase( unittest.TestCase ):
     def test_attach_from_targz(self):
         w1 = Water.get_standard()
         w2 = Water.get_standard()
-        w1.props_from_targz( WATER_FILE_TARGZ, bonds = True, maxl = 1, pol = 22, hyp = 2 )
-        w2.props_from_targz( WATER_FILE_TARGZ, bonds = True, maxl = 1, pol = 22, hyp = 2 )
 
-        np.testing.assert_allclose( w1.p.q, w2.p.q, )
-        np.testing.assert_allclose( w1.p.d, w2.p.d, )
-        np.testing.assert_allclose( w1.p.a, w2.p.a, )
-        np.testing.assert_allclose( w1.p.b, w2.p.b, )
+        w1.populate_bonds()
+        w1.props_from_targz( WATER_FILE_TARGZ, bonds = True, maxl = 1, pol = 22, hyp = 1 )
+        w2.props_from_targz( WATER_FILE_TARGZ, bonds = False, maxl = 1, pol = 22, hyp = 1 )
+
+        np.testing.assert_allclose( w1.p.q, w2.p.q, atol = 1e-7 )
+        np.testing.assert_allclose( w1.p.d, w2.p.d, atol = 1e-7 )
+        np.testing.assert_allclose( w1.p.a, w2.p.a, atol = 1e-7 )
+        np.testing.assert_allclose( w1.p.b, w2.p.b, atol = 1e-7 )
 
 
 if __name__ == '__main__':
