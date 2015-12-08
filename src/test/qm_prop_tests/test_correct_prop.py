@@ -10,7 +10,6 @@ from pdbreader import System, Residue, Atom
 from property import Property
 
 WATER_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'hfqua_water.tar.gz')
-
 PRO_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO1-ready.tar.gz')
 PRO_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-ready.tar.gz')
 #PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-GLY3-ready.tar.gz')
@@ -1119,7 +1118,7 @@ class OptimizedPpgTestCase( unittest.TestCase ):
     def test_first_3_attach_from_targz(self):
 
         basis = ['6_31pgp_loprop']
-        sys = System.from_pdb_string( open( 'ppg_opt_centered.pdb' ).read(), )
+        sys = System.from_pdb_string( _ppg_string )
         sys.connect_residues()
 
         rel_resid = [1, 2]
