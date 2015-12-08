@@ -779,6 +779,54 @@ class Residue( molecules.Molecule ):
 
 
 
+#Residue
+    def mfcc_props2(self):
+        """After this functions all atoms here have final properties.
+        New implementation using bond midpoint and also between residues
+        """
+        self.populate_bonds( cluster = 1 )
+
+        relevant_centers = []
+        for res in self.get_relevant_residues():
+#First put all the properties of dummy hydrogen and their bonds to the
+# real bonding atom
+            for hx in res.get_dummy_h():
+                assert len ( hx.bonds ) == 1
+                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
+                res.remove( hx )
+                res.bonds.remove( hx.bonds[0] )
+            for center in res.get_ats_and_bonds():
+                relevant_centers.append( center )
+
+        for con in self.get_relevant_concaps():
+            for hx in con.get_dummy_h():
+                assert len ( hx.bonds ) == 1
+                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
+                con.remove( hx )
+                con.bonds.remove( hx.bonds[0] )
+            for center in con.get_ats_and_bonds():
+                relevant_centers.append( center )
+
+        for center_1 in self.get_ats_and_bonds():
+            tmp_p = molecules.Property()
+
+            for center_2 in relevant_centers:
+                if np.allclose( center_1.r, center_2.r):
+#This bond between residues belongs to no specific molecule
+                    if not center_2._Molecule:
+                        if center_2._Atom1.Molecule.is_ready:
+                            tmp_p += center_2.p/2.0
+
+                        elif center_2._Atom1.Molecule.is_concap:
+                            tmp_p -= center_2.p/2.0
+#These are atoms and bonds which exist in the final residue conf
+                    else:
+                        if center_2._Molecule.is_ready:
+                            tmp_p += center_2.p
+                        elif center_2._Molecule.is_concap:
+                            tmp_p -= center_2.p
+            center_1.p += tmp_p
+        self.LoProp = True
 
 #Residue
     def mfcc_props(self):
@@ -805,11 +853,6 @@ class Residue( molecules.Molecule ):
                         p += center_2.p
                         print "Adding charge from res: %s, label: %s" %(res.res_name+str(res.res_id), center_2.label)
                         print p.q
-                if isinstance(center_2, Bond):
-                    if center_2.is_inter_residue():
-                        self.get_atom_by_pdbname( center_2.p/2 )
-
-
             for con in self.get_relevant_concaps():
                 for hx in con.get_dummy_h():
                     assert len ( hx.bonds ) == 1
