@@ -277,7 +277,7 @@ AA       True     bool
 #Add a bond for this atom to the other atom
     def add_bond( self, b ):
         if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
-            logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
+            #logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
             return
         self.bonds.append( b )
 
