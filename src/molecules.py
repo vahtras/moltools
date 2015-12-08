@@ -2464,7 +2464,7 @@ Angstrom [ out_AA = True ]
 
     def abp(self, label, dup = False):
         """Wrapper for get_atom_by_pdbname"""
-        return self( label = label, dup = dup )
+        return self.get_atom_by_pdbname( label = label, dup = dup )
 
     def get_atom_by_pdbname(self, label, dup = False):
         at = []
