@@ -6,7 +6,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from molecules import Cluster, Atom, Water
-from pdbreader import NewSystem, NewChain
+from pdbreader import System, Chain
 from use_generator import Generator
 
 
@@ -14,9 +14,9 @@ from use_generator import Generator
 class SystemText( unittest.TestCase ):
 
     def test_three_waters(self):
-        s = NewSystem()
+        s = System()
 
-        ch1, ch2 = NewChain(), NewChain()
+        ch1, ch2 = Chain(), Chain()
         ch1.chain_id = 'A'
         ch2.chain_id = 'B'
 

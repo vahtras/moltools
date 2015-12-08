@@ -8859,7 +8859,7 @@ class ReadPdb( unittest.TestCase ):
 
     def setUp(self):
 
-        self.S = NewSystem.from_pdb_string ( FILE_STR )
+        self.S = System.from_pdb_string ( FILE_STR )
         print len( self.S )
         assert len( self.S ) == 1
 

@@ -5,7 +5,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 import utilz
-from pdbreader import NewResidue, NewAtom
+from pdbreader import Residue, Atom
 from property import Property
 import time
 
@@ -29,20 +29,15 @@ class MfccTestCase( unittest.TestCase ):
     def test_mfcc(self):
 
 #For res 1
-        res1 = NewResidue( NewAtom(x=0),
-               NewAtom(x=1),
-               NewAtom(x=2),
-               NewAtom(x=3),
-               NewAtom(x=4),
-               NewAtom(x=5),
-               NewAtom(x=1, y = 1),
-               NewAtom(x=3, y = 1),
+        res1 = Residue( Atom(x=0),
+               Atom(x=1),
+               Atom(x=2),
+               Atom(x=3),
+               Atom(x=4),
+               Atom(x=5),
+               Atom(x=1, y = 1),
+               Atom(x=3, y = 1),
                )
-
-    @attr(speed = 'slow' )
-    def test_props_from_targz(self):
-        assert 0
-        pass
 
 if __name__ == '__main__':
     unittest.main()
