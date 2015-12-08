@@ -42,8 +42,8 @@ bonding_cutoff = {
         ('X','X') : 0.0,
         ('H','X') : 0.0,
         ('H','H') : 0.2,
-        ('H','C') : 1.105,
-        ('H','N') : 1.1,
+        ('H','C') : 1.155,
+        ('H','N') : 1.155,
         ('H','O') : 1.1,
         ('H','P') : 1.1,
         ('H','S') : 1.3,
@@ -68,6 +68,19 @@ bonding_cutoff = {
         ('S','X') : 0.0,
         ('S','S') : 2.1,
     }
+
+res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
+        'PHE':'F','TYR':'Y','TRP':'W','SER':'S','THR':'T','ASN':'N', 'CRO':'X1',
+        'CRO1':'X1', 'CRO2':"X2",'CRO3':'X3','CRO4':'X4',
+        'GLN':'Q','CYS':'C','CH6': 'X1' ,'GLY':'G','PRO':'P','ARG':'R','HIS':'H',
+        'LYS':'K','ASP':'D','GLU':'E','SEC':'U','PYL':'U', 'HIP':'Z',
+        'HIE':'H','CYX':'C','HSE':'H','HID':'H','HSD':'H','HSP':'H2',"TIP3": 'T3',
+        'HIP':'H2','HYP':'PX', 'MOL' : 'X', 'WAT' : 'W1', 'SOL' : 'W1' }
+chargeDict = {'ARG':1, "LYS" : 1, "ASP":-1, "GLU":-1,
+            'R':1 , 'K':1 ,'H':0, 'H2':1 , 'E':-1 , 'D':-1, 'X2': 1}
+proline_dict = { "PRO" : "P", "HYP" : "PX" }
+custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
+
 #Make permutations of all bonding pair tuples 
 for key1, key2 in bonding_cutoff.keys():
     bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
@@ -81,13 +94,18 @@ class UnitException( Exception ):
 class Bond(object):
     """Docstring for Bond. """
     def __init__(self, at1, at2 ):
-        """TODO: to be defined1. """
+        """ first argument is _Atom1, second argument becomes _Atom2 """
         self._r = None
         self._Property = None
+        self._label = None
         self._Atom1 = at1
         self._Atom2 = at2
+        self._Molecule = None
         self._r = (at2.r - at1.r)/2.0 + at1.r
         self.element = 'X'
+
+        if at1.res_id == at2.res_id:
+            self._Molecule = at1.Molecule
 
     @property
     def len(self):
@@ -120,7 +138,20 @@ class Bond(object):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self._Atom1.Molecule.cluster_order), *self.r ) + self.p.potline( max_l, pol, hyper, fmt = fmt ) + "\n"
 
+    @property
+    def label(self):
+        if self._label is None:
+            _str = "-".join( map(str, [ self._Atom1.res_id,
+                self._Atom2.res_id,
+                self._Atom1.pdb_name,
+                self._Atom2.pdb_name,
+                ] 
+                ))
+            return _str
+        return self._label
 
+    def __str__(self):
+        return self.label + " " + " ".join(map(str,self.r))
 
 class Atom(object):
 
@@ -246,9 +277,15 @@ AA       True     bool
 #Add a bond for this atom to the other atom
     def add_bond( self, b ):
         if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
-            logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
+            #logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
             return
         self.bonds.append( b )
+
+    def t(self, r):
+        """translate by vector r"""
+        self.x = self.x + r[0]
+        self.y = self.y + r[1]
+        self.z = self.z + r[2]
 
 #Chain for this atom
     @property
@@ -718,13 +755,19 @@ class Molecule( list ):
         self._chain_id = None
         self._res_name = None
         self._freq = None
-        self._res_id = 0
+        self._res_id = None
         self._r = None
         self._com = None
         self._Cluster = None
         self._order  = None
         self._cluster_order  = None
         self.no_hydrogens = True
+        self.is_concap = False
+        self.is_ready = False
+        self.is_bridge = False
+        self.n_term = False
+        self.c_term = False
+        self._level = None
 
 
 # This will be set True if Property is represented by a point on molecule
@@ -1114,6 +1157,9 @@ class Molecule( list ):
             except IndexError:
                 warnings.warn("Looking up molecule that is empty")
                 return None
+#Will return different type if reloaded import in ipython
+            #except TypeError:
+            #    return self[ item ]
                 
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
@@ -1218,7 +1264,7 @@ class Molecule( list ):
         if self._res_id is not None:
             return self._res_id
         else:
-            return 1
+            return 0
 
     @property
     def res_name(self):
@@ -1792,13 +1838,25 @@ class Molecule( list ):
             conv = 1/a0
 
 #Populate bonds on cluster level
-        for i2 in range( 1, len(self) ):
-            for i1 in range( i2 ):
-                if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
 
-                    b = Bond( self[i1], self[i2] )
-                    self[i1].add_bond( b )
-                    self[i2].add_bond( b )
+        if cluster:
+            ats = self.Cluster.atoms
+            for i1, at1 in enumerate( self ):
+                for i2, at2 in enumerate( ats ):
+                    if at1 == at2:
+                        continue
+                    if self[i1].dist_to_atom( ats[i2] ) < conv*bonding_cutoff[(self[i1].element, ats[i2].element)]:
+                        b = Bond( self[i1], ats[i2] )
+                        self[i1].add_bond( b )
+                        ats[i2].add_bond( b )
+        else:
+            for i2 in range( 1, len(self) ):
+                for i1 in range( i2 ):
+                    if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
+
+                        b = Bond( self[i1], self[i2] )
+                        self[i1].add_bond( b )
+                        self[i2].add_bond( b )
 
     def populate_angles(self):
         pass
@@ -2130,11 +2188,12 @@ Plot Molecule in a 3D frame
         plt.show()
 
     def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" )):
-        return self.get_mol_string( basis = basis)
+        "ano-2 5 4 1" ), terminal = False):
+        return self.get_mol_string( basis = basis, 
+                terminal = terminal)
 
     def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" ) ):
+        "ano-2 5 4 1" ), terminal = False  ):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "He" : 0, "Li" : 1, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2 }
@@ -2143,11 +2202,32 @@ Plot Molecule in a 3D frame
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
-        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
 
+        charge = 0.0
+# Start Residue specifics that take terminal charge into account
+        if terminal:
+            if not self.is_concap:
+                if self.n_term:
+                    charge += 1
+                elif self.c_term:
+                    charge -= 1
+                if self.res_name in res_dict:
+                    if res_dict[ self.res_name ] in chargeDict:
+                        charge += chargeDict[ res_dict[ self.res_name] ]
+            if self._level == 3:
+                charge = 0
+                for at in self:
+                    if at.pdb_name == "H1":
+                        charge += 1
+                        break
+                    if at.pdb_name == "OC1":
+                        charge -= 1
+                        break
+##  // end of Residue
+        ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
         uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
-        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=0 Nosymm%s\n" %(len(uni), s_)
+        st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=%d Nosymm%s\n" %(len(uni), charge,  s_)
         for el in uni:
             st += "Charge=%s Atoms=%d Basis=%s\n" %( str(charge_dict[el]),
                     len( [all_el for all_el in ats if (all_el.element == el)] ),
@@ -2386,6 +2466,9 @@ Angstrom [ out_AA = True ]
         return None
 
 
+    def abp(self, label, dup = False):
+        """Wrapper for get_atom_by_pdbname"""
+        return self.get_atom_by_pdbname( label = label, dup = dup )
 
     def get_atom_by_pdbname(self, label, dup = False):
         at = []
@@ -2851,6 +2934,16 @@ class Cluster(list):
             else:
                 for item in args:
                     self.add( item, copy = copy )
+
+    def get_distance_matrix(self):
+
+        N = len(self.atoms)
+        mat = np.zeros( (N,N ) )
+        for i in range(1, self.atoms):
+            for j in range( i ):
+                mat[i, j] = self.atoms[i].dist_to_atom( self.atoms[j] )
+        return mat
+
 
     @staticmethod
     def rand_water_cluster(N = 10):

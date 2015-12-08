@@ -11,7 +11,7 @@ class TestConcapsLevel1( unittest.TestCase ):
         """ Default arguments used for program 
         equivalent of argparser in pdbreader """
 
-        self.ch = S = System.read_protein_from_file ( FILE )
+        self.ch = S = System.from_pdb_string( open( FILE).read() )
 
         for chain in self.ch:
             chain.connect_residues()
@@ -35,7 +35,7 @@ class TestConcapsLevel1( unittest.TestCase ):
         for chain in self.ch:
             for res in chain:
                 if res.n_term and res.res_name == 'PRO':
-                    assert len( res.con ) == 23
+                    assert len( res.concap ) == 23
 
 #    def test_concaps_level3( self, ):
 #        """ At level 3 all concaps have 12 atoms"""
