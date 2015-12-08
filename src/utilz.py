@@ -428,9 +428,14 @@ def unique(arr, key = lambda x: x, get_original = False ):
     have = []
     for i in arr:
         inew = key( i )
-        if inew not in have:
-            tmp.append( i )
-            have.append( inew )
+        try:
+            if inew not in have:
+                tmp.append( i )
+                have.append( inew )
+        except ValueError:
+            if any( (inew != x).all() for x in have ):
+                tmp.append( i )
+                have.append( inew )
     if get_original:
         return tmp
     return have

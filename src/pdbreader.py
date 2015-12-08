@@ -857,13 +857,15 @@ class Residue( molecules.Molecule ):
                             tmp_p -= center_2.p
             center_1.p += tmp_p
 
-        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
-                get_original = True ):
+#Hacky solution so far to only compare the x-coordinate,  WARNING
+#Not the full vector point
+        points = utilz.unique( points_inbetween, key = lambda x: x.r[0],
+                get_original = True )
+        for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
                     at.p += point.p/2.0
-        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
-                get_original = True ):
+        for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
                     at.bonds.remove( point )
