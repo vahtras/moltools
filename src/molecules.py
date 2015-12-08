@@ -107,6 +107,11 @@ class Bond(object):
         if at1.res_id == at2.res_id:
             self._Molecule = at1.Molecule
 
+    #def __repr__(self):
+    #    """docstring for __repr_"""
+    #    return "bond"
+        
+
     @property
     def len(self):
         return self._Atom1.dist_to_atom( self._Atom2 )
@@ -316,6 +321,8 @@ AA       True     bool
     def Molecule(self, val):
         if isinstance( val, Molecule ):
             self._Molecule = val 
+        else:
+            logging.warning("Tried to set wrong type to atoms _Molecule")
 
 #Cluster for this atom
     @property
@@ -633,10 +640,12 @@ Plot Atom in a 3D frame
         a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
-        a.label = self.label
+        a._label = self.label
         a._res_id = self.res_id
         a._atom_id = self.atom_id
+
         a.Property = self.Property.copy_property()
+
         return a
 
     @property

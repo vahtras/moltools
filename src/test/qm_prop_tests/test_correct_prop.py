@@ -1141,7 +1141,7 @@ class OptimizedPpgTestCase( unittest.TestCase ):
 
         n = res1.get_atom_by_pdbname( 'N', dup = 1 )[0]
         cg = res1.CG
-        res.mfcc_props2()
+        res.mfcc_props()
         np.testing.assert_allclose( res.N.p.q, n.q )
         np.testing.assert_allclose( res.CG.p.q, cg.q )
 #hand calc. a_zz bond midpoint of C-N all atom contr. C first proline

@@ -672,6 +672,9 @@ class Residue( molecules.Molecule ):
 
         self.concap = None
         self.ready = None
+        self.is_concap = None
+        self.is_ready = None
+        self.is_bridge = None
 
         self.c_term = False
         self.n_term = False
@@ -719,6 +722,8 @@ class Residue( molecules.Molecule ):
 #Residue
     def add_atom( self, atom):
         if isinstance( atom, molecules.Atom ):
+            if any( (atom.r == x.r).all() for x in self):
+                return
             self.append( atom )
             self.label_dict[ atom.label ] = atom
             atom.Molecule = self
@@ -726,19 +731,19 @@ class Residue( molecules.Molecule ):
 #Residue
     def get_relevant_residues(self):
         if self.n_term:
-            return map(deepcopy, [self.ready, self.Next.ready] )
+            return map(lambda x:x.copy(), [self.ready, self.Next.ready] )
         elif self.c_term:
-            return map(deepcopy, [self.ready, self.Prev.ready] )
+            return map(lambda x:x.copy(), [self.ready, self.Prev.ready] )
         else:
-            return map(deepcopy, [self.ready, self.Next.ready, self.Prev.ready] )
+            return map(lambda x:x.copy(), [self.ready, self.Next.ready, self.Prev.ready] )
 
     def get_relevant_concaps(self):
         if self.n_term:
-            return map(deepcopy, [self.concap] )
+            return map(lambda x:x.copy(), [self.concap] )
         elif self.c_term:
-            return map(deepcopy, [self.Prev.concap] )
+            return map(lambda x:x.copy(), [self.Prev.concap] )
         else:
-            return map(deepcopy, [self.concap, self.Prev.concap] )
+            return map(lambda x:x.copy(), [self.concap, self.Prev.concap] )
 
 #Residue
     def get_dummy_h(self):
@@ -753,34 +758,48 @@ class Residue( molecules.Molecule ):
         return ats
 
 #Residue
-    def copy( self):
-        """Copy Residue method"""
-        new = Residue()
+    def copy( self ):
+        """Copy Residue method, return new Residue where all atoms
+        , their bonds and properties are copies"""
+        new_res = Residue()
 
-        [ new.add_atom( i.copy() ) for i in self ]
+        for atom in self:
+            new_atom = atom.copy()
+            for b in atom.bonds:
+                at1 = b._Atom1.copy()
+                at2 = b._Atom2.copy()
+                at1.Molecule = new_res
+                at2.Molecule = new_res
+                new_bond = molecules.Bond( at1, at2 )
+                new_bond.p = b.p.copy_property()
 
-        new.c_term = self.c_term
-        new.n_term = self.n_term
-        new._res_id = self._res_id
-        new._res_name = self.res_name
-        new.AA = self.AA
-#Keep information if this is concap
-        new.is_concap = self.is_concap
-        new._level = self._level
+                new_atom.add_bond( new_bond )
+            new_res.add_atom( new_atom )
+
+        new_res.c_term = self.c_term
+        new_res.n_term = self.n_term
+        new_res._res_id = self._res_id
+        new_res._res_name = self.res_name
+        new_res.AA = self.AA
+#Keep information if this is reay/concap/bridge
+        new_res.is_ready = self.is_ready
+        new_res.is_concap = self.is_concap
+        new_res.is_bridge = self.is_bridge
+        new_res._level = self._level
 
 
-        new._chain_id = self._chain_id
+        new_res._chain_id = self._chain_id
 
-        new.Next = self.Next
-        new.Prev = self.Prev
-        new.Bridge = self.Bridge
+        new_res.Next = self.Next
+        new_res.Prev = self.Prev
+        new_res.Bridge = self.Bridge
 
-        return  new
+        return new_res
 
 
 
 #Residue
-    def mfcc_props2(self):
+    def mfcc_props(self):
         """After this functions all atoms here have final properties.
         New implementation using bond midpoint and also between residues
         """
@@ -815,9 +834,9 @@ class Residue( molecules.Molecule ):
                 if np.allclose( center_1.r, center_2.r):
 #This bond between residues belongs to no specific molecule
                     if not center_2._Molecule:
-                        if center_2._Atom1.Molecule.is_ready:
+                        if center_2._Atom1._Molecule.is_ready:
                             tmp_p += center_2.p
-                        elif center_2._Atom1.Molecule.is_concap:
+                        elif center_2._Atom1._Molecule.is_concap:
                             tmp_p -= center_2.p
                         point_between = center_1
 #These are atoms and bonds which exist in the final residue conf
@@ -827,61 +846,12 @@ class Residue( molecules.Molecule ):
                         elif center_2._Molecule.is_concap:
                             tmp_p -= center_2.p
             center_1.p += tmp_p
-        print len(self.get_ats_and_bonds())
         for at in [point_between._Atom1, point_between._Atom2 ]:
             if at in self:
                 at.p += point_between.p/2.0
                 at.bonds.remove( point_between )
 
         self.LoProp = True
-
-#Residue
-    def mfcc_props(self):
-        """After this functions all atoms here have final properties.
-        """
-        self.populate_bonds( cluster = 1 )
-
-        for center_1 in self.get_ats_and_bonds():
-            p = molecules.Property()
-            print "\nStarting with %s" %center_1.label
-            print "Property at %.2f" % p['beta'][9]
-            for res in self.get_relevant_residues():
-                print res
-                for hx in res.get_dummy_h():
-                    assert len ( hx.bonds ) == 1
-                    print "Transfer props from fake hydrogen replacing: %s" %hx.pdb_name
-                    hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                    print hx.bonds[0]._Atom2.p.q
-                    res.remove( hx )
-                    res.bonds.remove( hx.bonds[0] )
-
-                for center_2 in res.get_ats_and_bonds():
-                    if np.allclose( center_1.r, center_2.r ):
-                        p += center_2.p
-                        print "Adding charge from res: %s, label: %s" %(res.res_name+str(res.res_id), center_2.label)
-                        print p.q
-            for con in self.get_relevant_concaps():
-                for hx in con.get_dummy_h():
-                    assert len ( hx.bonds ) == 1
-                    print "Transfer props from fake hydrogen replacing: %s" %hx.pdb_name
-                    hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                    print hx.bonds[0]._Atom2.p.q
-                    con.remove( hx )
-                    con.bonds.remove( hx.bonds[0] )
-
-                for center_2 in con.get_ats_and_bonds():
-                    if np.allclose( center_1.r, center_2.r):
-                        print "YES"
-                        p -= center_2.p
-                        print "Subtracting charge from %s" %center_2.label
-                        print p.q
-            print "Finished with %s" % center_1.label
-            print p.q
-            center_1.p = p
-        self.LoProp = True
-
-
-
 
 #Property of Residue
     @property
