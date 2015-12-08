@@ -1354,9 +1354,13 @@ class System( list ):
         """
 Return the sum properties of all properties in System
         """
+        conv = 1.0
+        if self.AA:
+            conv = 1/molecules.a0
+
         coc = self.coc
-        el_dip = np.array([ (at.r- coc)*at.p.q for at in self.atoms])
-        nuc_dip = np.array([ (at.r-coc)*molecules.charge_dict[at.element] for at in self.atoms])
+        el_dip = np.array([ conv*(at.r- coc)*at.p.q for at in self.atoms])
+        nuc_dip = np.array([ conv*(at.r-coc)*molecules.charge_dict[at.element] for at in self.atoms])
         dip_lop = np.array([at.p.d for at in self.atoms])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
