@@ -760,7 +760,12 @@ class Residue( molecules.Molecule ):
 #Residue
     def copy( self ):
         """Copy Residue method, return new Residue where all atoms
-        , their bonds and properties are copies"""
+        , their bonds and properties are copies
+        
+
+        Warning, all the bonds in this returned instance may
+        have pointers to outside Molecules
+        """
         new_res = Residue()
 
         for atom in self:
@@ -771,8 +776,12 @@ class Residue( molecules.Molecule ):
                 at1.Molecule = new_res
                 at2.Molecule = new_res
                 new_bond = molecules.Bond( at1, at2 )
-                new_bond.p = b.p.copy_property()
+                if at1.res_id == at2.res_id:
+                    new_bond._Molecule = new_res
+                else:
+                    new_bond._Molecule = None
 
+                new_bond.p = b.p.copy_property()
                 new_atom.add_bond( new_bond )
             new_res.add_atom( new_atom )
 
@@ -788,7 +797,7 @@ class Residue( molecules.Molecule ):
         new_res._level = self._level
 
 
-        new_res._chain_id = self._chain_id
+        new_res._chain_id = self.chain_id
 
         new_res.Next = self.Next
         new_res.Prev = self.Prev
@@ -828,6 +837,7 @@ class Residue( molecules.Molecule ):
             for center in con.get_ats_and_bonds():
                 relevant_centers.append( center )
 
+        points_inbetween = []
         for center_1 in self.get_ats_and_bonds():
             tmp_p = molecules.Property()
             for center_2 in relevant_centers:
@@ -838,7 +848,7 @@ class Residue( molecules.Molecule ):
                             tmp_p += center_2.p
                         elif center_2._Atom1._Molecule.is_concap:
                             tmp_p -= center_2.p
-                        point_between = center_1
+                        points_inbetween.append( center_1 )
 #These are atoms and bonds which exist in the final residue conf
                     else:
                         if center_2._Molecule.is_ready:
@@ -846,11 +856,17 @@ class Residue( molecules.Molecule ):
                         elif center_2._Molecule.is_concap:
                             tmp_p -= center_2.p
             center_1.p += tmp_p
-        for at in [point_between._Atom1, point_between._Atom2 ]:
-            if at in self:
-                at.p += point_between.p/2.0
-                at.bonds.remove( point_between )
 
+        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
+                get_original = True ):
+            for at in [ point._Atom1, point._Atom2 ]:
+                if at in self:
+                    at.p += point.p/2.0
+        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
+                get_original = True ):
+            for at in [ point._Atom1, point._Atom2 ]:
+                if at in self:
+                    at.bonds.remove( point )
         self.LoProp = True
 
 #Property of Residue

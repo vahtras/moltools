@@ -98,6 +98,7 @@ class Bond(object):
         self._r = None
         self._Property = None
         self._label = None
+        self._res_id = None
         self._Atom1 = at1
         self._Atom2 = at2
         self._Molecule = None
@@ -107,9 +108,15 @@ class Bond(object):
         if at1.res_id == at2.res_id:
             self._Molecule = at1.Molecule
 
-    #def __repr__(self):
-    #    """docstring for __repr_"""
-    #    return "bond"
+    @property
+    def res_id(self):
+        if self._res_id is not None:
+            return self._res_id
+        if self._Molecule is not None:
+            return self._Molecule.res_id
+        if self._Atom1.res_id == self._Atom2.res_id:
+            return self._Atom1.res_id
+        return None
         
 
     @property
@@ -641,7 +648,7 @@ Plot Atom in a 3D frame
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
         a._label = self.label
-        a._res_id = self.res_id
+        a._res_id = self._res_id
         a._atom_id = self.atom_id
 
         a.Property = self.Property.copy_property()
