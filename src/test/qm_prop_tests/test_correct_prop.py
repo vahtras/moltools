@@ -13,9 +13,9 @@ WATER_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'hfqua_water.tar.gz')
 
 PRO_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO1-ready.tar.gz')
 PRO_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-ready.tar.gz')
-PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-GLY3-ready.tar.gz')
+#PRO_3_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-GLY3-ready.tar.gz')
 CON_1_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO1-concap.tar.gz')
-CON_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-concap.tar.gz')
+#CON_2_FILE_TARGZ = os.path.join(os.path.dirname(__file__), 'b3lyp_A-PRO2-concap.tar.gz')
 
 _ppg_string = """ATOM  0     N    PRO A   1      -1.849  -2.684  38.880                       N
 ATOM  1     H1   PRO A   1      -1.416  -1.763  38.665                       H
@@ -1063,8 +1063,8 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         self.ch1.connect_residues()
 
         ch1 = self.ch1
-        rel_resid = [1, 2, 3]
-        rel_resname = ['PRO', 'GLY']
+        rel_resid = [1, 2]
+        rel_resname = ['PRO']
         relevant = [res for res in ch1.molecules if res.res_id in rel_resid and res.res_name in rel_resname]
 
         for res in relevant:
@@ -1090,7 +1090,7 @@ class OptimizedPpgTestCase( unittest.TestCase ):
     def test_atoms_and_bonds(self):
         res1  = self.res1
         res2  = self.res2  
-        con1 = self.con1 
+        con1  = self.con1 
 
 #bonds is actually counted twice, the 'Atom.get_ats_and_bonds' method returns
 #unique bonds only not duplicates
@@ -1102,11 +1102,6 @@ class OptimizedPpgTestCase( unittest.TestCase ):
 
         assert len(con1) == 12
         assert len(con1.bonds) == 22
-
-    def test_atoms_and_bonds_other(self):
-        res1  = self.res1
-        res2  = self.res2  
-        con1 = self.con1
 
     def test_water_attach_from_targz(self):
         w1 = Water.get_standard()
@@ -1122,21 +1117,36 @@ class OptimizedPpgTestCase( unittest.TestCase ):
         np.testing.assert_allclose( w1.p.b, w2.p.b, atol = 1e-7 )
 
     def test_first_3_attach_from_targz(self):
-        res, res1, res2, con1 = self.res, self.res1, self.res2, self.con1
+
+        basis = ['6_31pgp_loprop']
+        sys = System.from_pdb_string( open( 'ppg_opt_centered.pdb' ).read(), )
+        sys.connect_residues()
+
+        rel_resid = [1, 2]
+        rel_resname = ['PRO']
+
+        relevant = [res for res in sys.molecules if res.res_id in rel_resid and res.res_name in rel_resname]
+
+        for res in relevant:
+            res.gather_ready( level = 2, residue = 1 )
+            res.gather_ready( level = 2, concap = 1 )
+
+        res = sys[0][0]
+        res1 = sys[0][0].ready
+        res2 = sys[0][1].ready
+        con1 = sys[0][0].concap
 
         res1.props_from_targz( PRO_1_FILE_TARGZ, maxl = 1, bonds = 1 )
         res2.props_from_targz( PRO_2_FILE_TARGZ, maxl = 1, bonds = 1 )
         con1.props_from_targz( CON_1_FILE_TARGZ, maxl = 1, bonds = 1 )
 
-        p = Property()
-
-        n1 = res1.get_atom_by_pdbname( 'N', dup = 1 )[0]
-
-        res.mfcc_props()
-        np.testing.assert_allclose( res.N.p.q, n1.q )
-
-        #con1.props_from_targz( CON_1_FILE_TARGZ, maxl = 1, bonds = 1 )
-        #con2.props_from_targz( CON_2_FILE_TARGZ, maxl = 1, bonds = 1 )
+        n = res1.get_atom_by_pdbname( 'N', dup = 1 )[0]
+        cg = res1.CG
+        res.mfcc_props2()
+        np.testing.assert_allclose( res.N.p.q, n.q )
+        np.testing.assert_allclose( res.CG.p.q, cg.q )
+#hand calc. a_zz bond midpoint of C-N all atom contr. C first proline
+        np.testing.assert_allclose( res.C.p.a[5], 8.0552875, atol=1e-7 )
 
 
 if __name__ == '__main__':
