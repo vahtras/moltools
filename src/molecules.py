@@ -100,8 +100,12 @@ class Bond(object):
         self._label = None
         self._Atom1 = at1
         self._Atom2 = at2
+        self._Molecule = None
         self._r = (at2.r - at1.r)/2.0 + at1.r
         self.element = 'X'
+
+        if at1.res_id == at2.res_id:
+            self._Molecule = at1.Molecule
 
     @property
     def len(self):
