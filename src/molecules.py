@@ -94,7 +94,7 @@ class UnitException( Exception ):
 class Bond(object):
     """Docstring for Bond. """
     def __init__(self, at1, at2 ):
-        """TODO: to be defined1. """
+        """ first argument is _Atom1, second argument becomes _Atom2 """
         self._r = None
         self._Property = None
         self._label = None
@@ -2462,6 +2462,9 @@ Angstrom [ out_AA = True ]
         return None
 
 
+    def abp(self, label, dup = False):
+        """Wrapper for get_atom_by_pdbname"""
+        return self( label = label, dup = dup )
 
     def get_atom_by_pdbname(self, label, dup = False):
         at = []
