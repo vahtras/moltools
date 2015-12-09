@@ -2481,6 +2481,9 @@ Angstrom [ out_AA = True ]
                 return at
         return None
 
+    def abl(self, label, dup = False):
+        """Wrapper for get_atom_by_label"""
+        return self.get_atom_by_label( label = label, dup = dup )
 
     def abp(self, label, dup = False):
         """Wrapper for get_atom_by_pdbname"""
@@ -2501,6 +2504,15 @@ Angstrom [ out_AA = True ]
             print "No %s in %s" %(label, self)
             return
         return at[0]
+
+    def get_atom_by_label(self, label, dup = False):
+        for i in self:
+            if i.label == label:
+                return i
+        logging.warning( "No %s in %s" %(label, self) )
+        return None
+
+
 
 class Water( Molecule ):
     """
