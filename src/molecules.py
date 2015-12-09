@@ -669,9 +669,6 @@ Plot Atom in a 3D frame
         a = type(self)(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
-        a = pdbreader.Atom(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
-            'element':self.element,'name':self.name,'number':self.number,
-            'pdb_name':self.pdb_name} )
         a._label = self.label
         a._res_id = self._res_id
         a._atom_id = self.atom_id
