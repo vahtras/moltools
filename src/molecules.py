@@ -274,6 +274,15 @@ AA       True     bool
             return True
         return False
 
+    def is_dummy(self):
+        if self.label:
+            l = self.label.split('-')
+            if len( l ) == 4:
+                if l[-1][0] == 'X':
+                    return True
+        return False
+
+
     @property
     def bonds( self ):
         if self._bonds is not None:
