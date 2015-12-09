@@ -643,7 +643,7 @@ class Atom( molecules.Atom ):
         p = molecules.Property()
         for bond in self.bonds:
             if bond._Atom2.is_dummy():
-                p = self.p + bond.p + bond._Atom2.p
+                p += bond.p + bond._Atom2.p
         return p
 
 
@@ -871,7 +871,8 @@ class Residue( molecules.Molecule ):
         for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
-                    at.p += point.p/2.0
+                    print point.p/2.0
+                    at.p = at.p + point.p/2.0
         for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
