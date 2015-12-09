@@ -232,6 +232,7 @@ AA       True     bool
 
 
         self._number = None
+        self._pdb_name = None
         self._res_id = 0
         self._atom_id = None
         self._chain_id = None
@@ -282,6 +283,15 @@ AA       True     bool
                     return True
         return False
 
+    @property
+    def number( self ):
+        if self._number is not None:
+            return self._number
+        return None
+
+    @number.setter
+    def number( self, val ):
+        self._number = val
 
     @property
     def bonds( self ):
@@ -507,8 +517,9 @@ AA       True     bool
     def atom_id(self):
         if self._atom_id is not None:
             return self._atom_id
-        self._atom_id = self.Molecule.index( self )
-        return self._atom_id
+        if self.Molecule:
+            self._atom_id = self.Molecule.index( self )
+        return None
 
     @property
     def p(self):
@@ -652,8 +663,10 @@ Plot Atom in a 3D frame
         return self.copy_atom()
     def copy_self(self):
         return self.copy_atom()
+
     def copy_atom(self):
-        a = Atom( **{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
+#type(self) returns this particular atom type, which can be inherited
+        a = type(self)(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
         a._label = self.label
