@@ -635,6 +635,18 @@ class Atom( molecules.Atom ):
             setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
             setattr( self, "_res_name",  kwargs.get( "res_name", None ) )
 
+    def prop_from_dummy( self ):
+        """After function this atom has properties taken from
+        neighbouring hydrogens which replace heavy previous atoms,
+        
+        and also the bonds between them"""
+        p = molecules.Property()
+        for bond in self.bonds:
+            if bond._Atom2.is_dummy():
+                p += bond.p + bond._Atom2.p
+        return p
+
+
     @property
     def res_name(self):
         if self._res_name:
@@ -817,26 +829,21 @@ class Residue( molecules.Molecule ):
             at.p = molecules.Property()
 
         relevant_centers = []
+#First update carbons that are attached to fake hydrogens with new props
         for res in self.get_relevant_residues():
-#First put all the properties of dummy hydrogen and their bonds to the
-# real bonding atom
-            for hx in res.get_dummy_h():
-                assert len ( hx.bonds ) == 1
-                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                hx.bonds.remove( hx.bonds[0] )
-                res.remove(hx)
             for center in res.get_ats_and_bonds():
+                if isinstance( center, molecules.Atom ):
+                    center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
         for con in self.get_relevant_concaps():
-            for hx in con.get_dummy_h():
-                assert len ( hx.bonds ) == 1
-                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                hx.bonds.remove( hx.bonds[0] )
-                con.remove(hx)
             for center in con.get_ats_and_bonds():
+                if isinstance( center, molecules.Atom ):
+                    center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
+#Loop over all atoms and se if they are in residue or concap 
+#Save the points inbetween to put then om neighbors for later
         points_inbetween = []
         for center_1 in self.get_ats_and_bonds():
             tmp_p = molecules.Property()
@@ -857,13 +864,16 @@ class Residue( molecules.Molecule ):
                             tmp_p -= center_2.p
             center_1.p += tmp_p
 
-        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
-                get_original = True ):
+#Hacky solution so far to only compare the x-coordinate,  WARNING
+#Not the full vector point
+        points = utilz.unique( points_inbetween, key = lambda x: x.r[0],
+                get_original = True )
+        for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
-                    at.p += point.p/2.0
-        for point in utilz.unique( points_inbetween, key = lambda x: x.r,
-                get_original = True ):
+                    print point.p/2.0
+                    at.p = at.p + point.p/2.0
+        for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
                 if at in self:
                     at.bonds.remove( point )

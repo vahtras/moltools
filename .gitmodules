@@ -4,3 +4,6 @@
 [submodule "src/pd"]
 	path = src/pd
 	url = https://github.com/fishstamp82/pd.git
+[submodule "src/test/qm_prop_tests"]
+	path = src/test/qm_prop_tests
+	url = https://github.com/fishstamp82/qm_prop_tests.git
