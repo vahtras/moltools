@@ -1380,19 +1380,22 @@ class System( list ):
 Return the sum properties of all properties in System
         """
         conv = 1.0
+        p = molecules.Property()
+        coc = self.coc
         if self.AA:
             conv = 1/molecules.a0
 
-        coc = self.coc
-        el_dip = np.array([ conv*(at.r- coc)*at.p.q for at in self.atoms])
-        nuc_dip = np.array([ conv*(at.r-coc)*molecules.charge_dict[at.element] for at in self.atoms])
-        dip_lop = np.array([at.p.d for at in self.atoms])
+        el_dip = np.array([ conv*(center.r- coc)*center.p.q for mol in self.molecules for center in mol.get_ats_and_bonds()  ])
+        nuc_dip = np.array([ conv*(center.r-coc)*molecules.charge_dict[center.element] for mol in self.molecules for at in mol.get_ats_and_bonds() ])
+        dip_lop = np.array([ center.p.d for mol in self.molecules for center in mol.get_ats_and_bonds() ])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
         p = molecules.Property()
-        for at in self.atoms:
-            p += at.Property
-        p.d = d
+
+        for center in [c for mol in self.molecules for c in mol.get_ats_and_bonds()]:
+            p.q += center.p.q
+            p.a += center.p.a
+            p.b += center.p.b
         return p
 
 # To define N- /C- terminals and set Next/ Prev attributes
