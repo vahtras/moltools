@@ -307,7 +307,7 @@ AA       True     bool
 
 #Add a bond for this atom to the other atom
     def add_bond( self, b ):
-        if any((b.r == x ).all() for x in [bon.r for bon in self.bonds]):
+        if any( np.allclose(b.r, x.r, atol = 1e-7 ) for x in self.bonds):
             #logging.warning( "Tried to add bond which already exsists in %s" %self.pdb_name )
             return
         self.bonds.append( b )
@@ -669,6 +669,9 @@ Plot Atom in a 3D frame
         a = type(self)(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
+        a = pdbreader.Atom(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
+            'element':self.element,'name':self.name,'number':self.number,
+            'pdb_name':self.pdb_name} )
         a._label = self.label
         a._res_id = self._res_id
         a._atom_id = self.atom_id
@@ -864,7 +867,7 @@ class Molecule( list ):
         for at in self:
             tot.append( at )
             for b in at.bonds:
-                if any( (b.r == x.r).all() for x in bond_visited ):
+                if any( np.allclose(b.r, x.r, atol = 1e-7) for x in bond_visited ):
                     continue
                 bond_visited.append( b )
                 tot.append( b )
@@ -1610,11 +1613,17 @@ class Molecule( list ):
 
 
         for center, prop in zip( relevant, sorted( lines, key = f_prop )):
-            center.p = Property.from_propline( prop ,
+            prop = Property.from_propline( prop ,
                     maxl = maxl,
                     pol = pol,
                     hyper = hyp )
+            center.p = prop
             center.p.freq = freq
+            if isinstance( center, Bond ):
+                my_label = center._Atom1.label
+                other_bond = [b for b in center._Atom2.bonds if b._Atom2.label == my_label ][0]
+                other_bond.p = prop
+
         self.LoProp = True
         self.Property = False
 
@@ -1884,17 +1893,19 @@ class Molecule( list ):
                     if at1 == at2:
                         continue
                     if self[i1].dist_to_atom( ats[i2] ) < conv*bonding_cutoff[(self[i1].element, ats[i2].element)]:
-                        b = Bond( self[i1], ats[i2] )
-                        self[i1].add_bond( b )
-                        ats[i2].add_bond( b )
+                        b1 = Bond( self[i1], ats[i2] )
+                        b2 = Bond( ats[i2], self[i1] )
+                        self[i1].add_bond( b1 )
+                        ats[i2].add_bond( b2 )
         else:
             for i2 in range( 1, len(self) ):
                 for i1 in range( i2 ):
                     if self[i1].dist_to_atom( self[i2] ) < conv*bonding_cutoff[(self[i1].element, self[i2].element)]:
 
-                        b = Bond( self[i1], self[i2] )
-                        self[i1].add_bond( b )
-                        self[i2].add_bond( b )
+                        b1 = Bond( self[i1], self[i2] )
+                        b2 = Bond( self[i2], self[i1] )
+                        self[i1].add_bond( b1 )
+                        self[i2].add_bond( b2 )
 
     def populate_angles(self):
         pass
@@ -2285,7 +2296,7 @@ Plot Molecule in a 3D frame
             for at in [all_el for all_el in ats if (all_el.element == el) ]:
                 st += at.get_mol_line()
                 for b in at.bonds:
-                    if any( (b.r == x).all() for x in bonds_outputted ):
+                    if any( np.allclose(b.r == x, atol = 1e-7) for x in bonds_outputted ):
                         continue
                     st += b.get_mol_line( lab = 'XX-%s-%s' %(at.pdb_name, b._Atom2.pdb_name))
                     bonds_outputted.append( b.r )
