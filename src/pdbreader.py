@@ -635,6 +635,18 @@ class Atom( molecules.Atom ):
             setattr( self, "_chain_id",  kwargs.get( "chain_id", None ) )
             setattr( self, "_res_name",  kwargs.get( "res_name", None ) )
 
+    def prop_from_dummy( self ):
+        """After function this atom has properties taken from
+        neighbouring hydrogens which replace heavy previous atoms,
+        
+        and also the bonds between them"""
+        p = molecules.Property()
+        for bond in self.bonds:
+            if bond._Atom2.is_dummy():
+                p = self.p + bond.p + bond._Atom2.p
+        return p
+
+
     @property
     def res_name(self):
         if self._res_name:
