@@ -59,11 +59,11 @@ class Atom( pdbreader.Atom ):
         super(Atom, self).__init__( *args, **kwargs)
         self._label = None
 
-    @property
-    def label(self):
-        if self._label is not None:
-            return self._label
-        return "-".join( [ str(self.Molecule.res_id), self.Molecule.res_name, self.pdb_name ] )
+    #@property
+    #def label(self):
+    #    if self._label is not None:
+    #        return self._label
+    #    return "-".join( [ str(self.Molecule.res_id), self.Molecule.res_name, self.pdb_name ] )
 
 class Monomer( pdbreader.Residue ):
     """Right now specific for pmma but late can be made general to any
