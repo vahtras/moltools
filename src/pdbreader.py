@@ -829,26 +829,21 @@ class Residue( molecules.Molecule ):
             at.p = molecules.Property()
 
         relevant_centers = []
+#First update carbons that are attached to fake hydrogens with new props
         for res in self.get_relevant_residues():
-#First put all the properties of dummy hydrogen and their bonds to the
-# real bonding atom
-            for hx in res.get_dummy_h():
-                assert len ( hx.bonds ) == 1
-                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                hx.bonds.remove( hx.bonds[0] )
-                res.remove(hx)
             for center in res.get_ats_and_bonds():
+                if isinstance( center, molecules.Atom ):
+                    center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
         for con in self.get_relevant_concaps():
-            for hx in con.get_dummy_h():
-                assert len ( hx.bonds ) == 1
-                hx.bonds[0]._Atom2.p += hx.p + hx.bonds[0].p
-                hx.bonds.remove( hx.bonds[0] )
-                con.remove(hx)
             for center in con.get_ats_and_bonds():
+                if isinstance( center, molecules.Atom ):
+                    center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
+#Loop over all atoms and se if they are in residue or concap 
+#Save the points inbetween to put then om neighbors for later
         points_inbetween = []
         for center_1 in self.get_ats_and_bonds():
             tmp_p = molecules.Property()
