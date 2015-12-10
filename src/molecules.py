@@ -439,7 +439,7 @@ AA       True     bool
             del self.bonds[ other.name ]
 
 #Atoms
-    def transfer_props(self, level = 1 ):
+    def transfer_props(self, level = 1, own_res = True ):
         """
         Transfer own props completely based on level.
 
@@ -682,11 +682,14 @@ Plot Atom in a 3D frame
         a = type(self)(**{'x':self.x, 'y':self.y, 'z':self.z,'AA':self.AA,
             'element':self.element,'name':self.name,'number':self.number,
             'pdb_name':self.pdb_name} )
-        a._label = self.label
-        a._res_id = self._res_id
-        a._atom_id = self.atom_id
 
-        a.Property = self.Property.copy_property()
+        for key, val in self.__dict__.iteritems():
+#Do not copy pointers
+            if isinstance( val, list ):
+                continue
+            if isinstance( val, Property ):
+                a.p = self.p.copy_property()
+            a.__dict__[ key ] = val
 
         return a
 
@@ -1365,6 +1368,7 @@ class Molecule( list ):
             logging.warning('Passed %s instance to Molecule' %type(item) )
 
     def initiate(self, item):
+        item = item.copy()
         if isinstance( item, Atom ):
 #Small hack to set molecule to LoProp if initiated with atom that has Property on it
             if item.p.q != 0.0 or ( item.p.d != np.zeros(3)).all():
