@@ -63,7 +63,10 @@ def all_residues_from_pdb_string( _string,
         in_AA = True,
         out_AA = True):
     """Will return all residues in pdbfile, residues in same chain will belong
-    to the same chain type"""
+    to the same chain type
+    
+    Will set all ._label properties for all atoms from here on
+    """
     pat = re.compile(r'^ATOM|^HETATM')
     pat_meta = re.compile(r'^TITLE|^REMARK|^CRYST1|^MODEL')
     text = [f for f in _string.split('\n') if pat.match(f)]
@@ -114,6 +117,9 @@ def all_residues_from_pdb_string( _string,
         each.res_id = each[0].res_id
         each.res_name = each[0].res_name
         each._chain_id = each[0].chain_id
+        for at in each:
+#Pick .label by default since it is connected to this residue
+            at._label = at.label
     
 
     if in_AA and not out_AA:
