@@ -453,27 +453,27 @@ AA       True     bool
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
 #The other bond has no bond to this one! its fine in some cases
                 except IndexError:
-                    own_bond.p += self.p/sites
                     continue
                 own_bond.p += self.p/sites
                 other_bond.p += self.p/sites
 
         if level == 2:
             sites = len( self.bonds )
+            val = 0
             for own_bond in self.bonds:
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
                 except IndexError:
-                    own_bond_p = own_bond.p
-                    own_bond._Atom2.p += own_bond_p
-                    own_bond._Atom2.p += self.p/sites
-                    own_bond.p = Property()
-                    continue
-                own_bond_p = own_bond.p
-                own_bond._Atom2.p += own_bond_p
-                own_bond._Atom2.p += self.p/sites
-                own_bond.p = Property()
+                    val += 1
 
+            for own_bond in self.bonds:
+                try:
+                    other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
+                except IndexError:
+                    continue
+                own_bond._Atom2.p += own_bond.p
+                own_bond._Atom2.p += self.p/( sites - val )
+                own_bond.p = Property()
                 other_bond.p = Property()
 
         self.p = Property()
