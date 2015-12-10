@@ -125,11 +125,48 @@ class WaterTest( unittest.TestCase ):
             at.p = at.p.transform_by_matrix( R2 )
         np.testing.assert_allclose( w.o.p.d, np.array([0, 0, 1 ]), atol = 1e-10)
 
-
-
-
     def eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
+
+    def test_transfer_props_level_1(self):
+        w = Water.get_standard()
+        w.populate_bonds()
+        w.attach_properties()
+
+        p_ref = w.h1.p.copy_property()
+        bond = w.h1.bonds[0]
+
+        w.h1.transfer_props( level = 1 )
+        np.testing.assert_allclose( bond.p.q, p_ref.q )
+        np.testing.assert_allclose( bond.p.d, p_ref.d )
+        np.testing.assert_allclose( bond.p.a, p_ref.a )
+        np.testing.assert_allclose( bond.p.b, p_ref.b )
+
+    def test_transfer_props_level_2(self):
+        w = Water.get_standard()
+        w.populate_bonds()
+        w.attach_properties()
+
+        p_ref_o  = w.o.p.copy_property()
+        p_ref_h1 = w.h1.p.copy_property()
+
+        w.h1.transfer_props( level = 2 )
+
+        np.testing.assert_allclose( w.o.p.q, (p_ref_o + p_ref_h1).q )
+        np.testing.assert_allclose( w.o.p.d, (p_ref_o + p_ref_h1).d )
+        np.testing.assert_allclose( w.o.p.a, (p_ref_o + p_ref_h1).a )
+        np.testing.assert_allclose( w.o.p.b, (p_ref_o + p_ref_h1).b )
+
+        np.testing.assert_allclose( np.zeros(3,), w.h1.p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.h1.p.a )
+
+        np.testing.assert_allclose( np.zeros(3,), w.h1.bonds[0].p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.h1.bonds[0].p.a )
+
+        np.testing.assert_allclose( np.zeros(3,), w.o.bonds[0].p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.o.bonds[0].p.a )
+
+
 
 if __name__ == '__main__':
     unittest.main()

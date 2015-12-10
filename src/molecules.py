@@ -439,21 +439,34 @@ AA       True     bool
             del self.bonds[ other.name ]
 
 #Atoms
-    def transfer_props(self, 
-            transfer = { 'charge' : 0,
-                'quadrupole' : 0,
-                'dipole' : 0,
-                'alpha' : 0,
-                'beta' : 0 }, 
-            center = None ):
+    def transfer_props(self, level = 1 ):
         """
-        The algorithm checks for edges, takes properties from there 
-        if they are also in the list, and then
-        distributes evenly to other neighbours
+        Transfer own props completely based on level.
 
-        Needs to be reimplemented
+        level = 1: Transfer to bonds evenly
+        level = 2: Transfer own, and bonds, to nearest bonded atoms.
         """
-        pass
+        if level == 1:
+            sites = len( self.bonds )
+            for own_bond in self.bonds:
+                other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
+                own_bond.p += self.p/sites
+                other_bond.p += self.p/sites
+
+        if level == 2:
+            sites = len( self.bonds )
+            for own_bond in self.bonds:
+                other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
+                other_bond_p = other_bond.p
+                own_bond_p = own_bond.p
+
+                own_bond._Atom2.p += own_bond_p
+                own_bond._Atom2.p += self.p/sites
+
+                other_bond.p = Property()
+                own_bond.p = Property()
+        self.p = Property()
+
         #self.tmp_bonds = self.bonds.copy()
         #for at in self.bonds.values():
         #    at.tmp_bonds = at.bonds.copy()
