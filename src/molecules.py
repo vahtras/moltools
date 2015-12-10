@@ -2587,8 +2587,8 @@ class Water( Molecule ):
 #Since we added the atoms already, we need to define .o, .h1, and .h2
 #the element + index of occurance of atom in molecule must match here for proper
 #Water initialization from list of atoms
-        if args is not ():
-            for atom in args: 
+        if len(self) > 0:
+            for atom in self: 
                 if atom.name == 'O1':
                     self.o = atom
                 if atom.name == 'H2':
