@@ -467,13 +467,13 @@ AA       True     bool
 
         elif level == 2:
             val = 0
-            for own_bond in self.bonds:
+            for own_bond in bonds:
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
                 except IndexError:
                     val += 1
 
-            for own_bond in self.bonds:
+            for own_bond in bonds:
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
                 except IndexError:
