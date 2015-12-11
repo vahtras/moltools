@@ -275,6 +275,11 @@ AA       True     bool
             return True
         return False
 
+    def __eq__(self, other):
+        """Just compare coordiante of atom and call it the same if matches,
+        skip particular pointers to atoms"""
+        return np.allclose( self.r, other.r ) 
+
     def is_dummy(self):
         if self.label:
             l = self.label.split('-')
@@ -446,9 +451,11 @@ AA       True     bool
         level = 1: Transfer to bonds evenly
         level = 2: Transfer own, and bonds, to nearest bonded atoms.
         """
+        bonds = [b for b in self.bonds if b._Atom2.res_id == self.res_id]
+        sites = len( bonds )
+        p = Property()
         if level == 1:
-            sites = len( self.bonds )
-            for own_bond in self.bonds:
+            for own_bond in bonds:
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
 #The other bond has no bond to this one! its fine in some cases
@@ -456,9 +463,9 @@ AA       True     bool
                     continue
                 own_bond.p += self.p/sites
                 other_bond.p += self.p/sites
+                p += self.p/sites
 
-        if level == 2:
-            sites = len( self.bonds )
+        elif level == 2:
             val = 0
             for own_bond in self.bonds:
                 try:
