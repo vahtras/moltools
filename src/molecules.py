@@ -117,7 +117,6 @@ class Bond(object):
         if self._Atom1.res_id == self._Atom2.res_id:
             return self._Atom1.res_id
         return None
-        
 
     @property
     def len(self):
@@ -466,46 +465,18 @@ AA       True     bool
                 p += self.p/sites
 
         elif level == 2:
-            val = 0
             for own_bond in bonds:
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
                 except IndexError:
-                    val += 1
-
-            for own_bond in bonds:
-                try:
-                    other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
-                except IndexError:
+                    print 'no bonds in other atom'
                     continue
+#If for some reason we forgot to put properties on this bond but not for the other
+
                 own_bond._Atom2.p += own_bond.p
-                own_bond._Atom2.p += self.p/( sites - val )
+                own_bond._Atom2.p += self.p / sites
                 own_bond.p = Property()
-                other_bond.p = Property()
-
         self.p = Property()
-
-        #self.tmp_bonds = self.bonds.copy()
-        #for at in self.bonds.values():
-        #    at.tmp_bonds = at.bonds.copy()
-
-#
-        #props = [k for k, v in transfer.iteritems() if v == 1]
-
-        #if len( self.tmp_bonds ) == 0:
-        #    logging.error('Tried to transfer props from non bonded atom')
-        #    logging.error('Offending atom is : %s' %self )
-        #    raise SystemExit
-        #p = self.p / len( self.tmp_bonds )
-        #for at in self.tmp_bonds.values():
-        #    for prop in props:
-        #        at.p[prop] += p[prop]
-        #        self.p[prop] -= p[prop]
-        #    del at.tmp_bonds[ self.name ]
-
-        #del self.tmp_bonds
-
-
         
 
     @property

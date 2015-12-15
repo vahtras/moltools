@@ -69,6 +69,15 @@ class Property( dict ):
             tmp[prop] = np.array( self[prop] )/float(other)
         return tmp
 
+    def is_null(self):
+        empty = True
+        for key, val in self.iteritems():
+            if not np.allclose( np.zeros( np.array((val,)).shape ), np.array((val,)) , atol = 1e-14):
+                empty = False
+        return empty
+
+
+
     @property
     def q(self):
         return self['charge']
