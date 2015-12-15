@@ -3197,6 +3197,7 @@ class Cluster(list):
                 'p' : PointDipoleList,
                 't' : TholeList,
                 'g' :GaussianQuadrupoleList,
+                'add' :PointDipoleList,
                 }
 
         aa = self.AA
@@ -3206,6 +3207,11 @@ class Cluster(list):
         else:
             init_f = opts[model].from_string
         g = init_f( self.get_qmmm_pot_string(max_l = max_l, pol = pol, hyp = hyp, bonds = bonds))
+
+#Set all particles to group 1, meaning no interaction will take place
+        if model == 'add':
+            for particle in g:
+                particle.group = 1
         if aa:
             self.to_AA()
         return g
