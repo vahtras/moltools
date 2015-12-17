@@ -1598,7 +1598,7 @@ Return the sum properties of all properties in System
         for ch in self:
             for res in ch:
                 if res.res_name == "CYS":
-                    if "HG1" in res:
+                    if "HG1" in [x.pdb_name for x in res]:
                         #No bridge if has this atom
                         continue
                     else:
