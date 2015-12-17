@@ -3408,13 +3408,9 @@ class Cluster(list):
         return dist
 
     def __eq__(self, other):
-        """docstring for __eq__ """
-        if not len(self) == len(other):
-            return False
-        for i, (m1, m2) in enumerate( zip(self, other) ):
-            if m1 != m2:
-                return False
-        return True
+        """Docstring for __eq__ in cluster method, will equate to """
+        return id(self) == id(other)
+        
         
     def get_qm_xyz_string(self, AA = False):
 # If basis len is more than one, treat it like molecular ano type
@@ -4028,10 +4024,7 @@ Return a cluster of water molecules given file.
         for i in self[ N_qm  : N_qm + N_mm ]:
             i.in_mm = True
     def copy_cluster(self):
-        tmp_c = Cluster()
-        for res in self:
-            tmp_c.add( res.copy_self() )
-        return tmp_c
+        return copymod.deepcopy( self )
 
     @classmethod
     def from_pot_string( cls, pot, in_AA = False, out_AA = False ):
