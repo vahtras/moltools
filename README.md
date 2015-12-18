@@ -1,6 +1,7 @@
 [![Documentation Status](https://readthedocs.org/projects/moltools/badge/?version=docs)](https://readthedocs.org/projects/moltools/?badge=docs)
 [![Build Status](https://travis-ci.org/fishstamp82/moltools.svg?branch=master)](https://travis-ci.org/fishstamp82/moltools)
 [![Coverage Status](https://coveralls.io/repos/fishstamp82/moltools/badge.svg?branch=master&service=github)](https://coveralls.io/github/fishstamp82/moltools?branch=master)
+[![DOI](https://zenodo.org/badge/19666/fishstamp82/moltools.svg)](https://zenodo.org/badge/latestdoi/19666/fishstamp82/moltools)
 
 
 #Welcome to moltools!
