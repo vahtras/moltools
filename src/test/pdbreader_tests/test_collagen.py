@@ -1,15 +1,21 @@
-#!/usr/bin/env python
 from pdbreader import *
-import unittest
+import unittest, pytest
+from nose.tools import timed
+from nose.plugins.attrib import attr
+import time
 
 FILE = os.path.join(os.path.dirname(__file__), 'collagen.pdb')
 
+@attr( speed = 'slow' )
 class TestConcapsLevel1( unittest.TestCase ):
+
+
     def setUp(self):
         """ Default arguments used for program 
         equivalent of argparser in pdbreader """
 
-        self.ch = S = System.read_protein_from_file ( FILE )
+        self.ch = S = System.from_pdb_string( open(FILE).read() )
+
 
         for chain in self.ch:
             chain.connect_residues()
@@ -17,15 +23,18 @@ class TestConcapsLevel1( unittest.TestCase ):
                 res.gather_ready( c = True, level = 1 )
                 res.gather_ready( r = True, level = 1 )
 
+    @timed(0.1)
     def test_prolines_concaps_level1( self, ):
+        #time.sleep(2)
         """ At level 1 all concaps have 6 atoms"""
         for chain in self.ch:
             for res in chain:
                 if res.res_name == "PRO":
                     if res.c_term:
                         continue
-                    assert len( res.con ) == 6
+                    assert len( res.concap ) == 6
 
+    @timed(0.1)
     def test_concaps_level1( self, ):
         """ At level 1 all concaps have 6 atoms"""
         for chain in self.ch:
@@ -33,8 +42,9 @@ class TestConcapsLevel1( unittest.TestCase ):
                 if res.res_name != "PRO":
                     if res.c_term:
                         continue
-                    assert len( res.con ) == 6
+                    assert len( res.concap ) == 6
 
+    @timed(0.1)
     def test_collagen_level_1( self, ):
         """ At level 1, assert how many atoms each concap and ready residue has.
         

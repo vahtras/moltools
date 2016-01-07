@@ -13,3 +13,7 @@ templates
 
 .gitconfig
 .coverage
+
+doc/.buildinfo
+doc/.doctrees
+doc/old_source

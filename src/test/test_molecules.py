@@ -2,9 +2,13 @@ import unittest, mock, os
 import numpy as np
 
 from use_generator import Generator
-from molecules import Water, Molecule, Methanol, Property
+import warnings
+warnings.simplefilter('error')
+from nose.plugins.attrib import attr
+from molecules import Water, Molecule, Property
 from template import Template
 
+@attr(speed = 'fast' )
 class MoleculesTestCase( unittest.TestCase ):
     def setUp(self):
         wat = Water.get_standard()
@@ -12,8 +16,8 @@ class MoleculesTestCase( unittest.TestCase ):
         kw_dict = Template().get( *("TIP3P", "HF", "ANOPVDZ",
             True, "0.0"))
         for at in wat:
-            Property.add_prop_from_template( at, kw_dict )
-            at.Property.transform_ut_properties( t1, t2, t3 )
+            at.p = Property.from_template( at.name, kw_dict )
+            at.p = at.p.rotate( t1, t2, t3 )
 # will only test this quadrupole
             at.Property["quadrupole"] = np.arange( 6 )
         self.wat = wat
@@ -58,11 +62,11 @@ H           -0.756950   0.000000   0.585882
 
 
 Atomtypes=2 Charge=0 Nosymm Angstrom
-Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
-O                 0.00000   0.00000   0.00000
 Charge=1.0 Atoms=2 Basis=ano-1 2
-H                 0.75695   0.00000   0.58588
-H                -0.75695   0.00000   0.58588
+0-MOL-HW2        -0.75695   0.00000   0.58588
+0-MOL-HW1         0.75695   0.00000   0.58588
+Charge=8.0 Atoms=1 Basis=ano-1 4 3 1
+0-MOL-OW          0.00000   0.00000   0.00000
 """
         self.wat.to_AA()
         assert self.wat.get_mol_string() == st 

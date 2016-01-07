@@ -1,29 +1,33 @@
-#!/usr/bin/env python
 from pdbreader import *
 from molecules import Property
+from nose.plugins.attrib import attr
 import unittest
+
+from nose.tools import nottest
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 first_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO1.p' )
 second_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO2.p' )
 first_con_file = os.path.join(os.path.dirname(__file__), 'A-PRO1-con.p')
 
+#@unittest.skip('Skip due to being too slow')
+@attr(speed = 'slow' )
 class TestConcapsLevel1( unittest.TestCase ):
 
     def setUp(self):
         """ Default arguments used for program 
         equivalent of argparser in pdbreader """
 
-        self.ch = System.read_protein_from_file ( FILE )[0]
+        self.ch = System.from_pdb_string( open(FILE).read() )[0]
         self.ch.connect_residues()
         for res in self.ch:
             res.gather_ready( r = True, level = 1 )
             res.gather_ready( c = True, level = 1 )
 
         f_res = self.ch[0].ready
-        f_con = self.ch[0].con
+        f_con = self.ch[0].concap
         s_res = self.ch[1].ready
-        s_con = self.ch[1].con
+        s_con = self.ch[1].concap
 
         self.f_res = f_res
         self.f_con = f_con
@@ -163,9 +167,9 @@ class TestConcapsLevel1( unittest.TestCase ):
     def test_first(self):
         assert self.f_res.Next == self.ch[1]
         assert self.f_res.Next.ready == self.s_res
-        assert self.f_res.Next.con == self.s_con
+        assert self.f_res.Next.concap == self.s_con
         assert self.f_res == self.ch[0].ready
-        assert self.f_con == self.ch[0].con
+        assert self.f_con == self.ch[0].concap
 
 
     def test_relevant_first(self):
@@ -173,12 +177,14 @@ class TestConcapsLevel1( unittest.TestCase ):
         ats = reduce( lambda a,x : a+x, resi )
         assert len(ats) == 39
 
+    @nottest
     def test_mfcc_first(self):
+        logging.warning("Test not implemented")
         first = self.ch[0]
         second = self.ch[1]
 
         first_res = self.ch[0].ready
-        first_con = self.ch[0].con
+        first_con = self.ch[0].concap
         second_res = self.ch[1].ready
 # Set up properties which should lead to C = 0.8, N = 0.3 in the end
 

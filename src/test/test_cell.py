@@ -1,13 +1,28 @@
 import unittest, os
 import numpy as np
+from pd.particles import PointDipoleList
 from molecules import Cluster, Atom
+import warnings
+warnings.simplefilter('error')
+from nose.plugins.attrib import attr
 from use_generator import Generator
+import dstruct
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )
+POTSTRING = """AU
+6 1 22 1
+1      0.000000   0.000000   0.000000 -0.66229 0.00000 0.00000 0.34276 4.10574 0.00000 0.00000 4.79229 0.00000 4.01912 0.00000 0.00000 -3.33162 0.00000 0.00000 0.00000 0.00000 -0.32216 0.00000 0.79137
+1      1.430429   0.000000   1.107157 0.33114 -0.16617 0.00000 -0.11629 1.53802 0.00000 1.19765 0.90661 0.00000 1.37138 -4.52137 0.00000 -5.08061 -1.35494 0.00000 -4.83365 0.00000 -0.46317 0.00000 -3.47921
+1     -1.430429   0.000000   1.107157 0.33114 0.16617 0.00000 -0.11629 1.53802 0.00000 -1.19765 0.90661 0.00000 1.37138 4.52137 0.00000 -5.08061 1.35494 0.00000 4.83365 0.00000 -0.46317 0.00000 -3.47921
+2     15.000000  15.000000  15.000000 -0.66229 0.00000 0.00000 0.34276 4.10574 0.00000 0.00000 4.79229 0.00000 4.01912 0.00000 0.00000 -3.33162 0.00000 0.00000 0.00000 0.00000 -0.32216 0.00000 0.79137
+2     16.430429  15.000000  16.107157 0.33114 -0.16617 0.00000 -0.11629 1.53802 0.00000 1.19765 0.90661 0.00000 1.37138 -4.52137 0.00000 -5.08061 -1.35494 0.00000 -4.83365 0.00000 -0.46317 0.00000 -3.47921
+2     13.569571  15.000000  16.107157 0.33114 0.16617 0.00000 -0.11629 1.53802 0.00000 -1.19765 0.90661 0.00000 1.37138 4.52137 0.00000 -5.08061 1.35494 0.00000 4.83365 0.00000 -0.46317 0.00000 -3.47921"""
+
 
 from dstruct import Cell
+@attr(speed = 'fast' )
 class CellTest( unittest.TestCase ):
     def setUp(self):
         pass
@@ -68,6 +83,14 @@ class CellTest( unittest.TestCase ):
                     except IndexError:
                         pass
         assert len(tmp) -1 == len(cell.get_closest( at1 ))
+
+    def test_from_PointDipoleList(self, ):
+        _str = POTSTRING
+        pdl = PointDipoleList.from_string( _str )
+        cell = dstruct.Cell.from_PointDipoleList( pdl, co = 5 )
+
+        assert isinstance( cell, dstruct.Cell )
+
 
 
 if __name__ == '__main__':

@@ -40,7 +40,9 @@ import numpy as np
 import math as m
 
 from template import Template
-from molecules import Generator, Molecule, Water, Methanol, Atom, Property, Cluster
+from molecules import Molecule, Water, Atom, Cluster
+from property import Property
+from generator import Generator
 
 a0 = 0.52917721092
 if __name__ == '__main__':
@@ -97,7 +99,7 @@ if __name__ == '__main__':
                 "methanol" , "ethane"] )
     A.add_argument( "-model", type = str, default = 'tip3p' )
     A.add_argument( "-basis", type = str, nargs = "*",
-            default =["ano-1 2 1", "ano-1 3 2 1" ] )
+            default =["ano-1 2", "ano-1 4 3 1" ] )
     A.add_argument( "-AA" ,  default = False, action = 'store_true' )
 
 #########################

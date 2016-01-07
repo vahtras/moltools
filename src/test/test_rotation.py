@@ -1,12 +1,16 @@
-import unittest
+import unittest, pytest
 import numpy as np
 from numpy.linalg import norm
 
+import warnings
+warnings.simplefilter('error')
+from nose.plugins.attrib import attr
 import utilz
 from use_generator import Generator
 from template import Template
 from molecules import Water, Atom, Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
@@ -110,18 +114,23 @@ class WaterTest( unittest.TestCase ):
         w.translate_o( np.zeros(3) )
 
         for at in w:
-            Property.add_prop_from_template( at, Template().get() )
+            at.p = Property.from_template( at.name, Template().get( model = 'TIP3p',
+                method ='HF',
+                basis = 'ANOPVDZ') )
+        w.LoProp = True
 
-        np.testing.assert_allclose( w.p.d ,[0, 0, 0.78704747], atol = 1e-7)
+        dip = 0.7870603
 
-        w.rotate( np.pi/7, 0, 0 )
+        np.testing.assert_allclose( w.p.d ,[0, 0, dip ], atol = 1e-7)
 
-        self.eq( w.p.d ,[0, 0, 0.78704747])
+        w.rotate( np.pi/2, 0, 0 )
+
+        self.eq( w.p.d ,[0, 0, dip])
 
         print "After 90 around Z-axis: counter-clock"
         print w.p
         w.rotate( 0, np.pi/2 , 0 )
-        self.eq( w.p.d ,[-0.78704747,  0, 0])
+        self.eq( w.p.d ,[-dip,  0, 0])
 
         print "After 90 around Y-axis: clock"
         print w.p.d

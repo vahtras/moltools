@@ -1,7 +1,8 @@
 import numpy as np
 import molecules
-import copy
+import copy, itertools
 
+from pd import particles
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
@@ -70,30 +71,24 @@ class Cell( np.ndarray ):
             return
 
     @staticmethod
-    def from_cluster( cluster , co = 2.0 ):
-        assert isinstance( cluster, molecules.Cluster )
-        if not cluster.AA:
-            co /= a0
+    def from_PointDipoleList( pdl, co = 25 ):
+        """By default, the cutoff box is 25 Angstroms"""
 
-        ats = []
-        for at in cluster.atoms:
-            ats.append( at )
-        
-        cell = Cell( my_min = [ min( ats, key = lambda x: x.x ).x,
-                         min( ats, key = lambda x: x.y ).y,
-                         min( ats, key = lambda x: x.z ).z],
-              my_max = [ max( ats, key = lambda x: x.x ).x,
-                         max( ats, key = lambda x: x.y ).y,
-                         max( ats, key = lambda x: x.z ).z],
+        co /= a0
+        x, y, z = [], [], []
+        for p in pdl:
+            x.append( p._r[0] )
+            y.append( p._r[1] )
+            z.append( p._r[2] )
+
+        cell = Cell( my_min = [ np.min(x), np.min(y), np.min(z )],
+                    my_max = [ np.max(x), np.max(y), np.max(z )],
               my_cutoff = co,
-              AA = cluster.AA,
               )
-        for at in cluster.atoms:
-            cell.add(at)
+        for pd in pdl:
+            cell.add(pd)
 
         return cell
-
-
 
     @staticmethod
     def from_xyz( fil, co = 2.0, in_AA = False, out_AA = False ):
@@ -102,7 +97,6 @@ class Cell( np.ndarray ):
 
         if not in_AA:
             co /= a0
-
         for f_ in open(fil ).readlines()[2:]:
             el, x, y, z = f_.split()
             x, y, z = map(float, [x,y,z] )
@@ -123,14 +117,14 @@ class Cell( np.ndarray ):
             cell.add(at)
 
         for at in cell:
-            if len(at.Molecule) == 0:
-                at.Molecule.append( at )
+            if at.Molecule is None:
+                m = molecules.Molecule()
+                m.add( at )
             cell.build_molecules( current = at, closeby = cell.get_closest(at) )
         return cell
 
     def build_molecules(self, current = None, visited = [],
             closeby = [], max_dist = 1.46, AA = False):
-        """Recursively builds molecules from .xyz file format"""
         visited.append( current )
         if not self.AA:
             max_dist /= a0
@@ -151,7 +145,7 @@ class Cell( np.ndarray ):
             self.build_molecules( current = at, closeby = close, visited = visited )
  
     def add_atom( self, atom ):
-        assert isinstance( atom, molecules.Atom )
+        assert type( atom ) == molecules.Atom
         self.add( atom )
 
     def add_molecule( self, mol ):
@@ -191,17 +185,45 @@ to iterate not over whole cell box but closest
         """
         x_ind, y_ind, z_ind = self.get_index( item )
         tmp_list = []
-        for i in range( x_ind -1, x_ind + 2 ):
-            for j in range( y_ind -1, y_ind + 2 ):
-                for k in range( z_ind -1, z_ind + 2 ):
-                    try:
-                        for at in self[i][j][k]:
-                            if at == item or at in tmp_list:
-                                continue
-                            tmp_list.append( at )
-                    except IndexError:
-                        pass
-        return tmp_list
+        new =  []
+
+        if x_ind == 0:
+            if (self.shape[0] - 1 ) == x_ind:
+                xmin, xmax = 0, 1
+            else:
+                xmin, xmax = 0, 2
+        else:
+            if (self.shape[0] - 1) == x_ind:
+                xmin, xmax = x_ind - 1, x_ind + 1
+            else:
+                xmin, xmax = x_ind - 1, x_ind + 2
+
+        if y_ind == 0:
+            if (self.shape[1] - 1 ) == y_ind:
+                ymin, ymax = 0, 1
+            else:
+                ymin, ymax = 0, 2
+        else:
+            if (self.shape[1] - 1) == y_ind:
+                ymin, ymax = y_ind - 1, y_ind + 1
+            else:
+                ymin, ymax = y_ind - 1, y_ind + 2
+
+        if z_ind == 0:
+            if (self.shape[2] - 1 ) == z_ind:
+                zmin, zmax = 0, 1
+            else:
+                zmin, zmax = 0, 2
+        else:
+            if (self.shape[2] - 1) == z_ind:
+                zmin, zmax = z_ind - 1, z_ind + 1
+            else:
+                zmin, zmax = z_ind - 1, z_ind + 2
+
+        for i, j, k in itertools.product( range( xmin, xmax ), range( ymin, ymax ), range( zmin, zmax )):
+                    new += self[i, j, k] 
+        new.remove( item )
+        return new
 
     def update(self):
 
@@ -267,18 +289,24 @@ Return the x, y, and z index for cell for this item,
     >>> print c.get_index( a1 )
     (0, 0, 0,)
 """
-        assert self.my_xmin <= item[0] <= self.my_xmax
-        assert self.my_ymin <= item[1] <= self.my_ymax
-        assert self.my_zmin <= item[2] <= self.my_zmax
+        if isinstance( item, molecules.Atom ):
+            x, y, z = item.r
+            assert self.my_xmin <= x <= self.my_xmax
+            assert self.my_ymin <= y <= self.my_ymax
+            assert self.my_zmin <= z <= self.my_zmax
 
-        tmp_xmin = item[0] - self.my_xmin
-        tmp_ymin = item[1] - self.my_ymin
-        tmp_zmin = item[2] - self.my_zmin
+        if isinstance( item, particles.PointDipole ):
+            x, y, z = item._r
+            assert self.my_xmin <= x <= self.my_xmax
+            assert self.my_ymin <= y <= self.my_ymax
+            assert self.my_zmin <= z <= self.my_zmax
+
+        tmp_xmin = x - self.my_xmin
+        tmp_ymin = y - self.my_ymin
+        tmp_zmin = z - self.my_zmin
 
         x_ind = int( np.floor( tmp_xmin /  self.my_cutoff))
         y_ind = int( np.floor( tmp_ymin /  self.my_cutoff))
         z_ind = int( np.floor( tmp_zmin /  self.my_cutoff))
         
         return (x_ind, y_ind, z_ind)
-
-

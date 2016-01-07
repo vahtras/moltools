@@ -62,7 +62,7 @@ import math as m
 from template import Template
 from molecules import *
 
-from gaussian import *
+from pd.gaussian import *
 import h5py
 
 a0 = 0.52917721092

@@ -8,3 +8,5 @@ tip3p_test
 *.dal
 *.mol
 tmp
+
+fortran

@@ -2,8 +2,13 @@ import unittest, os
 import numpy as np
 
 import utilz
-from molecules import Property, Water
+import warnings
+warnings.simplefilter('error')
+from nose.plugins.attrib import attr
+from molecules import Water
+from property import Property
 
+@attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):
 
     def setUp(self):
@@ -15,27 +20,27 @@ class WaterTest( unittest.TestCase ):
         self.p1['beta'] = np.arange( 10 )
 
     def test_potline_0_0_0(self):
-        assert self.p1.potline(max_l = 0, pol = 0, hyper = 0) == "0.22000 "
+        assert self.p1.potline(max_l = 0, pol = 0, hyper = 0, fmt = "%.5f " ) == "0.22000 "
 
     def test_potline_1_0_0(self):
-        assert self.p1.potline(max_l = 1, pol = 0, hyper = 0) == \
+        assert self.p1.potline(max_l = 1, pol = 0, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 0.00000 0.00000 -0.50000 "
 
     def test_potline_2_0_0(self):
-        assert self.p1.potline(max_l = 2, pol = 0, hyper = 0) == \
+        assert self.p1.potline(max_l = 2, pol = 0, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 0.00000 0.00000 -0.50000 0.00000 1.00000 2.00000 3.00000 4.00000 5.00000 "
 
     def test_potline_0_1_0(self):
         print self.p1.potline(max_l = 0, pol = 1, hyper = 0)
-        assert self.p1.potline(max_l = 0, pol = 1, hyper = 0) == \
+        assert self.p1.potline(max_l = 0, pol = 1, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 3.33333 "
 
     def test_potline_0_2_0(self):
-        assert self.p1.potline(max_l = 0, pol = 2, hyper = 0) == \
+        assert self.p1.potline(max_l = 0, pol = 2, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 6.00000 5.00000 4.00000 3.00000 2.00000 1.00000 "
     def test_potline_0_22_1(self):
-        print self.p1.potline(max_l = 0, pol = 22, hyper = 1) 
-        assert self.p1.potline(max_l = 0, pol = 22, hyper = 1) == \
+        print self.p1.potline(max_l = 0, pol = 22, hyper = 2, fmt = "%.5f ") 
+        assert self.p1.potline(max_l = 0, pol = 22, hyper = 2, fmt = "%.5f ") == \
                 "0.22000 6.00000 5.00000 4.00000 3.00000 2.00000 1.00000 " + \
                 "0.00000 1.00000 2.00000 3.00000 4.00000 5.00000 6.00000 7.00000 8.00000 9.00000 "
 
@@ -100,10 +105,68 @@ class WaterTest( unittest.TestCase ):
         np.testing.assert_allclose( P.Q, np.array([3, 0, 0, 2, 0, 7]) , atol = 1e-7 )
         #np.testing.assert_allclose( P.b, np.array([3, 0, 0, 0, 0, 0, 5, 0, 0, 10 ]), atol = 1e-7 )
 
+    def test_transform_by_inv_rotate(self):
+        w = Water.get_standard()
+        w.rotate( 0, np.pi/2, np.pi/2 )
+        w.o.p.d = np.array([0, -1.0, 0 ])
+        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r-w.h2.r)/2 + w.h2.r,w.h1.r)
+        w.inv_rotate( r3, r2, r1)
+        np.testing.assert_allclose( w.o.p.d, np.array([0, 0, 1 ]), atol = 1e-10)
 
+    def test_transform_by_matrix(self):
+        w = Water.get_standard()
+        w.rotate( 0, np.pi/2, np.pi/2 )
+        w.o.p.d = np.array([0, -1.0, 0 ])
+        t, r1, r2, r3 = utilz.center_and_xz( w.o.r, (w.h1.r-w.h2.r)/2 + w.h2.r,w.h1.r)
+        R1 = utilz.R( [0,0,1], np.pi/2 )
+        R2 = utilz.R( [0,1,0], 3*np.pi/2 )
+        for at in w:
+            at.p = at.p.transform_by_matrix( R1 )
+            at.p = at.p.transform_by_matrix( R2 )
+        np.testing.assert_allclose( w.o.p.d, np.array([0, 0, 1 ]), atol = 1e-10)
 
     def eq(self, a, b, decimal = 7):
         np.testing.assert_almost_equal( a, b, decimal = decimal )
+
+    def test_transfer_props_level_1(self):
+        w = Water.get_standard()
+        w.populate_bonds()
+        w.attach_properties()
+
+        p_ref = w.h1.p.copy_property()
+        bond = w.h1.bonds[0]
+
+        w.h1.transfer_props( level = 1 )
+        np.testing.assert_allclose( bond.p.q, p_ref.q )
+        np.testing.assert_allclose( bond.p.d, p_ref.d )
+        np.testing.assert_allclose( bond.p.a, p_ref.a )
+        np.testing.assert_allclose( bond.p.b, p_ref.b )
+
+    def test_transfer_props_level_2(self):
+        w = Water.get_standard()
+        w.populate_bonds()
+        w.attach_properties()
+
+        p_ref_o  = w.o.p.copy_property()
+        p_ref_h1 = w.h1.p.copy_property()
+
+        w.h1.transfer_props( level = 2 )
+
+        np.testing.assert_allclose( w.o.p.q, (p_ref_o + p_ref_h1).q )
+        np.testing.assert_allclose( w.o.p.d, (p_ref_o + p_ref_h1).d )
+        np.testing.assert_allclose( w.o.p.a, (p_ref_o + p_ref_h1).a )
+        np.testing.assert_allclose( w.o.p.b, (p_ref_o + p_ref_h1).b )
+
+        np.testing.assert_allclose( np.zeros(3,), w.h1.p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.h1.p.a )
+
+        np.testing.assert_allclose( np.zeros(3,), w.h1.bonds[0].p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.h1.bonds[0].p.a )
+
+        np.testing.assert_allclose( np.zeros(3,), w.o.bonds[0].p.d )
+        np.testing.assert_allclose( np.zeros(6,), w.o.bonds[0].p.a )
+
+
 
 if __name__ == '__main__':
     unittest.main()

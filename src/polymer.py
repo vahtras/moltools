@@ -1,7 +1,9 @@
 import pdbreader
 import molecules, re, copy
+import copy as copy
 import numpy as np
 import utilz
+import logging
 
 charge_dict = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0,
         "P" : 15, "X" : 0.0 }
@@ -57,11 +59,11 @@ class Atom( pdbreader.Atom ):
         super(Atom, self).__init__( *args, **kwargs)
         self._label = None
 
-    @property
-    def label(self):
-        if self._label is not None:
-            return self._label
-        return "-".join( [ str(self.Molecule.res_id), self.Molecule.res_name, self.pdb_name ] )
+    #@property
+    #def label(self):
+    #    if self._label is not None:
+    #        return self._label
+    #    return "-".join( [ str(self.Molecule.res_id), self.Molecule.res_name, self.pdb_name ] )
 
 class Monomer( pdbreader.Residue ):
     """Right now specific for pmma but late can be made general to any
@@ -93,6 +95,9 @@ class Monomer( pdbreader.Residue ):
 
         return st
 
+    def copy_self(self):
+        return copy.deepcopy(self)
+
     def copy_info(self):
         new = Monomer()
         new.c_term = self.c_term
@@ -104,7 +109,7 @@ class Monomer( pdbreader.Residue ):
         new._res_name = self.res_name
         new.Next = self.Next
         new.Prev = self.Prev
-        new.chain = self.chain
+        new.Chain = self.Chain
         return new
 
     def gather_ready( self, 
@@ -280,17 +285,38 @@ class Monomer( pdbreader.Residue ):
             self.bri = tmp_residue
 
     @property
+    def HN(self):
+        return self.first_h
+    @property
+    def HC(self):
+        return self.last_h
+    @property
+    def CX(self):
+        return self.get_atom_by_pdb_name( 'CX' )
+
+    @property
     def first_h(self):
+        for at in self.hidden:
+            if at.pdb_name == 'HN':
+                return at
         return self.get_atom_by_pdb_name( 'HN' )
+
     @property
     def last_h(self):
+        for at in self.hidden:
+            if at.pdb_name == 'HC':
+                return at
         return self.get_atom_by_pdb_name( 'HC' )
+
+
     @property
     def last_heavy(self):
         return self.get_atom_by_pdb_name( 'CA' )
+
     @property
     def first_heavy(self):
         return self.get_atom_by_pdb_name( 'C' )
+
     def get_atom_by_pdb_name(self, label, dup = False):
         at = []
         for i in self:
@@ -412,7 +438,7 @@ class Monomer( pdbreader.Residue ):
             tmp_atom._res_id = res_id
             #tmp_atom.label = "%d-%s-%s" %( res_id, res_name, pdb_name )
             tmp_mono._res_name = res_name
-            tmp_mono.chain_id = chain_id
+            tmp_mono._chain_id = chain_id
             tmp_mono.add_atom( tmp_atom )
         if in_AA and not out_AA:
             tmp_mono.to_AU()
@@ -421,6 +447,7 @@ class Monomer( pdbreader.Residue ):
     def hide(self, atom):
         self.hidden.append( atom )
         self.remove( atom )
+
     def unhide(self, atom):
         self.append( atom )
         self.hidden.remove( atom )
@@ -455,6 +482,10 @@ class Monomer( pdbreader.Residue ):
         for at in self + self.hidden:
             at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
 
+    def reflect_around(self, p1, p2, p3):
+        """Rotate clockwise around line formed from point p1 to point p2 by theta"""
+        for at in self + self.hidden:
+            at.x, at.y, at.z = utilz.reflect_point_by_three_points( at.r, p1, p2, p3 )
 
     def translate_by_r(self, r):
         """Need to override class.Molecules and also include hidden hydrogens"""
@@ -466,33 +497,40 @@ class Monomer( pdbreader.Residue ):
 
     def inv_rotate(self, t1, t2, t3):
         """Need to override class.Molecules and also include hidden hydrogens"""
-        super( Monomer, self ).inv_rotate( t1, t2, t3 )
         r1 = utilz.Rz_inv(t1)
         r2 = utilz.Ry(t2)
         r3 = utilz.Rz_inv(t3)
-        for at in self.hidden:
+        for at in self + self.hidden:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
 
     
-    def connect_monomer(self, other):
-        r_ca = self.last_heavy.r
-        e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
-        r_new = e_old * other._r
-        other.translate_by_r( r_ca + r_new - other.first_heavy.r )
+    def connect_monomer(self, other, last = True):
+        """By default connects to the last point of the Monomer"""
+        if last:
+            r_ca = self.last_heavy.r
+            e_old = (self.last_h.r - r_ca)/ np.linalg.norm( (self.last_h.r - r_ca) )
+            r_new = e_old * other._rn
+            other.translate_by_r( r_ca + r_new - other.first_heavy.r )
 
-        self.c_term = False
-        other.c_term = True
-        other._res_id = self._res_id + 1
+            self.c_term = False
+            other.c_term = True
+            other._res_id = self._res_id + 1
 
-        other.hide( other.first_h )
-        self.hide( self.last_h )
+            other.hide( other.first_h )
+            self.hide( self.last_h )
+        else:
+            r_ca = self.last_heavy.r
+            e_old = (self.first_heavy.r - first_h.r)/ np.linalg.norm( (self.first_heavy.r - self.first_h.r) )
+            r_new = e_old * other._rn
+            other.translate_by_r( r_ca + r_new - other.first_heavy.r )
 
-        p1 = self.last_heavy.r
-        p2 = other.first_heavy.r
-        other.rotate_around( p1, p2, other.res_id * other._rot_angle )
+            self.c_term = False
+            other.c_term = True
+            other._res_id = self._res_id + 1
 
-
+            other.hide( other.first_h )
+            self.hide( self.last_h )
 
 class Polymer( molecules.Cluster ):
     @staticmethod
@@ -508,14 +546,14 @@ class Polymer( molecules.Cluster ):
         P.append( mono )
         return P
 
-    def add_monomer(self,mono):
+    def add_monomer(self, mono, last = True):
         mono = copy.deepcopy( mono )
         last = self[-1]
         last.Next = mono
         mono.Prev = last
         mono.Cluster = self
         mono.Polymer = self
-        last.connect_monomer( mono )
+        last.connect_monomer( mono, last = last )
         self.append( mono )
 
     @property
