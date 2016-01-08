@@ -1,7 +1,10 @@
+__all__ = [ 'Property' ]
+
 import numpy as np
-import utilz 
 import logging
 import warnings
+
+from .utilz import ut2s, s2ut, Ry, Rz, Ry_inv, Rz_inv
 
 
 class Property( dict ):
@@ -121,7 +124,7 @@ class Property( dict ):
         Beta projected on the dipole moment vector for a whole molecule / segment.
         Should not be used if only for an atom
         """
-        return np.einsum('ijj,i', utilz.ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
+        return np.einsum('ijj,i', ut2s(self.b), self.d)/np.linalg.norm(self.d) #* #self.d / np.linalg.norm( self.d )
 
 #Method of Property
     def potline(self, max_l =2 , pol= 22, hyper=2, fmt = "%.7f "):
@@ -214,8 +217,8 @@ invoking dalton on a supercomputer.
         t2 positiv rotation around Y-axis
         t3 negative rotation around Z-axis
         """
-        rots = { 'xz' : (utilz.Rz_inv(t1), utilz.Ry(t2), utilz.Rz_inv(t3) ),
-                 'xy' : (utilz.Ry_inv(t1), utilz.Rz(t2), utilz.Ry_inv(t3) )
+        rots = { 'xz' : (Rz_inv(t1), Ry(t2), Rz_inv(t3) ),
+                 'xy' : (Ry_inv(t1), Rz(t2), Ry_inv(t3) )
             }
 
         p = Property()
@@ -224,9 +227,9 @@ invoking dalton on a supercomputer.
         r3 = rots[ plane ][2]
         p.q = self.q
         p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
-        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
-        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
-        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
+        p.a = s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, ut2s(self.a) ) )
+        p.Q = s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, ut2s(self.Q) ) )
+        p.b = s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, ut2s(self.b) ) )
         return p
 
     def rotate( self, t1, t2, t3 ):
@@ -236,14 +239,14 @@ invoking dalton on a supercomputer.
         t3 positive rotation around Z-axis
         """
         p = Property()
-        r1 = utilz.Rz(t1)
-        r2 = utilz.Ry_inv(t2)
-        r3 = utilz.Rz(t3)
+        r1 = Rz(t1)
+        r2 = Ry_inv(t2)
+        r3 = Rz(t3)
         p.q = self.q
         p.d = np.einsum('ab,bc,cd,d', r3, r2, r1, self.d )
-        p.a = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.a) ) )
-        p.Q = utilz.s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, utilz.ut2s(self.Q) ) )
-        p.b = utilz.s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, utilz.ut2s(self.b) ) )
+        p.a = s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, ut2s(self.a) ) )
+        p.Q = s2ut( np.einsum('ec,fd,ca,db,ai,bj,ij', r3, r3, r2, r2, r1, r1, ut2s(self.Q) ) )
+        p.b = s2ut( np.einsum('Id,Je,Kf,da,eb,fc,ai,bj,ck,ijk', r3, r3, r3, r2, r2, r2, r1, r1, r1, ut2s(self.b) ) )
         return p
 
     def transform_by_matrix(self, matrix):
@@ -252,9 +255,9 @@ invoking dalton on a supercomputer.
         p = Property()
         p.q = self.q
         p.d = np.einsum( 'ij,j', matrix, self.d )
-        p.a = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.a) ))
-        p.Q = utilz.s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, utilz.ut2s(self.Q) ))
-        p.b = utilz.s2ut(np.einsum( 'ai,bj,ck,ijk', matrix, matrix, matrix, utilz.ut2s(self.b) ))
+        p.a = s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, ut2s(self.a) ))
+        p.Q = s2ut(np.einsum( 'ai,bj,ij', matrix, matrix, ut2s(self.Q) ))
+        p.b = s2ut(np.einsum( 'ai,bj,ck,ijk', matrix, matrix, matrix, ut2s(self.b) ))
         return p
 
     def transform_ut_2( self, prop, t1, t2 ,t3 ):

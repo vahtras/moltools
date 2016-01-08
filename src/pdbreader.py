@@ -1,20 +1,21 @@
 #!/usr/bin/env python
+
+__all__ = [ 'Pattern', 'Atom', 'Residue', 'Chain', 'System', 'World', ]
+
 import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle, logging
 
+import numpy as np
+from copy import deepcopy
 #from mayavi import mlab
 
 from mpl_toolkits.mplot3d import Axes3D
-from copy import deepcopy
-
-#from daltools import one, mol, dens, prop, lr
-#from daltools.util import full, blocked, subblocked, timing
-from loprop.loprop import MolFrag, penalty_function, shift_function
-
-import molecules
-import utilz
 import matplotlib.pyplot as plt
 
-import numpy as np
+from .loprop.loprop import MolFrag, penalty_function, shift_function
+from .molecules import Atom, Molecule, Cluster
+from moltools.src import molecules
+from .utilz import unique
+
 
 res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
         'PHE':'F','TYR':'Y','TRP':'W','SER':'S','THR':'T','ASN':'N', 'CRO':'X1',
@@ -108,8 +109,8 @@ def all_residues_from_pdb_string( _string,
         else:
             chain_dict[chain_id] = []
 
-    res_ids = utilz.unique( res_ids )
-    chain_ids = utilz.unique( chain_ids )
+    res_ids = unique( res_ids )
+    chain_ids = unique( chain_ids )
 
     res = [Residue([a for a in atoms if (a.res_id == r and a.chain_id == c)], AA = in_AA) for c in chain_ids for r in res_ids if r in chain_dict[c] ]
 
@@ -646,7 +647,7 @@ class Atom( molecules.Atom ):
         neighbouring hydrogens which replace heavy previous atoms,
         
         and also the bonds between them"""
-        p = molecules.Property()
+        p = Property()
         for bond in self.bonds:
             if bond._Atom2.is_dummy():
                 p += bond.p + bond._Atom2.p
@@ -672,7 +673,7 @@ class Atom( molecules.Atom ):
                 return self.Molecule.Chain.chain_id
         return None
 
-class Residue( molecules.Molecule ):
+class Residue( Molecule ):
     def __init__(self, *args, **kwargs):
         self._chain_id = None
         self._snapshot = None
@@ -793,7 +794,7 @@ class Residue( molecules.Molecule ):
                 at2 = b._Atom2.copy()
                 at1.Molecule = new_res
                 at2.Molecule = new_res
-                new_bond = molecules.Bond( at1, at2 )
+                new_bond = Bond( at1, at2 )
                 if at1.res_id == at2.res_id:
                     new_bond._Molecule = new_res
                 else:
@@ -832,7 +833,7 @@ class Residue( molecules.Molecule ):
         """
         self.populate_bonds( cluster = 1 )
         for at in self:
-            at.p = molecules.Property()
+            at.p = Property()
 
         relevant_centers = []
 #First update carbons that are attached to fake hydrogens with new props
@@ -852,7 +853,7 @@ class Residue( molecules.Molecule ):
 #Save the points inbetween to put then om neighbors for later
         points_inbetween = []
         for center_1 in self.get_ats_and_bonds():
-            tmp_p = molecules.Property()
+            tmp_p = Property()
             for center_2 in relevant_centers:
                 if np.allclose( center_1.r, center_2.r):
 #This bond between residues belongs to no specific molecule
@@ -872,7 +873,7 @@ class Residue( molecules.Molecule ):
 
 #Hacky solution so far to only compare the x-coordinate,  WARNING
 #Not the full vector point
-        points = utilz.unique( points_inbetween, key = lambda x: x.r[0],
+        points = unique( points_inbetween, key = lambda x: x.r[0],
                 get_original = True )
         for point in points:
             for at in [ point._Atom1, point._Atom2 ]:
@@ -1260,7 +1261,7 @@ class Residue( molecules.Molecule ):
             self.concap = tmp_residue
         if bridge or b:
             self.bri = tmp_residue
-class Chain( molecules.Cluster):
+class Chain( Cluster):
     """Will behaive like Cluster and rely everything on getters and setters to avoid bugs in overwriting properties"""
     def __init__(self, *args, **kwargs):
         self._snapshot = None
@@ -1369,14 +1370,14 @@ class System( list ):
         for mol in self.molecules:
             mol.System = self
             mol.connect_everything()
-        for cluster in [c for c in self if isinstance( c, molecules.Cluster) ]:
+        for cluster in [c for c in self if isinstance( c, Cluster) ]:
             cluster.System = self
             cluster.connect_everything()
 
     @property
     def coc(self):
-        return sum( [at.r * molecules.charge_dict[at.element] for at in self.atoms])\
-                /sum( map(float,[molecules.charge_dict[at.element] for at in self.atoms]) )
+        return sum( [at.r * charge_dict[at.element] for at in self.atoms])\
+                /sum( map(float,[charge_dict[at.element] for at in self.atoms]) )
     @property
     def p(self):
         return self.sum_property
@@ -1386,17 +1387,17 @@ class System( list ):
 Return the sum properties of all properties in System
         """
         conv = 1.0
-        p = molecules.Property()
+        p = Property()
         coc = self.coc
         if self.AA:
-            conv = 1/molecules.a0
+            conv = 1/a0
 
         el_dip = np.array([ conv*(center.r- coc)*center.p.q for mol in self.molecules for center in mol.get_ats_and_bonds()  ])
-        nuc_dip = np.array([ conv*(center.r-coc)*molecules.charge_dict[center.element] for mol in self.molecules for at in mol.get_ats_and_bonds() ])
+        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for mol in self.molecules for at in mol.get_ats_and_bonds() ])
         dip_lop = np.array([ center.p.d for mol in self.molecules for center in mol.get_ats_and_bonds() ])
         dip = el_dip + nuc_dip
         d = (dip + dip_lop).sum(axis=0)
-        p = molecules.Property()
+        p = Property()
 
         for center in [c for mol in self.molecules for c in mol.get_ats_and_bonds()]:
             p.q += center.p.q
@@ -1457,7 +1458,7 @@ Return the sum properties of all properties in System
                 if at1.dist_to_atom ( at2 ) < AA_cutoff:
                     tmp.append( at1 )
                     tmp.append( at2 )
-        return utilz.unique( tmp )
+        return unique( tmp )
 
 
     @property
@@ -1643,10 +1644,10 @@ Return the sum properties of all properties in System
 
 #System method of adding objects
     def add(self, item):
-        if isinstance( item, molecules.Cluster):
+        if isinstance( item, Cluster):
             self.append( item )
             item.System = self
-        elif isinstance( item, molecules.Molecule):
+        elif isinstance( item, Molecule):
             c = Chain( item )
             c.System = self
             self.append( c )
@@ -1657,7 +1658,7 @@ Return the sum properties of all properties in System
         return [a for chain in self for mol in chain for a in mol if isinstance(a , molecules.Atom ) ]
     @property
     def molecules(self):
-        return [m for chain in self for m in chain if isinstance(m , molecules.Molecule ) ]
+        return [m for chain in self for m in chain if isinstance(m , Molecule ) ]
     @classmethod
     def from_pdb_string( cls, _string,
             connect = False,
@@ -1665,8 +1666,8 @@ Return the sum properties of all properties in System
         """Assuming the string is a pdb format, read in all chains and stuff"""
         res, meta = all_residues_from_pdb_string( _string )
 
-        nc =  Chain( utilz.splitter(res, lambda x: x.chain_id)[0] )
-        chains = [ Chain(ch) for ch in utilz.splitter( res, lambda x: x.chain_id )]
+        nc =  Chain( splitter(res, lambda x: x.chain_id)[0] )
+        chains = [ Chain(ch) for ch in splitter( res, lambda x: x.chain_id )]
 
         system = cls( *chains )
         system.meta = meta
@@ -1724,7 +1725,7 @@ class World( list ):
     
     @property
     def molecules(self):
-        return [m for s in self for ch in s for m in ch if isinstance( m, molecules.Molecule ) ]
+        return [m for s in self for ch in s for m in ch if isinstance( m, Molecule ) ]
 
     @staticmethod
     def load(fname = 'world.p'):

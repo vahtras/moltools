@@ -4,27 +4,29 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
-import re, os, itertools, functools, warnings, subprocess, shutil, logging, string
-import h5py
+__all__ = [ 'Atom', 'Molecule', 'Water', 'Cluster' ]
 
+import re, os, itertools, functools, warnings, subprocess, shutil, logging, string
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
+
 import numpy as np
 import cPickle as pickle
 import copy as copymod
 
-from property import Property
 
+from .utilz import scale_vec_to_abs, Rz, Ry, Rz_inv, Ry_inv, au_to_nm, center_and_xz, get_rotation, s2ut, ut2s, reflect, unique
+from .property import Property
+from .pd import gaussian
+from .template import Template
+from .generator import Generator
 
-import read_dal
-import utilz
+from .loprop.loprop import MolFrag
 
-from pd import gaussian
-from template import Template
-from generator import Generator
-
-from loprop.loprop import *
-
+try:
+    import h5py
+except ImportError:
+    print ("No h5py support")
 
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
@@ -536,7 +538,7 @@ AA       True     bool
         """Given other atom, will move this one so that it is at final value"""
         vec = self.r - atom.r
         origin = self.r
-        new = utilz.scale_vec_to_abs( vec, value = final_value )
+        new = scale_vec_to_abs( vec, value = final_value )
         self.x, self.y, self.z = atom.r + new
 
     def plot(self ):
@@ -603,8 +605,8 @@ Plot Atom in a 3D frame
         if len(self.angles) > 1:
             warnings.warn("Did not scale %s since it had %d angles" %(self,len(self.angles)), Warning)
             return
-        Rz, Rzi = utilz.Rz, utilz.Rz_inv
-        Ry, Ryi = utilz.Ry, utilz.Ry_inv
+        Rz, Rzi = Rz, Rz_inv
+        Ry, Ryi = Ry, Ry_inv
 
         for at2, at3 in self.angles:
             r3 = self.bonds[at2].bonds[at3].r - self.bonds[at2].r 
@@ -878,7 +880,7 @@ class Molecule( list ):
 #Unique identifier which will produce file name string unique to this residue
     def file_label( self, freq = True ):
         if freq:
-            f = utilz.au_to_nm( self.freq )
+            f = au_to_nm( self.freq )
             return "_".join( map(str, [self.res_name, self.res_id, f]) )
         else:
             return "_".join( map(str, [self.res_name, self.res_id ]) )
@@ -888,7 +890,7 @@ class Molecule( list ):
 #Unique identifier which will produce file name string unique to this residue
     def molfile_label( self, freq = True ):
         if freq:
-            f = utilz.au_to_nm( self.freq )
+            f = au_to_nm( self.freq )
             return "_".join( map(str, [self.res_name, self.res_id, f]) )
         else:
             return "_".join( map(str, [self.res_name, self.res_id ]) )
@@ -1099,13 +1101,13 @@ class Molecule( list ):
 #So we only rotate atoms, not the one in middle of angle bond
         ats = at2.get_async_bond( first = at1 )[1:]
 
-        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+        trans, r3, r2, r1 = center_and_xz( at2.r, at3.r, at1.r )
 
         for at in ats:
             at.x, at.y, at.z = at.r + trans
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
-            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), at.r )
             at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
@@ -1148,13 +1150,13 @@ class Molecule( list ):
         """docstring for reflect"""
         p1, p2, p3 = key( self )
         origin = p1.copy()
-        t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+        t, r1, r2, r3 = center_and_xz( p1, p2, p3 )
         self.t( -origin )
 
-        R1 = utilz.Rz( r1 )
-        R2_inv = utilz.Ry_inv( r2 )
-        R3 = utilz.Rz( r3 )
-        S = utilz.S( plane )
+        R1 = Rz( r1 )
+        R2_inv = Ry_inv( r2 )
+        R3 = Rz( r3 )
+        S = reflect( plane )
         R1_inv = np.einsum( 'ij->ji', R3 )
         R2 = np.einsum( 'ij->ji', R2_inv )
         R3_inv = np.einsum( 'ij->ji', R1 )
@@ -1170,7 +1172,7 @@ class Molecule( list ):
         self.t( origin )
 
     def reflect(self, plane = 'xz' ):
-        S = utilz.S( plane )
+        S = reflect( plane )
         for at in self:
             at.x, at.y, at.z = np.einsum( 'ij,j', S,  at.r)
             at.p = at.p.transform_by_matrix( S )
@@ -1207,7 +1209,7 @@ class Molecule( list ):
     def rotate_around(self, p1, p2, theta = 0.0):
         """Rotate All aomts clockwise around line formed from point p1 to point p2 by theta"""
         for at in self :
-            at.x, at.y, at.z = utilz.rotate_point_by_two_points( at.r, p1, p2, theta)
+            at.x, at.y, at.z = rotate_point_by_two_points( at.r, p1, p2, theta)
 
     def inv_rotate(self, t1, t2, t3):
         """rotate all atoms and properties as
@@ -1216,9 +1218,9 @@ class Molecule( list ):
         3) inverse Z rotation by t3
         """
 #Put back in original point
-        r1 = utilz.Rz_inv(t1)
-        r2 = utilz.Ry(t2)
-        r3 = utilz.Rz_inv(t3)
+        r1 = Rz_inv(t1)
+        r2 = Ry(t2)
+        r3 = Rz_inv(t3)
         for at in self:
             at.x, at.y, at.z = np.einsum('ab,bc,cd,d', r3, r2, r1, at.r )
             at.p = at.p.inv_rotate( t1, t2, t3 )
@@ -1229,9 +1231,9 @@ class Molecule( list ):
         t2 negative rotation around Y-axis
         t3 positive rotation around Z-axis
         """
-        r1 = utilz.Rz(t1)
-        r2 = utilz.Ry_inv(t2)
-        r3 = utilz.Rz(t3)
+        r1 = Rz(t1)
+        r2 = Ry_inv(t2)
+        r3 = Rz(t3)
 
         com = self.com.copy()
         if inplace:
@@ -1383,8 +1385,8 @@ class Molecule( list ):
         copy.populate_bonds()
 
         if smart:
-            p1, p2, p3 = utilz.largest_triangle( [at.r for at in copy] )
-            t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+            p1, p2, p3 = largest_triangle( [at.r for at in copy] )
+            t, r1, r2, r3 = center_and_xz( p1, p2, p3 )
             v = np.cross( p3 - p1, p2 - p1 )
             norm = v / np.linalg.norm( v )
         else:
@@ -1470,7 +1472,7 @@ class Molecule( list ):
     
     @property
     def b_proj(self):
-        return utilz.b_para( self.b, self.p )
+        return b_para( self.b, self.p )
 
     def attach_properties(self, 
             model = "TIP3P_PDB",
@@ -1491,9 +1493,9 @@ class Molecule( list ):
             template_key = lambda x: x.element + str(x.order)
 
         if isinstance(self, Water):
-            R = np.einsum('ij->ji', utilz.get_rotation( self.o.r, (self.h1.r - self.h2.r)/2 + self.h2.r, self.h1.r) )
+            R = np.einsum('ij->ji', get_rotation( self.o.r, (self.h1.r - self.h2.r)/2 + self.h2.r, self.h1.r) )
         else:
-            R = np.einsum('ij->ji', utilz.get_rotation( *euler_key( self ) ))
+            R = np.einsum('ij->ji', get_rotation( *euler_key( self ) ))
 
         templ = Template().get( *(model, method, basis, loprop, freq) )
         if loprop:
@@ -1505,9 +1507,9 @@ class Molecule( list ):
         #t1, t2, t3 = self.get_euler( key = euler_key )
         for at in self:
             at.p.d = np.einsum('ij,j', R, at.p.d )
-            at.p.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.a) ) )
-            at.p.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(at.p.Q) ) )
-            at.p.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(at.p.b) ) )
+            at.p.a = s2ut( np.einsum('ai,bj,ij', R, R, ut2s(at.p.a) ) )
+            at.p.Q = s2ut( np.einsum('ai,bj,ij', R, R, ut2s(at.p.Q) ) )
+            at.p.b = s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, ut2s(at.p.b) ) )
 
         if loprop:
             self.is_Property = False
@@ -1518,9 +1520,9 @@ class Molecule( list ):
             self.property_r = centered
 
             self.Property.d = np.einsum('ij,j', R, self.Property.d )
-            self.Property.a = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.a) ) )
-            self.Property.Q = utilz.s2ut( np.einsum('ai,bj,ij', R, R, utilz.ut2s(self.Property.Q) ) )
-            self.Property.b = utilz.s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, utilz.ut2s(self.Property.b) ) )
+            self.Property.a = s2ut( np.einsum('ai,bj,ij', R, R, ut2s(self.Property.a) ) )
+            self.Property.Q = s2ut( np.einsum('ai,bj,ij', R, R, ut2s(self.Property.Q) ) )
+            self.Property.b = s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, ut2s(self.Property.b) ) )
 
 
 
@@ -1554,7 +1556,7 @@ class Molecule( list ):
             p1, p2, p3 = key( self )
         except IndexError:
             logging.error('Tried to get euler on Molecule with too few atoms')
-        t, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
+        t, r1, r2, r3 = center_and_xz( p1, p2, p3 )
         return r1, r2, r3
 
     def props_from_targz(self,
@@ -1783,7 +1785,7 @@ class Molecule( list ):
 
 
 #Need to do this since late dalton scripts appends the tmp with separate PID
-            real_tmp = utilz.find_dir( of_tmp, tmpdir )
+            real_tmp = find_dir( of_tmp, tmpdir )
 
 #If smth happend to the dalton subprocess, the of will not exist and throw exception
             try:
@@ -2277,7 +2279,7 @@ Plot Molecule in a 3D frame
                         break
 ##  // end of Residue
         ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
-        uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
+        uni = sorted(unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
         st += "ATOMBASIS\n\n\nAtomtypes=%d Charge=%d Nosymm%s\n" %(len(uni), charge,  s_)
         for el in uni:
@@ -2291,7 +2293,7 @@ Plot Molecule in a 3D frame
     def get_bond_and_xyz(self, ):
         st = ''
         ats = sorted( self, key = lambda x: (x.element,) + (x.x, x.y, x.z) ) 
-        uni = sorted(utilz.unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
+        uni = sorted(unique([ at.element for at in ats ]), key = lambda x: charge_dict[x] )
 
         self.populate_bonds()
         bonds_outputted = []
@@ -3146,7 +3148,7 @@ class Cluster(list):
         """
         
 
-        mol_arr = utilz.splitter( at_list, key = lambda x: x.Molecule )
+        mol_arr = splitter( at_list, key = lambda x: x.Molecule )
 
         for ind, ats in enumerate( mol_arr ):
             mol_arr[ ind ][0].Molecule.transfer_props( ats,
@@ -3161,7 +3163,7 @@ class Cluster(list):
 #g/mol
         M = sum( [at.mass for mol in self for at in mol] )
 #AU**3 or AA**3
-        v = utilz.convex_hull_volume( np.array([at.r for mol in self for at in mol]))
+        v = convex_hull_volume( np.array([at.r for mol in self for at in mol]))
         if not self.AA:
             v /= a0**3
 #g mol**-1 -> g
@@ -3342,7 +3344,7 @@ class Cluster(list):
                 if ats[i].dist_to_atom( ats[j] ) < AA_cutoff:
                     tmp.append( ats[i] )
                     tmp.append( ats[j] )
-        return utilz.unique( tmp )
+        return unique( tmp )
 
 
 
@@ -3378,7 +3380,7 @@ class Cluster(list):
             min_ats.append( ats[xi] )
             min_ats.append( ats[zi] )
 
-        return utilz.unique(min_ats)
+        return unique(min_ats)
 
 
     def min_dist_coo(self):
@@ -3511,7 +3513,7 @@ Plot Cluster a 3D frame in the cluster
         st = ""
         comm1 = "Comment 1"
         comm2 = "Comment 2"
-        uni = utilz.unique([ at.element for mol in self for at in mol])
+        uni = unique([ at.element for mol in self for at in mol])
         s_ = ""
         if self.AA: 
             s_ += "Angstrom"
@@ -3546,7 +3548,7 @@ Plot Cluster a 3D frame in the cluster
         st = ""
         comm1 = "QM: " + " ".join( [ str(m) for m in self if m.in_qm] )[:72]
         comm2 = "MM: " + " ".join( [ str(m) for m in self if m.in_mm] )[:73]
-        uni = utilz.unique([ at.element for mol in self for at in mol if mol.in_qm])
+        uni = unique([ at.element for mol in self for at in mol if mol.in_qm])
         s_ = ""
         if self.AA: s_ += "Angstrom"
 
@@ -3996,12 +3998,12 @@ Return a cluster of water molecules given file.
         
 #So we only rotate atoms, not the one in middle of angle bond
         ats = at2.get_async_bond( first = at1 )[1:]
-        trans, r3, r2, r1 = utilz.center_and_xz( at2.r, at3.r, at1.r )
+        trans, r3, r2, r1 = center_and_xz( at2.r, at3.r, at1.r )
         for at in ats:
             at.x, at.y, at.z = at.r + trans
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz_inv(r3), utilz.Ry(r2), utilz.Rz_inv(r1), at.r )
-            at.x, at.y, at.z = np.einsum('ab,b', utilz.Ry_inv(theta), at.r )
-            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', utilz.Rz(r1), utilz.Ry_inv(r2), utilz.Rz(r3), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', Rz_inv(r3), Ry(r2), Rz_inv(r1), at.r )
+            at.x, at.y, at.z = np.einsum('ab,b', Ry_inv(theta), at.r )
+            at.x, at.y, at.z = np.einsum('ab,bc,cd,d', Rz(r1), Ry_inv(r2), Rz(r3), at.r )
             at.x, at.y, at.z = at.r - trans
 
 

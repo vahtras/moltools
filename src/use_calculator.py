@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+__all__ = [ 'Calculator' ]
+
 """
 Purpose
 ------------------
@@ -53,17 +55,18 @@ Will generate tmp.xvg, which can be plotted as
 
 """
 
-import os, re, subprocess, argparse, read_dal
+import os, re, subprocess, argparse, h5py
 
 import numpy as np
 import math as m
 
 
-from template import Template
-from molecules import *
+from .template import Template
+from .molecules import *
 
 from pd.gaussian import *
-import h5py
+from .read_dal import *
+
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}

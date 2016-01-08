@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
+
+__all__ = [ 'Generator' ]
+
 """
 Purpose
 ------------------
@@ -39,10 +42,11 @@ import argparse, re, fractions
 import numpy as np
 import math as m
 
-from template import Template
 from molecules import Molecule, Water, Atom, Cluster
-from property import Property
-from generator import Generator
+
+from .property import Property
+from .template import Template
+from .generator import Generator
 
 a0 = 0.52917721092
 if __name__ == '__main__':

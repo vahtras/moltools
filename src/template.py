@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+__all__ = [ 'Template' ]
+
 conv = 45.563352491687866
 
 class Template(dict):

@@ -5,8 +5,7 @@ import utilz
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from molecules import Water
-from property import Property
+from moltools import Water, Property
 
 @attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):

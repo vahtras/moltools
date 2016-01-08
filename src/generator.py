@@ -1,3 +1,7 @@
+__all__ = [ 'Generator' ]
+
+
+
 import numpy as np
 import molecules 
 

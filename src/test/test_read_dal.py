@@ -4,8 +4,8 @@ import numpy as np
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from moltools import Water
-from moltools.src import utilz
+
+from moltools.src import read_dal
 
 HF_FILE = """
 
@@ -1194,167 +1194,18 @@ File label for MO orbitals:  23Jun15   FOCKDIIS
 """
 
 @attr(speed = 'fast' )
-class UtilzTestCase( unittest.TestCase ):
+class ReadDalTestCase( unittest.TestCase ):
 
-    def setUp(self):
-        pass
-
-    def test_reflect_point_by_three_points(self):
-        """Plane is just xy plane, should give [1, 1, -1] """
-        p = np.array( [1, 1, 1] )
-        p1 = np.array( [0,0,0] )
-        p2 = np.array( [1,0,0] )
-        p3 = np.array( [0,1,0] )
-        np.testing.assert_allclose( [1, 1, -1], 
-                utilz.reflect_point_by_three_points( p, p1, p2, p3 ))
-
-        p = np.array( [-5, 0, 3] )
-        p1 = np.array( [0,0,0] )
-        p2 = np.array( [1,0,0] )
-        p3 = np.array( [0,1,0] )
-        np.testing.assert_allclose( [-5, 0, -3], 
-                utilz.reflect_point_by_three_points( p, p1, p2, p3 ))
-
-    def test_splitter(self):
-        a = ['A', 'B', 'B', 'C', 'C', 'C' ]
-        u = utilz.splitter( a )
-        assert len(u) == 3
-        assert len(u[0]) == 1
-        assert len(u[1]) == 2
-        assert len(u[2]) == 3
-
-    def test_unique(self):
-        a = ['A', 'B', 'C', 'C', 'C' ]
-        u = utilz.unique( a )
-        assert len( u ) == 3
-
-        a = [ {'A': 1}, {'A' : 1}, {'A' : 44}, {'A' : 'dogg'}, {'A': 5} ]
-        u = utilz.unique( a, lambda x: x['A'] )
-        assert len( u ) == 4
-
-
-    def test_center_and_xz_1(self):
-        p1 = np.array( [5, 5, 5] )
-        p2 = np.array( [5, 5, 6] )
-        p3 = np.array( [6, 5, 5] )
-        t_v, r1, r2, r3 = utilz.center_and_xz( p1, p2, p3 )
-        np.testing.assert_allclose( t_v, np.full( (3,), -5.0 ) , atol =1e-10 )
-        np.testing.assert_allclose( r1, 0.0 , atol =1e-10 )
-        np.testing.assert_allclose( r2, 0.0 , atol =1e-10 )
-        np.testing.assert_allclose( r3, 0.0 , atol =1e-10 )
-
-
-    def test_get_euler(self):
-        v1, v2 = map(lambda x: np.array(x), [[0,0,1], [1,0,0]] )
-        r1, r2, r3 = utilz.get_euler( v1, v2 )
-        np.testing.assert_allclose( [r1,r2,r3], [0,0,0] )
-
-    def test_rotate_point_by_two_points(self):
-        p = np.array( [ 1,1,1] )
-        p1 = np.array( [0, 0, 0] )
-        p2 = np.array( [0, 0, 1] )
-        theta = np.pi/2
-        p_out = utilz.rotate_point_by_two_points(p, p1, p2, theta)
-        np.testing.assert_allclose( p_out, np.array( [-1,1,1] ), atol=1e-10 )
-
-    def test_rotate_point_by_two_points_2(self):
-        p = np.array( [ -1, -1, 0] )
-        p1 = np.array( [ 0, 0,  1] )
-        p2 = np.array( [ 0, 0, -1] )
-        theta = np.pi * 3/2
-        p_out = utilz.rotate_point_by_two_points(p, p1, p2, theta)
-        np.testing.assert_allclose( p_out, np.array( [ 1, -1, 0] ), atol=1e-10 )
-
-    def test_rotate_point_by_two_points_3(self):
-        p = np.array( [ 0, 3, 1] )
-        p1 = np.array( [ 3, 3,  0] )
-        p2 = np.array( [ 3, 3,  1] )
-        theta = np.pi * 3/2
-        p_out = utilz.rotate_point_by_two_points(p, p1, p2, theta)
-        np.testing.assert_allclose( p_out, np.array( [ 3, 6, 1] ), atol=1e-10 )
-
-    def test_rotate_point_around_cross(self):
-        p1 = np.array( [ 1, 0, 0] )
-        p2 = np.array( [ 0, 0,  0] )
-        p3 = np.array( [ 0, 1,  0] )
-        theta = np.pi/2
-        p_out = utilz.rotate_point_around_cross(p1, p2, p3, theta)
-        np.testing.assert_allclose( p_out, np.array( [ 0, 1, 0] ), atol=1e-10 )
-
-    def test_get_t_and_rho(self):
-        w = Water.get_standard() 
-
-        t, r1, r2, r3 = utilz.get_t_and_rho( w.o.r, (w.h1.r - w.h2.r)/2 + w.h2.r, w.h1.r,
-                plane = 'xy' )
-
-    def test_converged(self):
-        ret = utilz.converged( HF_FILE )
-        assert ret == True
-
-    def test_dipole_iso(self):
-        d = np.array( [ -1, 2, -2 ] )
-        d_iso = utilz.dipole_iso( d )
-        np.testing.assert_allclose( d_iso, 3, atol = 1e-7 )
-
-    def test_beta_par(self):
-        w = Water.get_standard()
-        w.attach_properties()
-        d = w.p.d
-        b = utilz.ut2s( w.p.b )
-
-        b_para1 = utilz.b_para( b, d ) 
-        b_para2 = 1.0/5.0*( (np.einsum( 'ijj', b ) + np.einsum( 'jij', b ) +  np.einsum( 'jji', b )).sum() )
-        np.testing.assert_allclose( b_para1, b_para2 )
-
-
-    def test_get_rotation(self):
-        p1 = np.array( [ 0, 0, 0] )
-        p2 = np.array( [ 0, 0, 1] )
-        p3 = np.array( [ 0, 1, 0] )
-        R = utilz.get_rotation( p1, p2, p3 )
-        R = np.einsum( 'ij->ji', R )
-        Rz = utilz.Rz( np.pi/2.0 )
-        np.testing.assert_allclose( Rz, R, atol =1e-7 )
-
-
-    def test_center_of_nuclei_charge(self):
-        _type = np.float
-        p_n = np.array( [ [0, 0, -1], [0, 0, 1] ], dtype = _type )
-        q_n = np.array( [ 1, 1 ], dtype = _type )
-        coc = utilz.center_of_nuclei_charge( p_n, q_n )
-        np.testing.assert_allclose( coc, np.zeros( (3,) ) )
-
-    def test_monopole_moment(self):
-        _type = np.float
-        q_e = np.array( [ -1, -0.5 -0.5 ], dtype = _type )
-        m = utilz.electric_monopole_moment( q_e )
-        np.testing.assert_allclose( -2, m )
-
-    def test_dipole_moment_inv(self):
-        """Same dipole moment should be obtained after translating 
-        coordinate frame """
-        _type = np.float
-        p_n = np.random.random( (5, 3,) )
-        q_n = np.random.random( (5, ) )
-        p_e = np.random.random( (5, 3,) )
-        q_e = np.random.random( (5, ) )
-
-        m1 = utilz.electric_dipole_moment( p_n, q_n, p_e, q_e )
-        t_vector = np.random.random( (3,) ) 
-
-        p_n += t_vector
-        p_e += t_vector
-
-        m2 = utilz.electric_dipole_moment( p_n, q_n, p_e, q_e )
-        np.testing.assert_allclose( m1, m2 )
-
-    def test_alpha_aniso2(self):
-        test = np.random.random( 6 )
-        a1 = utilz.alpha_aniso( test )
-        a2= utilz.alpha_aniso2( test )
-        np.testing.assert_allclose( a1, a2 , atol =1e-7 )
-
-
+    def test_read_beta_hf(self):
+        ats, dipole, alpha, beta = read_dal.read_beta_hf_string( HF_FILE, in_AA = False,
+                out_AA = False)
+        assert len(ats) == 3
+        np.testing.assert_allclose( dipole, np.array([0, 0, 0.85413]), atol = 1e-4)
+        a = np.zeros( (3, 3,) )
+        a[0, 0] = 6.8879
+        a[1, 1] = 5.1833
+        a[2, 2] = 5.94877
+        np.testing.assert_allclose( alpha, a, atol = 1e-4 )
 
 if __name__ == '__main__':
     unittest.main()

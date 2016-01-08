@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__all__ = []
+
 from molecules import Molecule
 
 def plot_maya( mol, key = lambda x: (x[0].r, x[1].r, x[2].r),

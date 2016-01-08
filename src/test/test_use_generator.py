@@ -1,11 +1,10 @@
 import unittest, mock, os
 import numpy as np
 
-from molecules import Water, Molecule
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from generator import Generator
+from moltools import Generator, Water, Molecule
 
 
 FILE_XYZ =os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), "tmp.xyz" )

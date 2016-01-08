@@ -5,10 +5,9 @@ from numpy.linalg import norm
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-import utilz
-from use_generator import Generator
-from template import Template
-from molecules import Water, Atom, Property
+
+from moltools.src import utilz
+from moltools import Generator, Template, Water, Atom, Property
 
 @attr(speed = 'fast' )
 class WaterTest( unittest.TestCase ):

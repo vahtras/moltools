@@ -1,11 +1,11 @@
-import unittest, os
+import unittest, os, warnings
 import numpy as np
 from pd.particles import PointDipoleList
-from molecules import Cluster, Atom
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from use_generator import Generator
+
+from moltools import Cluster, Atom, Generator
 import dstruct
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )

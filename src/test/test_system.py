@@ -1,13 +1,11 @@
-
 import unittest, os
 import numpy as np
 
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from molecules import Cluster, Atom, Water
-from pdbreader import System, Chain
-from use_generator import Generator
+
+from moltools import Cluster, Atom, Water, System, Chain, Generator
 
 
 @attr(speed = 'fast' )

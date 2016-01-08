@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import molecules, os, polymer
+import os
+from .molecules import Molecule 
+from .polymer import Monomer
 
 def pmma_monomer( t = 0 ):
     """Return pmmma monomer building block as defined by SMILES
@@ -21,7 +22,7 @@ def pmma_monomer( t = 0 ):
     molfile = 'pmma_monomer%d.pdb' %t
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
 
-    m = polymer.Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
+    m = Monomer.from_pdb( FILE, in_AA = True, out_AA = True )
 #Set so that atoms are connected to this molecule
     for at in m:
         at.Molecule = m
@@ -44,7 +45,7 @@ def sulfuric_acid():
     builddir = "build"
     molfile = "sulfur_opt.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Molecule.from_xyz( FILE, in_AA = True, out_AA = False )
+    m = Molecule.from_xyz( FILE, in_AA = True, out_AA = False )
     return m
 
 
@@ -54,7 +55,7 @@ def paranitro_aniline():
     builddir = "build"
     molfile = "pna_opt.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Molecule.from_xyz( FILE, in_AA= True, out_AA = False )
+    m = Molecule.from_xyz( FILE, in_AA= True, out_AA = False )
     return m
 
 def tip3p():
@@ -63,7 +64,7 @@ def tip3p():
     builddir = "build"
     molfile = "tip3p.xyz"
     FILE = os.path.join( os.path.dirname( os.path.realpath( __file__) ) , os.path.join( builddir, molfile ))
-    m = molecules.Water.get_standard( AA = False )
+    m = Water.get_standard( AA = False )
     for ind, at in enumerate( m ):
         at.order = ind + 1
 

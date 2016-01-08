@@ -1,13 +1,11 @@
-import unittest, os
+import unittest, os, time
 import numpy as np
 
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-import utilz
-from pdbreader import Residue, Atom
-from property import Property
-import time
+from moltools.src import utilz
+from moltools import Residue, Atom, Property
 
 class TimeException( Exception ):
     def __init__(self, val):

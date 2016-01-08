@@ -1,14 +1,11 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Water
+from moltools import Rotator, Property, Generator, Template, Cluster, Water
+
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from property import Property
-from rotator import Rotator
-from use_generator import Generator
-from template import Template
 
 FILE = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 
