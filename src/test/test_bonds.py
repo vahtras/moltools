@@ -1,11 +1,10 @@
-import unittest, os
+import unittest, os, warnings
 import numpy as np
 
-from molecules import Cluster, Atom, Molecule, Water
-import warnings
+from moltools import Cluster, Atom, Molecule, Water, Generator
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from use_generator import Generator
+
 
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
 FILE_PDB = os.path.join( os.path.dirname(__file__), 'tip3p0.pdb' )

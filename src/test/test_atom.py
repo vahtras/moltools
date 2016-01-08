@@ -1,10 +1,9 @@
-import unittest, os
+import unittest, os, warnings
 import numpy as np
 
-import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from molecules import Atom
+from moltools import Atom
 
 @attr(speed = 'fast' )
 class AtomTestCase( unittest.TestCase ):

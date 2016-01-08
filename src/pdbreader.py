@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-__all__ = [ 'Pattern', 'Atom', 'Residue', 'Chain', 'System', 'World', ]
+__all__ = [ 'Pattern', 'Residue', 'Chain', 'System', 'World',
+        'all_residues_from_pdb_string',
+        'all_residues_from_pdb_file',
+        ]
 
 import os, re, sys, argparse, tarfile, ctypes, multiprocessing, pickle, logging
 
@@ -12,9 +15,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 from .loprop.loprop import MolFrag, penalty_function, shift_function
-from .molecules import Atom, Molecule, Cluster
-from moltools.src import molecules
-from .utilz import unique
+from .molecules import Molecule, Cluster, Bond
+from .property import Property
+from .molecules import Atom as MoleculesAtom
+from .utilz import unique, splitter
 
 
 res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',
@@ -631,7 +635,7 @@ class Pattern( dict ):
     def get( self, res_name ="reg", res_type = "res",  what_pos ="t", what_todo = 'add', level = 1 ):
         return self[ (res_name, res_type, what_pos, what_todo,level) ]
 
-class Atom( molecules.Atom ):
+class Atom( MoleculesAtom ):
     def __init__(self, *args, **kwargs):
         self._chain_id = None
         self._name = None
@@ -740,7 +744,7 @@ class Residue( Molecule ):
 
 #Residue
     def add_atom( self, atom):
-        if isinstance( atom, molecules.Atom ):
+        if isinstance( atom, MoleculesAtom ):
             if any( (atom.r == x.r).all() for x in self):
                 return
             self.append( atom )
@@ -839,13 +843,13 @@ class Residue( Molecule ):
 #First update carbons that are attached to fake hydrogens with new props
         for res in self.get_relevant_residues():
             for center in res.get_ats_and_bonds():
-                if isinstance( center, molecules.Atom ):
+                if isinstance( center, MoleculesAtom ):
                     center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
         for con in self.get_relevant_concaps():
             for center in con.get_ats_and_bonds():
-                if isinstance( center, molecules.Atom ):
+                if isinstance( center, MoleculesAtom ):
                     center.p += center.prop_from_dummy()
                 relevant_centers.append( center )
 
@@ -1655,7 +1659,7 @@ Return the sum properties of all properties in System
 #System method of adding objects
     @property
     def atoms(self):
-        return [a for chain in self for mol in chain for a in mol if isinstance(a , molecules.Atom ) ]
+        return [a for chain in self for mol in chain for a in mol if isinstance(a , MoleculesAtom ) ]
     @property
     def molecules(self):
         return [m for chain in self for m in chain if isinstance(m , Molecule ) ]

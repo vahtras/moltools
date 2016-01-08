@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__all__ = [ 'unique' ]
+__all__ = [ 'unique', 'splitter' ]
 
 """
 

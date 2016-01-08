@@ -1,12 +1,13 @@
-import unittest, os, warnings
+import unittest, os, warnings, warnings
 import numpy as np
-from pd.particles import PointDipoleList
-import warnings
+from moltools.src.pd.particles import PointDipoleList
+
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
 from moltools import Cluster, Atom, Generator
-import dstruct
+from moltools.src import dstruct
+from moltools.src.dstruct import Cell
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )
@@ -21,7 +22,6 @@ POTSTRING = """AU
 2     13.569571  15.000000  16.107157 0.33114 0.16617 0.00000 -0.11629 1.53802 0.00000 -1.19765 0.90661 0.00000 1.37138 4.52137 0.00000 -5.08061 1.35494 0.00000 4.83365 0.00000 -0.46317 0.00000 -3.47921"""
 
 
-from dstruct import Cell
 @attr(speed = 'fast' )
 class CellTest( unittest.TestCase ):
     def setUp(self):

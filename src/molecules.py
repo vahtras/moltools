@@ -4,9 +4,9 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
-__all__ = [ 'Atom', 'Molecule', 'Water', 'Cluster' ]
+__all__ = [ 'Atom', 'Bond', 'Molecule', 'Water', 'Cluster' ]
 
-import re, os, itertools, functools, warnings, subprocess, shutil, logging, string
+import re, os, itertools, functools, warnings, subprocess, shutil, logging, string, tarfile
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
@@ -21,12 +21,15 @@ from .pd import gaussian
 from .template import Template
 from .generator import Generator
 
-from .loprop.loprop import MolFrag
+try:
+    from .loprop.loprop import MolFrag, penalty_function, shift_function
+except ImportError:
+    pass
 
 try:
     import h5py
 except ImportError:
-    print ("No h5py support")
+    pass
 
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
@@ -1579,7 +1582,6 @@ class Molecule( list ):
         else:
             freq = float(freq)
  
-        import tarfile
 #Using Olavs external scripts
         tarfile.open( f_, 'r:gz' ).extractall( tmpdir )
         try:
@@ -3188,9 +3190,9 @@ class Cluster(list):
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
-        from pd.particles import PointDipoleList
-        from pd.gaussian import GaussianQuadrupoleList
-        from pd.thole import TholeList
+        from .pd.particles import PointDipoleList
+        from .pd.gaussian import GaussianQuadrupoleList
+        from .pd.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
                 'point' :PointDipoleList,
@@ -3234,9 +3236,9 @@ class Cluster(list):
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
-        from pd.particles import PointDipoleList
-        from pd.gaussian import GaussianQuadrupoleList
-        from pd.thole import TholeList
+        from .pd.particles import PointDipoleList
+        from .pd.gaussian import GaussianQuadrupoleList
+        from .pd.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
                 'point' :PointDipoleList,
@@ -3705,7 +3707,6 @@ Plot Cluster a 3D frame in the cluster
     def update_water_props(self, model = "TIP3P",
             method = "HF", basis = "ANOPVDZ", dist = True,
             freq = "0.0"):
-        from template import Template
 
         kwargs_dict = Template().get( *(model, method, basis,
             dist , freq ))
@@ -3815,7 +3816,7 @@ Return a cluster of water molecules given file.
 #Dead center of the box
         center = np.array(map( lambda x: (x[1] - x[0])/2.0+x[0], zip([xmin, ymin, zmin], [xmax, ymax, zmax] )) )
 
-        from dstruct import Cell
+        from .dstruct import Cell
         cell = Cell( [xmin, ymin, zmin], [xmax, ymax, zmax], 3 )
         for at in atoms:
             cell.add_atom(at )

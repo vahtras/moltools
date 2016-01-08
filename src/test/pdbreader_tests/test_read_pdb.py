@@ -1,10 +1,8 @@
-import os, re, math, sys, argparse, subprocess, numpy, tarfile
+import unittest, os
 from loprop.daltools import one, mol, dens, prop, lr
 from loprop.daltools.util import full, blocked, subblocked, timing
-from operator import attrgetter
-from pdbreader import *
+from moltools import *
 from nose.plugins.attrib import attr
-import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'snapshot1.pdb')
 FILE_STR = """

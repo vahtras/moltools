@@ -1,12 +1,10 @@
-__all__ = []
+__all__ = [ 'Cell' ]
 
-
-
-import numpy as np
-import molecules
 import copy, itertools
+from .molecules import Atom, Molecule, Cluster
 
-from pd import particles
+from .pd import particles
+import numpy as np
 from matplotlib import pyplot as plt
 
 a0 = 0.52917721092
@@ -106,7 +104,7 @@ class Cell( np.ndarray ):
             x, y, z = map(float, [x,y,z] )
             if in_AA and not out_AA:
                 x, y, z = map( lambda x: x/a0, [x,y,z] )
-            ats.append( molecules.Atom( element = el, x=  x, y = y, z = z ))
+            ats.append( Atom( element = el, x=  x, y = y, z = z ))
 
         cell = Cell( my_min = [ min( ats, key = lambda x: x.x ).x,
                          min( ats, key = lambda x: x.y ).y,
@@ -122,7 +120,7 @@ class Cell( np.ndarray ):
 
         for at in cell:
             if at.Molecule is None:
-                m = molecules.Molecule()
+                m = Molecule()
                 m.add( at )
             cell.build_molecules( current = at, closeby = cell.get_closest(at) )
         return cell
@@ -149,16 +147,16 @@ class Cell( np.ndarray ):
             self.build_molecules( current = at, closeby = close, visited = visited )
  
     def add_atom( self, atom ):
-        assert type( atom ) == molecules.Atom
+        assert type( atom ) == Atom
         self.add( atom )
 
     def add_molecule( self, mol ):
-        assert isinstance( mol, molecules.Molecule )
+        assert isinstance( mol, Molecule )
         for at in mol:
             self.add( at )
 
     def add_cluster( self, clus ):
-        assert isinstance( clus, molecules.Cluster )
+        assert isinstance( clus, Cluster )
         for item in [at for mol in clus for at in mol ]:
             self.add( item )
 
@@ -185,7 +183,7 @@ to iterate not over whole cell box but closest
     >>> c.add( a1 )
     >>> c.add( a2 )
     >>> c.get_closest( a1 ) #Will return list where only the Oxygen exists
-    [<molecules.Atom at 0x0xah5ah3h5] 
+    [<Atom at 0x0xah5ah3h5] 
         """
         x_ind, y_ind, z_ind = self.get_index( item )
         tmp_list = []
@@ -250,11 +248,11 @@ to iterate not over whole cell box but closest
               AA = self.AA,
               )
         for item in ats:
-            if type(item) == molecules.Atom:
+            if type(item) == Atom:
                 cell.add_atom( item )
-            if type(item) == molecules.Molecule:
+            if type(item) == Molecule:
                 cell.add_molecule( item )
-            if type(item) == molecules.Cluster:
+            if type(item) == Cluster:
                 cell.add_cluster( item )
         return cell
 
@@ -293,7 +291,7 @@ Return the x, y, and z index for cell for this item,
     >>> print c.get_index( a1 )
     (0, 0, 0,)
 """
-        if isinstance( item, molecules.Atom ):
+        if isinstance( item, Atom ):
             x, y, z = item.r
             assert self.my_xmin <= x <= self.my_xmax
             assert self.my_ymin <= y <= self.my_ymax

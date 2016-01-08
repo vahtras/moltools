@@ -1,9 +1,7 @@
 import unittest, os
 import numpy as np
 
-from molecules import Cluster, Atom, Water
-from pdbreader import System
-from use_generator import Generator
+from moltools import Cluster, Atom, Water, System, Generator
 from nose.plugins.attrib import attr
 
 _string1 = """

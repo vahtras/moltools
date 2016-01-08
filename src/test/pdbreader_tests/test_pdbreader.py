@@ -1,6 +1,8 @@
-from pdbreader import *
 import unittest
+
 from nose.plugins.attrib import attr
+from moltools import *
+from moltools.src.pdbreader import *
 
 _string_ppg = """
 ATOM      1 N    PRO A   1       9.225  23.976 174.522  1.00  0.00           N

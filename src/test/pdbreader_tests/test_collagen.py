@@ -1,8 +1,9 @@
-from pdbreader import *
-import unittest, pytest
+import unittest, pytest, time, os
 from nose.tools import timed
 from nose.plugins.attrib import attr
-import time
+
+from moltools.src import pdbreader
+from moltools import System
 
 FILE = os.path.join(os.path.dirname(__file__), 'collagen.pdb')
 

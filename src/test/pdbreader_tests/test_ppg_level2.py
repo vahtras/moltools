@@ -1,4 +1,4 @@
-from pdbreader import System
+from moltools import System
 import unittest, os
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')

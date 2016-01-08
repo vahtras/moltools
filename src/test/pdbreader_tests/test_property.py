@@ -1,9 +1,10 @@
-from pdbreader import *
-from molecules import Property
+import unittest, os
+
 from nose.plugins.attrib import attr
-import unittest
 
 from nose.tools import nottest
+from moltools import Property
+from moltools.src.pdbreader import *
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 first_res_file = os.path.join(os.path.dirname(__file__), 'A-PRO1.p' )

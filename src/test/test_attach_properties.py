@@ -1,11 +1,10 @@
-import unittest, os
+import unittest, os, warnings
 import numpy as np
 
-import utilz
-import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from molecules import Molecule, Property, Water
+from moltools import Molecule, Property, Water
+from moltools.src import utilz
 
 WATER = """3
 

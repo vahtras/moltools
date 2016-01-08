@@ -1,11 +1,12 @@
 import unittest, os
 import numpy as np
 
-from moltools import Cluster, Atom, Water, Molecule, Property, Generator
 
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
+
+from moltools import Atom, Molecule, Water, Cluster, Property, Generator, Residue
 from moltools.src import utilz 
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )

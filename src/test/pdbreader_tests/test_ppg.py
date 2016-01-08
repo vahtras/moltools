@@ -1,10 +1,10 @@
-from pdbreader import *
-import unittest
+import os, unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'ppg.pdb')
 
+from moltools import *
 from nose.plugins.attrib import attr
-#@unittest.skip('Skip due to being too slow')
+
 @attr(speed = 'slow' )
 class TestConcapsLevel1( unittest.TestCase ):
     def setUp(self):
