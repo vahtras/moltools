@@ -1,1 +1,4 @@
 build*
+.buildinfo
+.doctrees
+old_source
