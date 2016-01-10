@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from moltools.src.pd.particles import PointDipoleList as pdl
+from particles import PointDipoleList as pdl
 
 waters = """AU  
 6 1 22 1  
@@ -12,4 +12,7 @@ waters = """AU
 2    -1.430     0.000     6.107     0.332     0.161     0.000    -0.113     1.552     0.000    -1.155     0.609    -0.000     1.211     4.468     0.000    -4.559     0.056    -0.000     3.720     0.000     0.460     0.000    -2.404"""
 
 pdlist = pdl.from_string( waters )
+print "alpha:"
 print pdlist.alpha()
+print "beta:"
+print pdlist.beta()
