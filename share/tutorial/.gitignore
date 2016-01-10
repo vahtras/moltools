@@ -1,2 +1,5 @@
 !*.mol
 .ipynb_checkpoints
+*tar.gz
+*AO*
+*RSP*
