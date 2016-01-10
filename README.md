@@ -1,81 +1,97 @@
-
-# Running a second order Applequist interaction between two water molecules
-This tutorial will describe the steps needed to calculate the classical polarizability and hyperpolarizability of two water molecules interacting, using the localized properties of each molecule obtained seperately from quantum mechanics.
-
-
-The two interacting water molecules will be of the TIP3P model, separated at 5 bohr.
-
-------------
+[![Documentation Status](https://readthedocs.org/projects/moltools/badge/?version=docs)](https://readthedocs.org/projects/moltools/?badge=docs)
+[![Build Status](https://travis-ci.org/fishstamp82/moltools.svg?branch=master)](https://travis-ci.org/fishstamp82/moltools)
+[![Coverage Status](https://coveralls.io/repos/fishstamp82/moltools/badge.svg?branch=master&service=github)](https://coveralls.io/github/fishstamp82/moltools?branch=master)
+[![DOI](https://zenodo.org/badge/19666/fishstamp82/moltools.svg)](https://zenodo.org/badge/latestdoi/19666/fishstamp82/moltools)
 
 
-# Step 1
-## Obtaining the DALTON source code
+#Welcome to moltools!
 
-The DALTON source can be obtained from http://www.daltonprogram.org/. It uses an LGPL license.
+	Code purpose: Wrap DALTON LoProp calculation into convinient functions
+	callable by the Molecule instance using IPython or python scripts.
 
------------
+## Current features:
 
-To run a DALTON calculation once it is installed, execute the dalton runscript:
+	Features include obtaining LoProp properties for solvent molecules/ligands 
+	or for proteins and polymers that are covalently bonded via the MFCC procedure.
 
-```bash
->>> dalton -get input.dal molecule.mol
-```
+	By integrating with the particles module, applequist equations are directly 
+	solvable for a system of classical molecules using damped 
+	charges/dipole-moments 	directly from QM-obtainable properties.
 
-To see a list of options such as MPI core usage and temporary directory setup, execute:
+	For localized Beta, this requires the latest development source of 
+	DALTON installed.
 
-```bash
->>> dalton
-```
+## Installation:
 
-#### The following input file should be used for a quadratic response calculation
+`git clone --recursive git@github.com:fishstamp82/moltools.git`
 
-# dalton.inp
+`export PYTHONPATH=$(pwd)/moltools/src:$PYTHONPATH`
 
-\*\*DALTON INPUT  
-.RUN RESPONSE  
-.DIRECT  
-.PARALLELL  
-\*\*WAVE FUNCTION  
-.HF  
-\*\*RESPONSE  
-.PROPAV  
-XDIPLEN  
-.PROPAV  
-YDIPLEN  
-.PROPAV  
-ZDIPLEN  
-\*QUADRATIC  
-.DIPLEN  
-\*\*END OF DALTON INPUT
-
-#### The following molecule file specifies one TIP3P water molecule in the xz-plane with its dipole pointing in the positive z-axis direction
-## molecule.inp
-
-ATOMBASIS  
-Comment 1  
-Comment 2  
-Atomtypes=2 Charge=0 Nosymm  
-Charge=8.0 Atoms=1 Basis=ano-1 4 3 1  
-O       0.00000   0.00000   0.00000  
-Charge=1.0 Atoms=2 Basis=ano-1 2  
-H       1.43043   0.00000   1.10716  
-H      -1.43043   0.00000   1.10716  
-
-## Step 2 obtain properties from LoProp
-
-Once the input_molecule.tar.gz file is obtained, obtain the source code to do the Applequist calculations in an easy way:
-
-```bash
->>> git clone --recursive https://github.com/vahtras/loprop.git
-```
-
-With the loprop/loprop.py script in your PATH, execute 
-
-```bash
->>> loprop.py -l 1 -a 2 -B 1
-```
+> Tip: Export the pythonpath variable in your initrc file of choice in order to have it automatically load.
 
 
-```python
+Execute the following script if you want to run DALTON computations in parallel using HPC clusters.
 
-```
+For the Linköping HPC triolith, execute:
+
+`src/scripts/dalton_run_on_triolith.sh`
+
+For Umeå HPC akka, execute:
+
+`src/scripts/dalton_run_on_akka.sh`
+
+
+## A quick-start:
+
+Run:
+
+* `ipython`
+* `in [1]: from molecules import Water, Cluster`
+
+##### Create a water molecule with oxygen in origo, in atomic units by default
+`in [2]: w1 = Water().get_standard()`
+
+##### Create an additional water molecule (atomic units by default)
+`in [3]: w2 = Water.get_standard()`
+
+##### Translate water 2 by 2.5 AU in the z-axis
+`in [4]: w2.translate_by_r( [0, 0, 2.5] )`
+
+##### Add them together into a Cluster
+`in [5]: c = Cluster( w1, w2 )`
+
+##### You can always make a quick visualization of a Molecule / Cluster
+`in [6]: c.plot()`
+
+##### Attach some properties to the waters (The rotation of properties will be taken care of )
+
+`#See template.py for all available templates`
+
+`in [8]: c.attach_properties( model = 'tip3p', method = 'HF', basis ='ANOPVDZ' )`
+
+##### Output the atomic/ molecular/ cluster propertiy via the .Property keyword, or via the quick-wrapper .p (.d for dipole, .a alpha .etc )
+
+`in [9]: print c.p.a`
+`[ 15.02184   0.        0.       11.48016   0.       13.72182]`
+
+##### Calculate each waters properties from ab-initio using DALTON, and put those properties on each atom using LoProp in one step:
+
+`In [10]: c.props_from_qm( tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
+
+##### If the dalton version is the development master branch, localized hyperpolarizabilities are obtainable:
+
+`In [11]: c.props_from_qm( method = 'b3lypqua', tmpdir = '/tmp', dalpath = $PATH_TO_DALTON_SCRIPT )`
+
+******
+
+
+## Extra features:
+
+	These include uncommenting "#from mayavi import mlab" in 
+	src/pdbreader.py and an installation of mayavi2.
+	This enables plotting of the beta tensor around molecules and clusters.
+
+
+######Visit [the documentation](http://moltools.readthedocs.org/en/latest) for the API and more tutorials on the source code. Work in progress and most stuff are outdated.
+
+
