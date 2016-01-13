@@ -1643,7 +1643,7 @@ class Molecule( list ):
             pol = 22,
             hyper = 2,
             method = 'hflin',
-            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-2 5 4 1' ],
+            basis = ['ano-1 2 0 0 0', 'ano-1 4 3 1 0', 'ano-2 5 4 1 0' ],
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
@@ -2241,13 +2241,13 @@ Plot Molecule in a 3D frame
         plt.ylim(-5,5)
         plt.show()
 
-    def get_mol(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" ), terminal = False):
+    def get_mol(self, basis = ("ano-1 2 0 0 0", "ano-1 4 3 1 0",
+        "ano-2 5 4 1 0" ), terminal = False):
         return self.get_mol_string( basis = basis, 
                 terminal = terminal)
 
-    def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1",
-        "ano-2 5 4 1" ), terminal = False  ):
+    def get_mol_string(self, basis = ("ano-1 2 0 0 0", "ano-1 4 3 1 0",
+        "ano-2 5 4 1 0" ), terminal = False  ):
         if len( basis ) > 1:
             el_to_rowind = {"H" : 0, "He" : 0, "Li" : 1, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2 }
@@ -3297,7 +3297,7 @@ class Cluster(list):
         return pickle.load( open(fname, 'rb' ) )
     
     def get_dalton_qmmm(self, max_l = 2, pol =2, hyp = 0, qmmm_type = 'peqm',
-        basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
+        basis = ("ano-1 2 0 0 0", "ano-1 4 3 1 0", "ano-2 5 4 1 0" ) ):
         """Generate DALTON.INP, MOLECULE.INP and POTENTIAL.INP for cluster"""
         dal, mol, pot = ['' for i in range(3)]
         if qmmm_type == 'peqm':
@@ -3500,7 +3500,7 @@ Plot Cluster a 3D frame in the cluster
         plt.show()
 
 
-    def get_mol_string(self, basis = ("ano-1 2", "ano-1 4 3 1", "ano-2 5 4 1" ) ):
+    def get_mol_string(self, basis = ("ano-1 2 0 0 0", "ano-1 4 3 1 0", "ano-2 5 4 1 0" ) ):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
         if len( basis ) > 1:
@@ -3534,7 +3534,7 @@ Plot Cluster a 3D frame in the cluster
 
 
 
-    def get_qm_mol_string(self, basis = ("ano-1 2 1", "ano-1 3 2 1", "ano-2 5 4 1" ) ):
+    def get_qm_mol_string(self, basis = ("ano-1 2 0 0 0", "ano-1 4 3 1 0", "ano-2 5 4 1 0" ) ):
 # If basis len is more than one, treat it like molecular ano type
 # Where first element is for first row of elements
 
@@ -4055,7 +4055,7 @@ Return a cluster of water molecules given file.
             hyper = 2,
             method = 'hflin',
             env = os.environ,
-            basis = ['ano-1 2', 'ano-1 4 3 1', 'ano-2 5 4 1' ],
+            basis = ['ano-1 2 0 0', 'ano-1 4 3 1 0', 'ano-2 5 4 1 0' ],
             dalexe = None,
             basdir = '/home/x_ignha/repos/dalton/basis',
             log = None,
