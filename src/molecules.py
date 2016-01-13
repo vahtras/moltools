@@ -15,7 +15,7 @@ import cPickle as pickle
 import copy as copymod
 
 
-from .utilz import scale_vec_to_abs, Rz, Ry, Rz_inv, Ry_inv, au_to_nm, center_and_xz, get_rotation, s2ut, ut2s, reflect, unique
+from .utilz import scale_vec_to_abs, Rz, Ry, Rz_inv, Ry_inv, au_to_nm, center_and_xz, get_rotation, s2ut, ut2s, reflect, unique, find_dir
 from .property import Property
 from .pd import gaussian
 from .template import Template
@@ -1734,9 +1734,7 @@ class Molecule( list ):
         elif os.path.isfile( dalpath ):
             dalton = dalpath
         else:
-            print "set env variable DALTON to dalton script, \
-             or supply the script to props_from_qm directly as  \
-             dalpath = <path-to-dalscript> "
+            print """The DALTON runscript can not be found. Please set the env variable DALTON to the dalton runscript or supply the script to props_from_qm directly as dalpath = <path-to-dalscript> """
             raise SystemExit
 
         if dalexe:
