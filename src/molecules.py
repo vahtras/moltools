@@ -3887,7 +3887,12 @@ Return a cluster of water molecules given file.
         return c
 
     @staticmethod
-    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000, md_type = None ):
+    def get_water_cluster( fname , in_AA = False, out_AA = False , N_waters = 1000, md_type = 'xinli' ):
+        """ md_type = 'xinli' assigns the standard pdb names to oxygen and hydrogen
+        o.pdb_name = OW
+        o.h1 = HW1
+        o.h2 = HW2
+        """
         file_ending = '.' + fname.split('.')[-1]
         return Cluster.get_water_cluster_from_string( open(fname).read(),
                 in_AA = in_AA, out_AA = out_AA, N_waters = N_waters,
