@@ -178,7 +178,7 @@ ANOMAX                   H                 5s 4p 3d
 
 
 #HF maartens loprop 6_31pgp_loprop basis
-        self[("TIP3P", "HF", "loprop_631pgp", True, "0.0")] = \
+        self[("TIP3P", "HF", "LOPROP_631PGP", True, "0.0")] = \
 {
 'meta' : { 'label' : 'pdb_name', },
 ( 'OW' , 'charge') : -0.7176166,
@@ -198,7 +198,7 @@ ANOMAX                   H                 5s 4p 3d
 ( 'HW2', 'beta'  ) : [ 5.9541712,  0.0000000,  -4.8405727,  -0.4204104,  -0.0000000,  4.0791013,  0.0000000,  0.2536120,  0.0000000,  -3.0359090, ],
 
 }
-        self[("TIP3P", "HF", "loprop_631pgp", False, "0.0")] = \
+        self[("TIP3P", "HF", "LOPROP_631PGP", False, "0.0")] = \
 {
 'meta' : { 'label' : 'pdb_name', },
 ( 'X', 'charge') : 0.000000,
