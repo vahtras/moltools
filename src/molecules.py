@@ -3717,7 +3717,7 @@ Plot Cluster a 3D frame in the cluster
     @staticmethod
     def get_water_cluster_from_string( _str, in_AA,
             out_AA, N_waters = 1000, file_ending = '.mol',
-            md_type = None ):
+            md_type = 'xinli', ):
 
         """
 Return a cluster of water molecules given file.
