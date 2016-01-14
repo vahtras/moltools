@@ -150,7 +150,7 @@ class Bond(object):
         self._Property = val
 
 #Method of Bond
-    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
+    def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self._Atom1.Molecule.cluster_order), *self.r ) + self.p.potline( max_l, pol, hyper, fmt = fmt ) + "\n"
 
@@ -717,7 +717,7 @@ Plot Atom in a 3D frame
         return 0
 
 #Method of Atom
-    def potline(self, max_l=2, pol=22, hyper=2, fmt = "%.5f ",):
+    def potline(self, max_l=2, pol=22, hyper=1, fmt = "%.5f ",):
         return  "{0:4} {1:10f} {2:10f} {3:10f} ".format( \
                 str(self.Molecule.cluster_order), self.x, self.y, self.z ) + self.Property.potline( max_l = max_l, pol = pol, hyper = hyper , fmt = fmt ) + "\n"
 
@@ -1114,7 +1114,7 @@ class Molecule( list ):
             at.x, at.y, at.z = at.r - trans
 
 #Method of Molecule
-    def potline(self, max_l = 2 , pol = 22, hyper=2, fmt = "%.5f ",
+    def potline(self, max_l = 2 , pol = 22, hyper=1, fmt = "%.5f ",
             prop_point = None,
             ):
         string = ""
@@ -3621,7 +3621,7 @@ Plot Cluster a 3D frame in the cluster
 # This is the old *QMMM input style in dalton, also valid for PointDipoleList
     def get_qmmm_pot_string( self, max_l = 1,
             pol = 22,
-            hyp = 2,
+            hyp = 1,
 #set center to true to avoid emply loprop atom lines in output, good to make matrices smaller in pointdipole list
             center = False,
 #Set ignore_qmmm to false to only write qmmm .pot file for molecues in mm region
