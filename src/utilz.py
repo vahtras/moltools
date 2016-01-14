@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__all__ = [ 'unique', 'splitter' ]
+__all__ = [ 'o_filter', 'unique', 'splitter' ]
 
 """
 
@@ -677,5 +677,41 @@ def takes_time( func, *args, **kwargs ):
             raise TimeException( delta )
         return val
     return wrapped
+
+def o_filter( 
+        out_files, 
+        vary = "r", 
+        r = 0.0,
+        tau = 0.0,
+        theta = 0.0,
+        rho1 = 0.0,
+        rho2 = 0.0,
+        rho3 = 0.0,
+        ):
+    p = re.compile(r'_(.*)-(.*)-(.*)-(.*)-(.*)-(.*).out')
+    out = []
+    for f in out_files:
+        r_c, tau_c, theta_c, rho1_c, rho2_c, rho3_c = map(float, p.search(f).groups())
+        if vary == "r":
+            if (tau, theta, rho1, rho2, rho3) != (tau_c, theta_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "tau":
+            if (r, theta, rho1, rho2, rho3) != (r_c, theta_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "theta":
+            if (r, tau, rho1, rho2, rho3) != (r_c, tau_c, rho1_c, rho2_c, rho3_c):
+                continue
+        if vary == "rho1":
+            if (r, tau, theta, rho2, rho3) != (r_c, tau_c, theta_c, rho2_c, rho3_c):
+                continue
+        if vary == "rho2":
+            if (r, tau, theta, rho1, rho3) != (r_c, tau_c, theta_c, rho1_c, rho3_c):
+                continue
+        if vary == "rho3":
+            if (r, tau, theta, rho1, rho2 ) != (r_c, tau_c, theta_c, rho1_c, rho2_c, ):
+                continue
+        out.append( f )
+    return out
+
 
 
