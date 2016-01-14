@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-__all__ = [ 'a0', 'o_filter', 'unique', 'splitter' ]
+__all__ = [ 'a0', 'o_filter', 'unique', 'splitter',
+        's2ut', 'ut2s', ]
 
 """
 
