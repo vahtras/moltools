@@ -1,4 +1,4 @@
-import unittest, pytest, time, os
+import unittest, time, os
 from nose.tools import timed
 from nose.plugins.attrib import attr
 

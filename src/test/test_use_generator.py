@@ -1,4 +1,4 @@
-import unittest, mock, os
+import unittest, os
 import numpy as np
 
 import warnings

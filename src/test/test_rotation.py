@@ -1,4 +1,4 @@
-import unittest, pytest
+import unittest
 import numpy as np
 from numpy.linalg import norm
 
