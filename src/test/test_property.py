@@ -166,6 +166,22 @@ class WaterTest( unittest.TestCase ):
         np.testing.assert_allclose( np.zeros(6,), w.o.bonds[0].p.a )
 
 
+    def test_read_template(self):
+        w1, w2 = Water.get_standard(), Water.get_standard()
+        model, method, loprop_false, loprop_true = 'tip3p', 'b3lyp', 0, 1
+        euler_f = lambda x: (x.o.r, (x.h1.r-x.h2.r)/2.0 + x.h2.r,x.h1.r)
+        w1.attach_properties( model = model,
+                method = method,
+                loprop = loprop_false,
+                euler_key = euler_f,
+                )
+        w2.attach_properties( model = model,
+                method = method,
+                loprop = loprop_true,
+                euler_key = euler_f,
+                )
+
+        np.testing.assert_allclose( w1.p.d, w2.p.d )
 
 if __name__ == '__main__':
     unittest.main()
