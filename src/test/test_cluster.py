@@ -25,6 +25,7 @@ class WaterTest( unittest.TestCase ):
     def test_dipole(self):
         w1 = Water.get_standard()
         w2 = Water.get_standard()
+        w2.LoProp = True
         w2.o.p.q -= 1.0
         w2.translate_by_r( np.array([ 3, 3, 3] ) )
 
@@ -124,6 +125,16 @@ class WaterTest( unittest.TestCase ):
         c = Cluster(m1, m2 )
 
         np.testing.assert_allclose( c.p.d, np.array([0.,0.,1.2]), atol = 1e-7 )
+
+    def test_both_loprop_and_none(self):
+        w1, w2, w3, w4 = [Water.get_standard() for i in range(4)]
+        c1 = Cluster( w1, w2.t(0, 0, 5) )
+        c2 = Cluster( w3, w4.t(0, 0, 5) )
+
+        c1.attach_properties( loprop = False )
+        c2.attach_properties( loprop = True )
+
+        np.testing.assert_allclose( c1.p.d, c2.p.d )
 
     def eq(self, a, b):
         np.testing.assert_almost_equal( a, b, decimal = 3)

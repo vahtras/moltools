@@ -823,7 +823,7 @@ class Molecule( list ):
         self._property_r = None
 
 # This will be set True if attaching LoProp properties
-        self.LoProp = False
+        self._LoProp = False
 
 # For plotting different elements:
         self.style = { "X": 'ko' ,"H":'wo', "N":'bo',"C":'go',"P":'ko', "O":'ro',
@@ -865,10 +865,15 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    @property
+    def nuc_charge(self ):
+        return sum( [ charge_dict[ i.element ] for i in self] )
 
 #To return all atoms and bonds in molecule
     def get_ats_and_bonds(self):
-        """Important not to overwrite bonds which has properties, just return"""
+        """Important not to overwrite bonds which has properties, just return
+        
+        """
         tot = []
         bond_visited = []
         for at in self:
@@ -1030,6 +1035,16 @@ class Molecule( list ):
     def X1(self):
         return self.get_atom_by_pdbname( 'X1' )
 
+    @property
+    def LoProp(self):
+        return self._LoProp
+    @LoProp.setter
+    def LoProp(self, val):
+        if val:
+            self.is_Property = False
+            self.property_r = np.zeros( 3 )
+        self._LoProp = val
+
 #Properties relating to whether molecule has fixed point for Properties instead of LoProp
     @property
     def is_Property(self):
@@ -1037,6 +1052,7 @@ class Molecule( list ):
     @is_Property.setter
     def is_Property(self,val):
         self._is_Property = val
+        self.LoProp = False
     @property
     def property_r(self):
         return self._property_r
@@ -1488,7 +1504,13 @@ class Molecule( list ):
             force_template = False,
             centered = None,
             ):
-        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static"""
+        """Attach property for Molecule method, by default TIP3P/HF/ANOPVDZ, static
+        
+        If the attachment is not LoProp, the default placement of the property
+        is at the center-of-mass
+
+        the centered argument can be used to put it elsewhere, i.e. center-of-charge
+        """
         self.Property = None
         if centered is None:
             centered = self.com
@@ -2012,7 +2034,6 @@ class Molecule( list ):
     def Property(self, val):
         if val is None or val is False:
             self._Property = val
-            return
         #if self.LoProp is None:
         #    warnings.warn("Setting property despite LoProp being False")
         self.LoProp = None
@@ -2317,6 +2338,7 @@ Plot Molecule in a 3D frame
             st += at.pdb_string()
         return st
 
+#Molecule copy method
     def copy_self(self):
         return self.copy()
 
@@ -4118,6 +4140,10 @@ Return a cluster of water molecules given file.
         """
         Return the sum properties of all molecules in cluster
         Now it is dead wrong, need to adjust dipoles and quadrupoles to coc
+
+        Important bugfix: if molecules have molecular centered properties,
+        this sum_property will return zero as all atoms and bonds have zero
+
         """
         coc = self.coc
         conv = 1.0
@@ -4125,18 +4151,35 @@ Return a cluster of water molecules given file.
 
         if self.AA:
             conv = 1/a0
-        el_dip = np.array([ conv*(center.r-coc)*center.p.q for mol in self for center in mol.get_ats_and_bonds()])
 
-        nuc_dip = np.array([ conv*(center.r-coc)*charge_dict[center.element] for mol in self for center in mol.get_ats_and_bonds()])
+#el_dip and nuc_dip will add the property differently depending on if it 
+#is a LoProp placement on the molecule, or if the whole molecule is represented
+#by one property at a selected center
+        el_dip_atoms_and_bonds = [ conv*(center.r-coc)*center.p.q for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
+        el_dip_molecules = [ conv*(mol.coc - coc)*center.p.q for mol in self if mol.is_Property ] 
 
-        dip_lop = np.array([center.p.d for mol in self for center in mol.get_ats_and_bonds() ])
+        el_dip = np.array( el_dip_atoms_and_bonds + el_dip_molecules )
+
+        nuc_dip_atoms_and_bonds = [ conv*(center.r-coc)*charge_dict[center.element] for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
+        nuc_dip_molecules = [ conv*(mol.coc - coc)*mol.nuc_charge for mol in self if mol.is_Property ]
+        
+        nuc_dip = np.array(nuc_dip_atoms_and_bonds + nuc_dip_molecules)
+
+        dip_lop_atoms_and_bonds = [center.p.d for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
+        dip_lop_molecules = [mol.p.d for mol in self if mol.is_Property ]
+        dip_lop = np.array( dip_lop_atoms_and_bonds + dip_lop_molecules )
+
         dip = el_dip + nuc_dip
-        d = (dip + dip_lop).sum(axis=0)
+        d = (dip + dip_lop).sum( axis = 0 )
+
         p.d = d
-        for center in [c for mol in self for c in mol.get_ats_and_bonds()]:
-            p.q += center.p.q
-            p.a += center.p.a
-            p.b += center.p.b
+
+        c_atoms = [c.p for mol in self for c in mol.get_ats_and_bonds() if mol.LoProp]
+        c_mols =  [mol.p for mol in self if mol.is_Property ]
+        for center in c_atoms + c_mols:
+            p.q += center.q
+            p.a += center.a
+            p.b += center.b
         return p
 
     def to_AA(self):
