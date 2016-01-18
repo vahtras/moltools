@@ -2094,7 +2094,7 @@ Center of coordinate
 
     def translate_by_r( self, *args ):
         """Will translate all atoms by vector r"""
-        if type(args[0]) == int:
+        if type(args[0]) is int or type(args[0]) is float:
             r = np.array( args )
             assert len(r) == 3 
         elif type( args[0] ) == list:
@@ -3990,9 +3990,9 @@ Return a cluster of water molecules given file.
             iat.Cluster = self
 
 #Special cluster method when dealing with different molecules in a clusters
-# By defalt only connet atoms in the peptide, meaning carbons
-
+# By defalt only connect atoms in seperate peptides, meaning carbons
     def populate_bonds(self, cluster = False):
+        """ given argument cluster = True, will populate bonds"""
         for at in self.atoms:
             at.bonds = []
 #Implement later that it can only be called once
