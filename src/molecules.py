@@ -4,7 +4,7 @@
 The molecules modules serves as an interface to write water molecule input files using predefined geometries, to be used with the DALTON qm package.
 """
 
-__all__ = [ 'Atom', 'Bond', 'Molecule', 'Water', 'Cluster' ]
+__all__ = [ 'Atom', 'Bond', 'Molecule', 'Water', 'Cluster', ]
 
 import re, os, itertools, functools, warnings, subprocess, shutil, logging, string, tarfile
 from mpl_toolkits.mplot3d import Axes3D

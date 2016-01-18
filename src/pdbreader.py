@@ -15,7 +15,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 from .loprop.loprop import MolFrag, penalty_function, shift_function
-from .molecules import Molecule, Cluster, Bond
+from .molecules import Molecule, Cluster, Bond, charge_dict, a0
 from .property import Property
 from .molecules import Atom as MoleculesAtom
 from .utilz import unique, splitter
