@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 __all__ = [ 'a0', 'o_filter', 'unique', 'splitter',
-        's2ut', 'ut2s', ]
+        's2ut', 'ut2s', 'nm_to_au' ]
 
 """
 
