@@ -3660,9 +3660,10 @@ Plot Cluster a 3D frame in the cluster
         else:
             st = "AU\n"
 
-# Old qmmm format requires integer at end to properly read charges
-        if hyp == 0:
-            hyp_int = 1
+# Old qmmm format requires integer at end to properly read charges ?
+#Disable as it introduce a bug in reading zero beta inputs
+        #if hyp == 0:
+        #    hyp_int = 1
 
 #If bonds is true, put all bond points in
         if bonds:
