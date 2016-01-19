@@ -4155,28 +4155,16 @@ Return a cluster of water molecules given file.
 #el_dip and nuc_dip will add the property differently depending on if it 
 #is a LoProp placement on the molecule, or if the whole molecule is represented
 #by one property at a selected center
-        el_dip_atoms_and_bonds = [ conv*(center.r-coc)*center.p.q for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
-        el_dip_molecules = [ conv*(mol.coc - coc)*center.p.q for mol in self if mol.is_Property ] 
+        el_dip = np.array( [ conv*(center.coc - coc)*center.p.q for center in self ] )
+        dip_lop = [mol.p.d for mol in self ]
 
-        el_dip = np.array( el_dip_atoms_and_bonds + el_dip_molecules )
-
-        nuc_dip_atoms_and_bonds = [ conv*(center.r-coc)*charge_dict[center.element] for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
-        nuc_dip_molecules = [ conv*(mol.coc - coc)*mol.nuc_charge for mol in self if mol.is_Property ]
-        
-        nuc_dip = np.array(nuc_dip_atoms_and_bonds + nuc_dip_molecules)
-
-        dip_lop_atoms_and_bonds = [center.p.d for mol in self for center in mol.get_ats_and_bonds() if mol.LoProp ]
-        dip_lop_molecules = [mol.p.d for mol in self if mol.is_Property ]
-        dip_lop = np.array( dip_lop_atoms_and_bonds + dip_lop_molecules )
-
-        dip = el_dip + nuc_dip
-        d = (dip + dip_lop).sum( axis = 0 )
+        d = ( el_dip + dip_lop).sum( axis = 0 )
 
         p.d = d
 
-        c_atoms = [c.p for mol in self for c in mol.get_ats_and_bonds() if mol.LoProp]
-        c_mols =  [mol.p for mol in self if mol.is_Property ]
-        for center in c_atoms + c_mols:
+        c_mols =  [mol.p for mol in self ]
+
+        for center in c_mols:
             p.q += center.q
             p.a += center.a
             p.b += center.b

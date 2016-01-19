@@ -123,7 +123,9 @@ class WaterTest( unittest.TestCase ):
         m2.Property = Property()
         m2.p.d = np.array( [0., 0., 0.6] )
         c = Cluster(m1, m2 )
+        np.testing.assert_allclose( c.p.d, np.array([0.,0.,1.2]), atol = 1e-7 )
 
+        m1.to_Property()
         np.testing.assert_allclose( c.p.d, np.array([0.,0.,1.2]), atol = 1e-7 )
 
     def test_both_loprop_and_none(self):
