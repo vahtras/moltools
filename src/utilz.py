@@ -714,5 +714,35 @@ def o_filter(
         out.append( f )
     return out
 
+def r_scatt_int_nat( alpha ):
+    """Given alpha tensor, returns the rayleigh scattering intensity,
+    as scattered for natural light"""
+    if alpha.shape == (6,):
+        alpha = ut2s( alpha )
+    assert alpha.shape == (3,3,)
+    iso = alpha.trace()/3.0
+    aniso = np.sqrt( (np.einsum('ij,ij', 3*alpha, alpha) - np.einsum('ii,jj',alpha,alpha )) /2 )
+    return 45*iso**2 + 13*aniso**2
+
+def r_scatt_int_pol_orth( alpha ):
+    """Given alpha tensor, returns the rayleigh scattering intensity,
+    as scattered for natural light"""
+    if alpha.shape == (6,):
+        alpha = ut2s( alpha )
+    assert alpha.shape == (3,3,)
+    iso = alpha.trace()/3.0
+    aniso = np.sqrt( (3*np.einsum('ij,ij',alpha,alpha) -np.einsum('ii,jj',alpha,alpha )) /2 )
+    return 45*iso**2 + 7*aniso**2
+
+def r_scatt_int_pol_para( alpha ):
+    """Given alpha tensor, returns the rayleigh scattering intensity,
+    as scattered for natural light"""
+    if alpha.shape == (6,):
+        alpha = ut2s( alpha )
+    assert alpha.shape == (3,3,)
+    iso = alpha.trace()/3.0
+    aniso = np.sqrt( (3*np.einsum('ij,ij',alpha,alpha) -np.einsum('ii,jj',alpha,alpha )) /2 )
+    return 6*aniso**2
+
 
 
