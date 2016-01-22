@@ -1549,6 +1549,8 @@ class Molecule( list ):
             self.Property.Q = s2ut( np.einsum('ai,bj,ij', R, R, ut2s(self.Property.Q) ) )
             self.Property.b = s2ut( np.einsum('ai,bj,ck,ijk', R, R, R, ut2s(self.Property.b) ) )
 
+        self._freq = freq
+
 
 
 
