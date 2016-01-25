@@ -3202,7 +3202,7 @@ class Cluster(list):
     def get_pdlist(self, 
             max_l = 1,
             pol = 22,
-            hyp = 2,
+            hyp = 1,
             model = 'pointdipole',
             bonds = False,
             cell = False,
