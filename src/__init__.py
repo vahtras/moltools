@@ -10,7 +10,6 @@ from .template import *
 from .generator import *
 from .dstruct import *
 from .use_calculator import *
-from .use_generator import *
 
 __all__ = tuple(reduce( lambda a, x: a + x.__all__,  [molecules,
         property,
