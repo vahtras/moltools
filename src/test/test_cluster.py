@@ -141,6 +141,26 @@ class WaterTest( unittest.TestCase ):
     def eq(self, a, b):
         np.testing.assert_almost_equal( a, b, decimal = 3)
 
+    def test_attach_both_ways(self):
+        c1 = Cluster( [Water.get_standard() for i in range(2 )] )
+        c2 = Cluster( [Water.get_standard() for i in range(2 )] )
+        
+        for w1, w2 in zip(c1, c2):
+            t_vec, r_mat = np.random.random( 3 ), np.random.random( 3 )
+            w1.rotate( *r_mat )
+            w2.rotate( *r_mat )
+            w1.t( t_vec )
+            w2.t( t_vec )
+
+        np.testing.assert_allclose( w1.o.r, w2.o.r )
+
+        c1.attach_properties( model = 'spc', force_template = True )
+        for wat in c2:
+            wat.attach_properties( model = 'spc', force_template = True )
+
+        np.testing.assert_allclose( c1.p.a, c2.p.a )
+
+
 
 
 if __name__ == '__main__':
