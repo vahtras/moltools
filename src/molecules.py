@@ -1335,6 +1335,11 @@ class Molecule( list ):
         if self._res_name is not None:
             return self._res_name
         return "MOL"
+
+    @res_name.setter
+    def res_name(self, val):
+        self._res_name = val
+    
     
     def exclists(self, max_len = None):
         """Gives the exclusion string for each atom/bond in molecule for dalton PE
