@@ -6,7 +6,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
-from moltools import Atom, Molecule, Water, Cluster, Property, Generator, Residue
+from moltools import Atom, Molecule, Water, Cluster, Property, Generator, Residue, System
 from moltools.src import utilz 
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
@@ -160,6 +160,13 @@ class WaterTest( unittest.TestCase ):
 
         np.testing.assert_allclose( c1.p.a, c2.p.a )
 
+
+    def test_system_and_cluster( self ):
+        sys = System.from_pdb_string( open(FILE_PDB).read() )
+        clus = Cluster.get_water_cluster( FILE_PDB, in_AA = True,
+                out_AA = True,
+                N_waters = 1000)
+        np.testing.assert_allclose( sys.coc , clus.coc )
 
 
 

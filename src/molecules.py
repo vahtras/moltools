@@ -3777,6 +3777,10 @@ Return a cluster of water molecules given file.
             for i in lines:
                 if pat1.search(i):
                     n = i[11:16].strip()
+                    allowed_res_names = ['MOL', 'SOL', 'WAT']
+#Ignore residue names that are not in allowed ater residue names
+                    if i[17:20].strip() not in allowed_res_names:
+                        continue
                     if n in [ "SW", "DW", "MW" ]:
                         continue
                     kwargs = {
