@@ -1040,6 +1040,7 @@ class Molecule( list ):
         return self._LoProp
     @LoProp.setter
     def LoProp(self, val):
+        assert type(val) is bool or val is None
         if val:
             self.is_Property = False
             self.property_r = np.zeros( 3 )
@@ -1050,9 +1051,11 @@ class Molecule( list ):
     def is_Property(self):
         return self._is_Property
     @is_Property.setter
-    def is_Property(self,val):
-        self._is_Property = val
-        self.LoProp = False
+    def is_Property(self, val):
+        assert type(val) is bool or val is None
+        if val:
+            self._is_Property = val
+            self.LoProp = False
     @property
     def property_r(self):
         return self._property_r
@@ -1661,7 +1664,6 @@ class Molecule( list ):
                 other_bond.p = prop
 
         self.LoProp = True
-        self.Property = False
 
     def props_from_qm(self,
             tmpdir = None,
@@ -2043,9 +2045,10 @@ class Molecule( list ):
             self._Property = val
         #if self.LoProp is None:
         #    warnings.warn("Setting property despite LoProp being False")
-        self.LoProp = None
-        self._Property = val
-        self.is_Property = True
+        else:
+            self.LoProp = False
+            self._Property = val
+            self.is_Property = True
 
 #Wrapper func for Molecule
     @property
