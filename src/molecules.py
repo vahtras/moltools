@@ -4151,6 +4151,29 @@ Return a cluster of water molecules given file.
         return self.sum_property
 
     @property
+    def alpha(self):
+        """
+        Return the sum properties of all molecules in cluster
+        Now it is dead wrong, need to adjust dipoles and quadrupoles to coc
+        """
+        p = Property()
+        alphas =  [mol.p.a for mol in self ]
+        for alpha in alphas:
+            p.a += alpha
+        return p.a
+
+    @property
+    def beta(self):
+        """
+        asdf
+        """
+        p = Property()
+        betas =  [mol.p.b for mol in self ]
+        for beta in betas:
+            p.b += beta
+        return p.b
+
+    @property
     def sum_property(self):
         """
         Return the sum properties of all molecules in cluster
