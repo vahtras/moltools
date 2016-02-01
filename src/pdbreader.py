@@ -983,7 +983,7 @@ class Residue( Molecule ):
             residue = False, r = False,
             concap = False, c = False,
             bridge = False, b = False,
-            level = 1 ):
+            level = 2 ):
         p = Pattern()
         if residue or r:
             tmp_residue = self.copy_info()
@@ -1367,6 +1367,11 @@ class System( list ):
             else:
                 for at in args:
                     self.add( at )
+    def gather_ready(self, level = 2):
+
+        for each in self.residues:
+            each.gather_ready( concap = True, level = level )
+            each.gather_ready( residue = True, level = level )
 
     def connect_everything(self):
         for atom in self.atoms:
@@ -1377,6 +1382,10 @@ class System( list ):
         for cluster in [c for c in self if isinstance( c, Cluster) ]:
             cluster.System = self
             cluster.connect_everything()
+
+    @property
+    def residues(self):
+        return [m for m in self.molecules if isinstance( m, Residue ) ]
 
     @property
     def coc(self):
