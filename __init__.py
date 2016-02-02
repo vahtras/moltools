@@ -1,3 +1,3 @@
 #import everything
 
-from .src import *
+from .moltools import *

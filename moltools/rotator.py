@@ -44,6 +44,10 @@ class Rotator(object):
 
     @staticmethod
     def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
+        try:
+            import h5py
+        except ImportError:
+            raise SystemExit('Install h5py in order to calculate euler rotational averages')
         """
         Requires euler.h5 binary file containing rotational angle products
         Define it as in current script directory + euler.h5

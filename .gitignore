@@ -19,3 +19,6 @@ doc/.doctrees
 doc/old_source
 
 build
+
+dist
+*egg*

@@ -55,7 +55,7 @@ Will generate tmp.xvg, which can be plotted as
 
 """
 
-import os, re, subprocess, argparse, h5py
+import os, re, subprocess, argparse
 
 import numpy as np
 import math as m
@@ -144,32 +144,6 @@ class Calculator( dict ):
         self.linear = {}
         self.quadratic = {}
 
-    def errors(self, molecule = 'water', model = "tip3p"):
-        files = [j for j in os.listdir( os.getcwd()) if j.endswith('.out') ]
-        a = np.zeros( len(files) )
-        b1 = np.zeros( len(files) )
-        b2 = np.zeros( len(files) )
-        bcl = np.zeros( (len(files), 10) )
-        bqm = np.zeros( (len(files), 10) )
-        b = np.array(Template().get( dist = False, model = model )[('O1','beta')])
-
-        for i in range(len(files)):
-            base = map(float,files[i][:-4].split('_')[-3:])
-            b1[ i ] = base[-3]
-            b2[ i ] = base[-2]
-            a[ i ] =  base[-1]
-            b_ref = read_dal.read_beta_hf( files[i] )[3]
-            b_ref = Rotator.square_3_ut( b_ref )
-            bqm[i] = b_ref
-
-        h5 = h5py.File('data.h5','w')
-        base = '%s/%s/' %(molecule, model)
-        h5[ base + 'r_oh1' ] = b1
-        h5[ base + 'r_oh2' ] = b2
-        h5[ base + 'a_h1oh2' ] = a
-        h5[ base + 'b_qm' ] = bqm
-        h5[ base + 'b_cl' ] = b
-        raise SystemExit
     def get_x_and_y( self, 
             level = 'linear',
             var = 'r',

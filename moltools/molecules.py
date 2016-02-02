@@ -26,11 +26,6 @@ try:
 except ImportError:
     pass
 
-try:
-    import h5py
-except ImportError:
-    pass
-
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
 elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']

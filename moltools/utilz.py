@@ -9,7 +9,7 @@ This will replace read_dal.py as general functions module with no dependencies
 on other modules or files in this repository
 """
 
-import os, sys, re, argparse, ctypes, multiprocessing, functools, warnings, itertools, h5py
+import os, sys, re, argparse, ctypes, multiprocessing, functools, warnings, itertools
 
 import numpy as np
 import matplotlib as mpl
@@ -615,6 +615,10 @@ def rot_avg( beta, car1 = 2, car2 = 2, car3 = 2):
     Define it as in current script directory + euler.h5
     """
     b_new = np.zeros( (3,3,3,) )
+    try:
+        import h5py
+    except ImportError:
+        raise SystemExit('Install h5py in order to calculate euler rotational averages')
     """given beta in molecular frame, convert to exp. reference"""
     vec = h5py.File( os.path.join(os.path.dirname( os.path.realpath( __file__ )), 'euler.h5' ), 'r')['data'].value
     for X in range(3):
