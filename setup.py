@@ -5,9 +5,9 @@ from distutils.core import setup
 
 setup_kwargs = {}
 
-setup_kwargs[ 'setup_requires' ] = [ 'numpy==1.9.2', 'cython==0.20.1' ]
-setup_kwargs[ 'install_requires' ] = [ 'numpy==1.9.2',
-        'cython==0.20.1',
+setup_kwargs[ 'setup_requires' ] = [ 'numpy>=1.9.2', 'cython>=0.20.1' ]
+setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
+        'cython>=0.20.1',
         'matplotlib>=1.4.3',
         'loprop>=0.1',
         'pd>=0.1', ]
