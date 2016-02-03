@@ -6,9 +6,13 @@ from distutils.core import setup
 setup_kwargs = {}
 
 setup_kwargs[ 'setup_requires' ] = [ 'numpy==1.9.2', 'cython==0.20.1' ]
-setup_kwargs[ 'install_requires' ] = [ 'loprop==0.1', 'pd', ]
-setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/vahtras/loprop.git@8be2e5fad7b9b15b97cde2b8e10e831a028be54d#egg=loprop-0.1' ]
-setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/fishstamp82/pd.git@8cfc559669f685f10c233658676b19bc46890798#egg=pd-0.1' ]
+setup_kwargs[ 'install_requires' ] = [ 'numpy==1.9.2',
+        'cython==0.20.1',
+        'matplotlib>=1.4.3',
+        'loprop>=0.1',
+        'pd>=0.1', ]
+setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/fishstamp82/loprop.git@e0eb1b2796da77b44177138bc84c2f44329e9d44#egg=loprop-0.1',
+        'git+https://github.com/fishstamp82/pd.git@0096c59e037c12055ed6c6ca0f6338baddebd49e#egg=pd-0.1' ]
 
 try:
     import pkg_resources
@@ -20,8 +24,8 @@ except:
 
 setup(name="moltools",
     version="1.0",
-    packages=["moltools", ],
-    scripts=["moltools/pdbreader.py", ],
+    packages=[ "moltools", ],
+    scripts=[ "moltools/pdbreader.py", ],
     author="Ignat Harczuk",
     author_email="harczuk@kth.se",
     license = 'MIT',
