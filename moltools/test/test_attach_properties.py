@@ -4,7 +4,7 @@ import numpy as np
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from moltools import Molecule, Property, Water
-from moltools.src import utilz
+from moltools import utilz
 
 WATER = """3
 

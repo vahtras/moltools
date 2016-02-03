@@ -7,12 +7,15 @@ import numpy as np
 import math as m
 
 #from particles import *
-from pd.gaussian import *
 from matplotlib import pyplot as plt
 
 from .molecules import Atom
 from .template import Template
 
+try:
+    from pd.gaussian import *
+except ImportError:
+    pass
 
 a0 = 0.52917721092
 lab = [ "X", "Y", "Z"]

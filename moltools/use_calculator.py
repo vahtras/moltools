@@ -64,9 +64,12 @@ import math as m
 from .template import Template
 from .molecules import *
 
-from pd.gaussian import *
 from .read_dal import *
 
+try:
+    from pd.gaussian import *
+except ImportError:
+    pass
 
 a0 = 0.52917721092
 charge_dic = {"H": 1.0, "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0}

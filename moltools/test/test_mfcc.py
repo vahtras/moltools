@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
-from moltools.src import utilz
+from moltools import utilz
 from moltools import Residue, Atom, Property
 
 class TimeException( Exception ):

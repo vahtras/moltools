@@ -6,7 +6,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
-from moltools.src import utilz
+from moltools import utilz
 from moltools import Generator, Template, Water, Atom, Property
 
 @attr(speed = 'fast' )

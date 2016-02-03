@@ -17,14 +17,11 @@ import copy as copymod
 
 from .utilz import scale_vec_to_abs, Rz, Ry, Rz_inv, Ry_inv, au_to_nm, center_and_xz, get_rotation, s2ut, ut2s, reflect, unique, find_dir
 from .property import Property
-from .pd import gaussian
 from .template import Template
 from .generator import Generator
 
-try:
-    from .loprop.loprop import MolFrag, penalty_function, shift_function
-except ImportError:
-    pass
+from loprop import MolFrag, penalty_function, shift_function
+from pd import gaussian
 
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
@@ -3215,9 +3212,9 @@ class Cluster(list):
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
-        from .pd.particles import PointDipoleList
-        from .pd.gaussian import GaussianQuadrupoleList
-        from .pd.thole import TholeList
+        from pd.particles import PointDipoleList
+        from pd.gaussian import GaussianQuadrupoleList
+        from pd.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
                 'point' :PointDipoleList,

@@ -7,7 +7,7 @@ warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
 from moltools import Atom, Molecule, Water, Cluster, Property, Generator, Residue, System
-from moltools.src import utilz 
+from moltools import utilz 
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )

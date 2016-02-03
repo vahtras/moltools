@@ -1,13 +1,13 @@
 import unittest, os, warnings, warnings
 import numpy as np
-from moltools.src.pd.particles import PointDipoleList
+from pd.particles import PointDipoleList
 
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
 from moltools import Cluster, Atom, Generator
-from moltools.src import dstruct
-from moltools.src.dstruct import Cell
+from moltools import dstruct
+from moltools.dstruct import Cell
 
 FILE_XYZ = os.path.join( os.path.dirname(__file__), 'pna_waters.xyz' )
 FILE_MOL = os.path.join( os.path.dirname(__file__), 'tip3p44_10qm.mol' )

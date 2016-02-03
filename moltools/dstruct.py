@@ -3,9 +3,14 @@ __all__ = [ 'Cell' ]
 import copy, itertools
 from .molecules import Atom, Molecule, Cluster
 
-from .pd import particles
 import numpy as np
 from matplotlib import pyplot as plt
+
+
+try:
+    from pd import particles
+except ImportError:
+    pass
 
 a0 = 0.52917721092
 

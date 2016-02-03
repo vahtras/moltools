@@ -5,7 +5,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 
-from moltools.src import read_dal
+from moltools import read_dal
 
 HF_FILE = """
 

@@ -14,11 +14,20 @@ from copy import deepcopy
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-from .loprop.loprop import MolFrag, penalty_function, shift_function
 from .molecules import Molecule, Cluster, Bond, charge_dict, a0
 from .property import Property
 from .molecules import Atom as MoleculesAtom
 from .utilz import unique, splitter
+
+try:
+    from .loprop.loprop import MolFrag, penalty_function, shift_function
+except ImportError:
+    pass
+
+try:
+    from pd import gaussian
+except ImportError:
+    pass
 
 
 res_dict = {'ALA':'A', 'VAL':'V', 'ILE':'I','LEU':'L','MET':'M',

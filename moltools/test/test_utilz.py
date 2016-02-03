@@ -5,7 +5,7 @@ import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr
 from moltools import Water
-from moltools.src import utilz
+from moltools import utilz
 
 HF_FILE = """
 
