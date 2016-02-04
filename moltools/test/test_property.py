@@ -1,7 +1,7 @@
 import unittest, os
 import numpy as np
 
-import utilz
+from .. import utilz
 import warnings
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr

@@ -1,3 +1,0 @@
-[submodule "moltools/test/qm_prop_tests"]
-	path = src/test/qm_prop_tests
-	url = https://github.com/fishstamp82/qm_prop_tests.git

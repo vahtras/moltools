@@ -1,6 +1,6 @@
 import unittest, os
-from loprop.daltools import one, mol, dens, prop, lr
-from loprop.daltools.util import full, blocked, subblocked, timing
+from daltools import one, mol, dens, prop, lr
+from daltools.util import full, blocked, subblocked, timing
 from moltools import *
 from nose.plugins.attrib import attr
 

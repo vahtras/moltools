@@ -11,8 +11,8 @@ setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
         'matplotlib>=1.4.3',
         'loprop>=0.1',
         'pd>=0.1', ]
-setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/fishstamp82/loprop.git@e0eb1b2796da77b44177138bc84c2f44329e9d44#egg=loprop-0.1',
-        'git+https://github.com/fishstamp82/pd.git@af469199c15f7ca73f770ad9ae4527753a7b1928#egg=pd-0.1' ]
+setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/vahtras/loprop.git@c510a6d#egg=loprop-0.1',
+        'git+https://github.com/fishstamp82/pd.git@2a3313fadb4e25f4d16b778fc6e43c11a3e29b82#egg=pd-0.1' ]
 
 try:
     import pkg_resources
