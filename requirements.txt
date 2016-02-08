@@ -1,7 +1,4 @@
-Moltools
 matplotlib>=1.4.3
 numpy>=1.9.2
 scipy>=0.15.1
 cython>=0.20.4
--e git://github.com/vahtras/loprop.git@8be2e5fad7b9b15b97cde2b8e10e831a028be54d#egg=loprop
--e git+https://github.com/fishstamp82/pd.git@2a3313fadb4e25f4d16b778fc6e43c11a3e29b82#egg=pd-0.1
