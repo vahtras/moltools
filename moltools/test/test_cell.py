@@ -1,6 +1,6 @@
 import unittest, os, warnings, warnings
 import numpy as np
-from pd.particles import PointDipoleList
+from applequist.particles import PointDipoleList
 
 warnings.simplefilter('error')
 from nose.plugins.attrib import attr

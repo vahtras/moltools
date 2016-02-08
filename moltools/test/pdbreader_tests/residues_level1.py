@@ -3,7 +3,7 @@ import os, re, math, sys, argparse, subprocess, numpy, tarfile
 from daltools import one, mol, dens, prop, lr
 from daltools.util import full, blocked, subblocked, timing
 from operator import attrgetter
-from pdbreader import *
+from applequistbreader import *
 import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'snapshot1.pdb')

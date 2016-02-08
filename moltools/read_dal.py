@@ -13,7 +13,7 @@ from .molecules import Atom
 from .template import Template
 
 try:
-    from pd.gaussian import *
+    from applequist.gaussian import *
 except ImportError:
     pass
 

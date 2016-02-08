@@ -25,7 +25,7 @@ except ImportError:
     pass
 
 try:
-    from pd import gaussian
+    from applequist import gaussian
 except ImportError:
     pass
 

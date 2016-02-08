@@ -10,10 +10,9 @@ setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
         'cython>=0.20.1',
         'matplotlib>=1.4.3',
         'loprop>=0.1',
-        'pd>=0.1', ]
-setup_kwargs[ 'dependency_links' ] = [ 'git+https://github.com/vahtras/loprop.git@c510a6d#egg=loprop-0.1',
-        'git+https://github.com/fishstamp82/pd.git@2a3313fadb4e25f4d16b778fc6e43c11a3e29b82#egg=pd-0.1' ]
-
+        'nose',
+        'applequist>=0.1',
+        ]
 try:
     import pkg_resources
     from setuptools import setup, Command

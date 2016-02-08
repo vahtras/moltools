@@ -4,7 +4,7 @@ from daltools import one, mol, dens, prop, lr
 from daltools.util import full, blocked, subblocked, timing
 from own import *
 from operator import attrgetter
-from pdbreader import *
+from applequistbreader import *
 
 def setup():
     """ Default arguments used for program """

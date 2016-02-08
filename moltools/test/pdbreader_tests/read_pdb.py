@@ -5,7 +5,7 @@ from daltools.util import full, blocked, subblocked, timing
 from operator import attrgetter
 import unittest
 
-from pdbreader import *
+from applequistbreader import *
 
 class ReadPdb( unittest.TestCase ):
 

@@ -5,7 +5,7 @@ from daltools.util import full, blocked, subblocked, timing
 from own import *
 from operator import attrgetter
 
-from pdbreader import *
+from applequistbreader import *
 
 def setup():
     global f

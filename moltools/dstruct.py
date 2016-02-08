@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 try:
-    from pd import particles
+    from applequist import particles
 except ImportError:
     pass
 

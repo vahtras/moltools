@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from pdbreader import *
+from applequistbreader import *
 import unittest
 
 FILE = os.path.join(os.path.dirname(__file__), 'collagen.pdb')

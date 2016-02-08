@@ -21,7 +21,7 @@ from .template import Template
 from .generator import Generator
 
 from loprop import MolFrag, penalty_function, shift_function
-from pd import gaussian
+from applequist import gaussian
 
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
@@ -3212,9 +3212,9 @@ class Cluster(list):
         where atomic within AA_cutoff between different interacting segments
         
         has a damped gaussian """
-        from pd.particles import PointDipoleList
-        from pd.gaussian import GaussianQuadrupoleList
-        from pd.thole import TholeList
+        from applequist.particles import PointDipoleList
+        from applequist.gaussian import GaussianQuadrupoleList
+        from applequist.thole import TholeList
 
         opts = { 'pointdipole' : PointDipoleList,
                 'point' :PointDipoleList,

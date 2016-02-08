@@ -67,7 +67,7 @@ from .molecules import *
 from .read_dal import *
 
 try:
-    from pd.gaussian import *
+    from applequist.gaussian import *
 except ImportError:
     pass
 
