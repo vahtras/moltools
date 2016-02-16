@@ -25,9 +25,10 @@ from applequist import gaussian
 
 a0 = 0.52917721092
 au_nm_conv = 45.563352491
-elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
+elem_array = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'P']
 
-charge_dict = {"H": 1.0, "He" :2.0, "Li" : 3.0,  "C": 6.0, "N": 7.0, "O": 8.0, "S": 16.0, "P" : 15, "X" : 0.0 }
+charge_dict = {"H": 1.0, "He" :2.0, "Li" : 3.0,  "C": 6.0,
+        "N": 7.0, "O": 8.0, "S": 16.0, "P" : 15.0, "X" : 0.0 }
 # from TIP3P charge defs.
 el_charge_dict = {"H": .417, "O": -0.834 , "X" : 0.417 , 'S': -0.25}
 mass_dict = {"H": 1.008,  "C": 12.0, "N": 14.01, "O": 15.999, "S": 32.066,
@@ -2275,7 +2276,7 @@ Plot Molecule in a 3D frame
             el_to_rowind = {"H" : 0, "He" : 0, "Li" : 1, "C" : 1, "O" : 1, "N" : 1,
                     "S" : 2, "P" : 2 }
         else:
-            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0 }
+            el_to_rowind = {"H" : 0, "C" : 0, "O" : 0, "N" : 0, "S" : 0, "P" :0 }
         st = ""
         s_ = ""
         if self.AA: s_ += " Angstrom"
