@@ -2419,10 +2419,17 @@ Read in molecule given .mol file and unit specification.
                 lab = matched[0]
                 if len(lab.split('-')) == 4:
                     element = "H"
+                    pdb_name = lab.split('-')[3]
                 else:
                     element = lab.split('-')[2][0]
-                kwargs = { "AA": in_AA, "element" :  element, "x" : matched[1],
-                        "y" : matched[2], "z" : matched[3] }
+                    pdb_name = lab.split('-')[2]
+                kwargs = { "AA": in_AA,
+                        "element" :  element,
+                        "x" : matched[1],
+                        "y" : matched[2],
+                        "z" : matched[3],
+                        "pdb_name" : pdb_name
+                        }
                 tmpAtom = Atom( **kwargs )
                 tmp_molecule.append( tmpAtom )
         if in_AA:
