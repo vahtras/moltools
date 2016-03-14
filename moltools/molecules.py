@@ -2385,7 +2385,7 @@ Center molecule with center-of-mass in origo
         self.translate( tmp )
 
     @staticmethod
-    def from_mol_file( molfile, in_AA = False, out_AA = False):
+    def from_mol_file( molfile, in_AA = True, out_AA = True):
         """
 Read in molecule given .mol file and unit specification.
 
