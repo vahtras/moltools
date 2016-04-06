@@ -20,7 +20,7 @@ from .property import Property
 from .template import Template
 from .generator import Generator
 
-from loprop import MolFrag, penalty_function, shift_function
+from loprop.core import MolFrag, penalty_function, shift_function
 from applequist import gaussian
 
 a0 = 0.52917721092

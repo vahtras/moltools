@@ -104,6 +104,29 @@ B3LYP
             return Generator.get_ccsdlin_dal()
 
     @staticmethod
+    def get_hf_imag_dal( freq = ("0.0",), functional = 'B3PW91' ):
+        _string = """**DALTON INPUT
+.RUN RESPONSE
+.DIRECT
+.PARALLELL
+**WAVE FUNCTION
+.HF
+**RESPONSE
+*ABSORP
+.ALPHA
+.IMAG F
+.FREQUE
+"""
+        _string += str(len(freq))  + '\n'
+        freqs = " ".join( map( str, freq ) )
+        _string += freqs
+        _string += '\n'
+        _string += "**END OF DALTON INPUT\n"
+        return _string
+
+
+
+    @staticmethod
     def get_b3lyplin_dal():
         return """**DALTON INPUT
 .RUN RESPONSE
@@ -253,6 +276,7 @@ ZDIPLEN
 """ %( freq )
         _string += "**END OF DALTON INPUT\n"
         return _string
+
     @staticmethod
     def get_camb3lyplin_dal():
         return """**DALTON INPUT
