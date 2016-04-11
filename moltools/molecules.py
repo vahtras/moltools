@@ -999,11 +999,20 @@ class Molecule( list ):
     def O(self):
         return self.get_atom_by_pdbname( 'O' )
     @property
+    def OG(self):
+        return self.get_atom_by_pdbname( 'OG' )
+    @property
+    def OG2(self):
+        return self.get_atom_by_pdbname( 'OG2' )
+    @property
     def CA(self):
         return self.get_atom_by_pdbname( 'CA' )
     @property
     def CB(self):
         return self.get_atom_by_pdbname( 'CB' )
+    @property
+    def CB2(self):
+        return self.get_atom_by_pdbname( 'CB2' )
     @property
     def CD(self):
         return self.get_atom_by_pdbname( 'CD' )
