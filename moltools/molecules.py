@@ -858,6 +858,18 @@ class Molecule( list ):
                 self.info[ i ] = kwargs[ i ]
             self.AA = kwargs.get( "AA" , False )
 
+    def atom_in_other_mol_closer_than( self, other, dist = 1.0, AA=True ):
+        """Given other molecule, return True if other molecule
+        has an Atom with distance less than 1.0 to this molecule"""
+        if (not self.AA) and AA:
+            dist /= a0
+        for i in self:
+            for j in other:
+                if i.dist_to_atom( j ) < dist:
+                    return True
+        return False
+
+
     @property
     def nuc_charge(self ):
         return sum( [ charge_dict[ i.element ] for i in self] )
