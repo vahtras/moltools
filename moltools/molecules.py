@@ -3524,7 +3524,7 @@ Plot Cluster a 3D frame in the cluster
         ax = fig.add_subplot(111, projection='3d' )
 
 #Plot bonds
-        for at in self.atoms:
+        for at in copy.atoms:
             for bond in at.bonds:
                 ax.plot( [at.x, bond._Atom2.x],
                          [at.y, bond._Atom2.y],
