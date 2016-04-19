@@ -683,6 +683,10 @@ Plot Atom in a 3D frame
     @property
     def r(self):
         return np.array( [ self.x, self.y, self.z ] )
+    @r.setter
+    def r(self, val):
+        assert len(val) == 3
+        self.x, self.y, self.z = val[0], val[1], val[2]
 
     @property
     def q(self):
