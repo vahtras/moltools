@@ -3097,9 +3097,11 @@ class Cluster(list):
         assert type(val) == bool
         self._AA = val
 
-    def dump_xyz(self):
+    def dump_xyz(self, s = 'tmp' ):
         """Quickl;y wrote xyz file for fancier visualization in avogadro/vmd"""
-        open( 'tmp.xyz', 'w' ).write( self.get_xyz_string() )
+        if s.endswith( '.xyz' ):
+            s = s[:-4]
+        open( s + '.xyz', 'w' ).write( self.get_xyz_string() )
 
 #Cluster freq method
     @property
