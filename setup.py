@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 
-setup_kwargs = {}
+import os
 
-setup_kwargs[ 'setup_requires' ] = [ 'numpy>=1.9.2', 'cython>=0.20.1' ]
-setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
-        'matplotlib>=1.4.3',
-        'loprop>=0.1',
-        'applequist>=0.1',
-        ]
 try:
     import pkg_resources
     from setuptools import setup, Command, find_packages
@@ -16,8 +10,17 @@ except:
     from distutils.core import setup, Command
     _have_setuptools = False
 
+setup_kwargs = {}
+setup_kwargs[ 'setup_requires' ] = [ 'numpy>=1.9.2', 'cython>=0.20.1' ]
+setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
+        'cython>=0.20.1',
+        'matplotlib>=1.4.3',
+        'loprop>=0.1.8',
+        'applequist>=0.1',
+        ]
+
 setup(name="moltools",
-    version="1.1.1",
+    version="v0.3.0",
     packages = find_packages(),
     #package_dir = { '' : 'moltools' },
     scripts=[ "moltools/pdbreader.py", ],
