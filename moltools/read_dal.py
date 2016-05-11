@@ -1013,7 +1013,7 @@ def read_props_qmmm( file_, freq = "0.0",  in_AA = False ):
 
 
 def read_beta_hf( file_, freq = "0.0",  in_AA = False, out_AA = False ):
-    with open( _file) as f:
+    with open( file_ ) as f:
         return read_beta_hf_string( f.read(), freq = freq,
             in_AA = in_AA, out_AA = out_AA )
 
