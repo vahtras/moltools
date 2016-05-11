@@ -22,7 +22,9 @@ git:
     false
 
 before_install:
+
   #To install LoProp for Dalton
+
   - git clone https://github.com/vahtras/loprop.git
   - cd loprop
   - pip install -r requirements.txt
@@ -34,7 +36,8 @@ before_install:
   - git submodule update --init --recursive
 
 install:
-  pip install coveralls matplotlib numpy cython h5py applequist
+  - pip install --upgrade setuptools
+  - pip install coveralls matplotlib numpy cython h5py applequist
 
 #Build cythonized version of particles solver
 #before_script:
