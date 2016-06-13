@@ -20,7 +20,7 @@ setup_kwargs[ 'install_requires' ] = [ 'numpy>=1.9.2',
         ]
 
 setup(name="moltools",
-    version="v0.3.1",
+    version="v1.1.2",
     packages = find_packages(),
     #package_dir = { '' : 'moltools' },
     scripts=[ "moltools/pdbreader.py", ],
