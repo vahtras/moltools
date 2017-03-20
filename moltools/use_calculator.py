@@ -118,7 +118,8 @@ class Xms:
         self.char = char
     def make_greek(self):
         if self.char not in ["r", "theta", "tau", "rho1", "rho2", "rho3"]:
-            print "wrong char in Xmgrace_style class, exiting"; raise System_exit
+            print("wrong char in Xmgrace_style class, exiting")
+            raise System_exit
         if self.char == "r"    :return r"r"
         if self.char == "theta":return r"\f{Symbol}q"
         if self.char == "tau"  :return r"\f{Symbol}t"
@@ -652,8 +653,8 @@ class Calculator( dict ):
                                         width = line_thick_dict[ level ][ prop ][ comp ]
                                         style = line_style_dict[ level ][ prop ][ comp ]
                                     except KeyError:
-                                        print level, prop, comp
-                                        print "Skipping (%s, %s, %s, )" %( level, prop, comp )
+                                        print(level, prop, comp)
+                                        print("Skipping (%s, %s, %s, )" %( level, prop, comp ))
                                         continue
 
                                     if rel:
@@ -764,12 +765,12 @@ class Calculator( dict ):
                                         try:
                                             string += "%s %.4f\n" %( x[i], y[i][ind1][ind2] )
                                         except IndexError:
-                                            print x[i], ind1, ind2
-                                            print y[i]
+                                            print(x[i], ind1, ind2)
+                                            print(y[i])
                                             raise SystemExit
                                         except TypeError:
-                                            print ind1, ind2 
-                                            print y[i][ ind1][ ind2 ]
+                                            print(ind1, ind2 )
+                                            print(y[i][ ind1][ ind2 ])
                                             raise SystemExit
                                     string += '@ SORT s%d X ASCENDING\n' % localCounter
                                     string += '@ s%d LINEWIDTH %d\n' % (localCounter, width )
@@ -1023,7 +1024,8 @@ class Xms( str ):
         self.char = char
     def make_greek(self):
         if self.char not in ["r", "tau", "theta", "rho1", "rho2", "rho3"]:
-            print "wrong char in XmgraceStyle class, exiting"; raise SystemExit
+            print("wrong char in XmgraceStyle class, exiting")
+            raise SystemExit
         if self.char == "r"    :return r"r"            
         if self.char == "tau":return r"\xt\0"  
         if self.char == "theta"  :return r"\xq\0" 

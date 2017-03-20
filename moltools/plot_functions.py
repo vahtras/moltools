@@ -3,7 +3,7 @@
 
 __all__ = []
 
-from molecules import Molecule
+from .molecules import Molecule
 
 def plot_maya( mol, key = lambda x: (x[0].r, x[1].r, x[2].r),
         copy = True ):

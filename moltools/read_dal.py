@@ -73,7 +73,7 @@ def write_related( args ):
         for j in i:
             if j.element == "O":
                 f_.write( "%s   %.5f   %.5f   %.5f\n" %( j.element, j.x, j.y, j.z ))
-    print "Finished writing mol files %s" %name
+    print("Finished writing mol files %s" %name)
     raise SystemExit
 
 
@@ -1052,8 +1052,8 @@ def read_beta_hf_string( string_, freq = "0.0",  in_AA = False, out_AA = False, 
             atoms.append( tmpAtom )
 
         elif pat_akka_xyz.match(i):
-            print i
-            print 'asdf'
+            print(i)
+            print('asdf')
             raise SystemExit
             f = pat_akka_xyz.match(i).groups()
             matched = pat_akka_xyz.match(i).groups()

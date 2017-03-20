@@ -44,8 +44,8 @@ class WaterTest( unittest.TestCase ):
         assert len( self.c.min_dist_coo() ) == 9
 
     def test_dists(self):
-        print len( self.c )
-        print self.c.min_dist_coo()[:len(self.c)]
+        print(len( self.c ))
+        print(self.c.min_dist_coo()[:len(self.c)])
 
     def test_two_waters(self):
         c = Cluster.get_water_cluster(
@@ -54,7 +54,7 @@ class WaterTest( unittest.TestCase ):
                 out_AA = False,
                 N_waters = 2)
         assert len(c) == 2
-        print c.min_dist_coo()
+        print(c.min_dist_coo())
         assert c.min_dist_coo()[0] > 4.5
 
     def test_get_all_molecules_from_file( self ):

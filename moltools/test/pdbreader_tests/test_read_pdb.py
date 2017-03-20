@@ -8858,7 +8858,7 @@ class ReadPdb( unittest.TestCase ):
     def setUp(self):
 
         self.S = System.from_pdb_string ( FILE_STR )
-        print len( self.S )
+        print(len( self.S ))
         assert len( self.S ) == 1
 
     def test_find_all_sulfur_bridges(self):

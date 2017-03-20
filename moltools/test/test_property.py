@@ -30,7 +30,7 @@ class WaterTest( unittest.TestCase ):
                 "0.22000 0.00000 0.00000 -0.50000 0.00000 1.00000 2.00000 3.00000 4.00000 5.00000 "
 
     def test_potline_0_1_0(self):
-        print self.p1.potline(max_l = 0, pol = 1, hyper = 0)
+        print(self.p1.potline(max_l = 0, pol = 1, hyper = 0))
         assert self.p1.potline(max_l = 0, pol = 1, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 3.33333 "
 
@@ -38,7 +38,7 @@ class WaterTest( unittest.TestCase ):
         assert self.p1.potline(max_l = 0, pol = 2, hyper = 0, fmt = "%.5f ") == \
                 "0.22000 6.00000 5.00000 4.00000 3.00000 2.00000 1.00000 "
     def test_potline_0_22_1(self):
-        print self.p1.potline(max_l = 0, pol = 22, hyper = 1, fmt = "%.5f ") 
+        print(self.p1.potline(max_l = 0, pol = 22, hyper = 1, fmt = "%.5f ") )
         assert self.p1.potline(max_l = 0, pol = 22, hyper = 1, fmt = "%.5f ") == \
                 "0.22000 6.00000 5.00000 4.00000 3.00000 2.00000 1.00000 " + \
                 "0.00000 1.00000 2.00000 3.00000 4.00000 5.00000 6.00000 7.00000 8.00000 9.00000 "

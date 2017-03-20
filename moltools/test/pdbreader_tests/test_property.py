@@ -42,8 +42,8 @@ class TestConcapsLevel1( unittest.TestCase ):
         """First and last residue only have 2 relevant residues"""
         tot_res = reduce( lambda a, x: a + len(x.get_relevant_residues()) , self.ch, 0 )
         tot_con = reduce( lambda a, x: a + len(x.get_relevant_concaps()) , self.ch, 0 )
-        print tot_res, tot_con
-        print len(self.ch) * 2
+        print(tot_res, tot_con)
+        print(len(self.ch) * 2)
         assert tot_res == len(self.ch) * 3 - 2
         assert tot_con == len(self.ch) * 2 - 2
 

@@ -117,7 +117,7 @@ def reflect( plane = 'xz'):
     opt_dict = { 'xy' : (2,2), 'xz' : (1, 1 ), 'yz' :(0,0,),
                  'yx' : (2,2), 'zx' : (1, 1 ), 'zy' :(0,0,) }
     if plane not in opt_dict:
-        print 'Wrong plane given'
+        print('Wrong plane given')
         raise SystemExit
     vec[ opt_dict[plane] ] = -1
     return vec
@@ -608,7 +608,7 @@ def b_hrs_intensity( b):
     if b.shape == (10,):
         b = ut2s(b)
     elif b.shape != (3,3,3,):
-        print "supplied wrong beta"
+        print("supplied wrong beta")
         raise SystemExit
 
     zzz = rot_avg( b )
@@ -619,7 +619,7 @@ def b_hrs_dep_ratio( b):
     if b.shape == (10,):
         b = ut2s(b)
     elif b.shape != (3,3,3,):
-        print "supplied wrong beta"
+        print("supplied wrong beta")
         raise SystemExit
 
     zzz = rot_avg( b )

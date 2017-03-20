@@ -3,7 +3,7 @@
 __all__ = [ 'Rotator' ]
 
 import numpy as np
-import utilz 
+from . import utilz 
 
 
 class Rotator(object):
@@ -23,7 +23,7 @@ class Rotator(object):
         if b.shape == (10,):
             b = Rotator.ut_3_square(b)
         elif b.shape != (3,3,3,):
-            print "supplied wrong beta"
+            print("supplied wrong beta")
             raise RotatorError
 
         zzz = Rotator.rot_avg( b )
@@ -35,7 +35,7 @@ class Rotator(object):
         if b.shape == (10,):
             b = Rotator.ut_3_square(b)
         elif b.shape != (3,3,3,):
-            print "supplied wrong beta"
+            print("supplied wrong beta")
             raise SystemExit
 
         zzz = Rotator.rot_avg( b )
@@ -82,7 +82,7 @@ Rotate vector around z-axis clockwise by :math:`\\rho_{1}`, around the y-axis co
 
     >>> import numpy as np
     >>> d = np.array( [ 1, 0, 0] )
-    >>> print Rotator.transform_1( d, 0, numpy.pi/2, 0 )
+    >>> print(Rotator.transform_1( d, 0, numpy.pi/2, 0 ))
     [ 0.0, 0.0, 1.0 ]
 """
         d_new1 = np.zeros([3]) #will be returned

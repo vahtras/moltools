@@ -11,7 +11,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 
 import numpy as np
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError: #python3
+    import _pickle as pickle
 import copy as copymod
 
 
@@ -80,7 +83,7 @@ proline_dict = { "PRO" : "P", "HYP" : "PX" }
 custom_dict = { "CRO2" : "X2", "MOL" : "X3" }
 
 #Make permutations of all bonding pair tuples 
-for key1, key2 in bonding_cutoff.keys():
+for key1, key2 in bonding_cutoff.copy():
     bonding_cutoff[ (key2, key1)] = bonding_cutoff[ (key1, key2) ]
 
 class UnitException( Exception ):
@@ -467,7 +470,7 @@ AA       True     bool
                 try:
                     other_bond = [b for b in own_bond._Atom2.bonds if b._Atom2 == self ][0]
                 except IndexError:
-                    print 'no bonds in other atom'
+                    print('no bonds in other atom')
                     continue
 #If for some reason we forgot to put properties on this bond but not for the other
 
@@ -745,7 +748,7 @@ Return the distance between two atoms
 
    >>> H1 = Atom( z = 0 )
    >>> H2 = Atom( z = 1 )
-   >>> print H1.dist_to_atom( H2 )
+   >>> print(H1.dist_to_atom( H2 ))
    1.0
 
 """
@@ -760,7 +763,7 @@ Return the distance to a point
 .. code:: python
 
    >>> a = Atom( z = 0 )
-   >>> print H1.dist_to_point( [0, 3, 4] )
+   >>> print(H1.dist_to_point( [0, 3, 4] ))
    5.0
 
 """
@@ -1299,7 +1302,7 @@ class Molecule( list ):
         """Write out the template with properties for molecule
         if centered, will put the property on position given as array"""
         if len(label_func.func_code.co_varnames) != 1:
-            print "Unsupported multi key function"
+            print("Unsupported multi key function")
             raise SystemExit
         st_label = "_".join( label_func.func_code.co_names )
         st = "{\n"
@@ -1625,7 +1628,7 @@ class Molecule( list ):
         if tmpdir is None:
             tmpdir = "/tmp"
         if f_ is None:
-            print "Supply .tar.gz file from dalton quadratic .QLOP calculation"
+            print("Supply .tar.gz file from dalton quadratic .QLOP calculation")
             return
         if freq == None:
             freq = 0.0
@@ -1648,7 +1651,7 @@ class Molecule( list ):
                             bond_centers = bonds,
                             )
         except IOError:
-            print tmpdir
+            print(tmpdir)
 
         f_at = lambda x: map(float, x.get_mol_line().split()[1:] )
         f_prop = lambda x: map(float,x.split()[1:4])
@@ -1715,9 +1718,9 @@ class Molecule( list ):
             logging.basicConfig( filename=log, level=logging.DEBUG )
 
         if tmpdir is None:
-            print "Warning, must set tmpdir explicitly, since this function removes all files from the dalton generated real tmpdir."
-            print "For security reasons will not run this if not set tmpdir"
-            print "Explicitly by user"
+            print("Warning, must set tmpdir explicitly, since this function removes all files from the dalton generated real tmpdir.")
+            print("For security reasons will not run this if not set tmpdir")
+            print("Explicitly by user")
             return
 
         remove_files = ['RSP_VEC', 'AOPROPER', 'SIRIFC' ]
@@ -1763,7 +1766,7 @@ class Molecule( list ):
             else:
                 open( dal, 'w').write( Generator.get_camb3lyplin_dal() )
         else:
-            print "wrong calculation type specified"
+            print("wrong calculation type specified")
             return
         open( mol, 'w').write( self.get_mol( basis = basis) )
 
@@ -1783,7 +1786,7 @@ class Molecule( list ):
         elif os.path.isfile( dalpath ):
             dalton = dalpath
         else:
-            print """The DALTON runscript can not be found. Please set the env variable DALTON to the dalton runscript or supply the script to props_from_qm directly as dalpath = <path-to-dalscript> """
+            print("""The DALTON runscript can not be found. Please set the env variable DALTON to the dalton runscript or supply the script to props_from_qm directly as dalpath = <path-to-dalscript> """)
             raise SystemExit
 
         if dalexe:
@@ -1861,7 +1864,7 @@ class Molecule( list ):
                             )
         except UnboundLocalError:
             logging.error("Some error in LoProp, check so that the latest source is in PYTHONPATH")
-            print real_tmp
+            print(real_tmp)
 
         try:
             lines = [ " ".join(l.split()) for l in outpot.split('\n') if len(l.split()) > 4 ]
@@ -1869,7 +1872,7 @@ class Molecule( list ):
             logging.error("Might be that DALTON was not properly executed. If MPI version, make sure all proper mpi shared objects are in your path.")
 
         if not len(lines) == len(self):
-            print "Something went wrong in MolFrag output, check length of molecule and the molfile it produces"
+            print("Something went wrong in MolFrag output, check length of molecule and the molfile it produces")
             raise SystemExit
         f_at = lambda x: map(float,x.get_mol_line().split()[1:])
         f_prop = lambda x: map(float,x.split()[1:4])
@@ -1896,7 +1899,7 @@ class Molecule( list ):
 
         try:
             for f_ in [f for f in os.listdir(real_tmp) if os.path.isfile(f) ]:
-                print os.path.join(real_tmp, f_)
+                print(os.path.join(real_tmp, f_))
                 raise SystemExit
                 os.remove( os.path.join(real_tmp, f_))
             for f_ in [mol, dal]:
@@ -2114,7 +2117,7 @@ Center of coordinate
    >>> m = Molecule()
    >>> m.append( Atom(element = 'H', z = 1) )
    >>> m.append( Atom(element = 'O', z = 0) )
-   >>> print m.r
+   >>> print(m.r)
    0.5
 
 """
@@ -2144,10 +2147,10 @@ Translate molecules center-of-mass to position r
     >>> m = Molecule()
     >>> m.append( Atom(element = 'H', z = 1) )
     >>> m.append( Atom(element = 'H', z = 0) )
-    >>> print m.com
+    >>> print(m.com)
     [0, 0, 0.5 ]
     >>> m.translate( [0, 3, 5] )
-    >>> print m.com
+    >>> print(m.com)
     [0, 3, 5 ]
     
 """
@@ -2224,7 +2227,7 @@ Distance to other molecule, measured by center-of-mass
     >>> m2 = Molecule( )
     >>> m1.append( Atom()) ; m1.append( Atom( z = 1) )
     >>> m2.append( Atom(x = 1)) ; m2.append( Atom( x = 1, z = 1) )
-    >>> print m1.dist_to_mol( m2 )
+    >>> print(m1.dist_to_mol( m2 ))
     1.0
     
 """
@@ -2418,7 +2421,7 @@ Read in molecule given .mol file and unit specification.
 
     >>> m = ( "water.mol", AA = True )
     >>> for at in m:
-            print at.element
+            print(at.element)
     H
     H
     O
@@ -2508,7 +2511,7 @@ Angstrom [ out_AA = True ]
 
     >>> m = ( "water.mol", in_AA = True, out_AA = False )
     >>> for at in m:
-            print at.z
+            print(at.z)
     H
     H
     O
@@ -2590,13 +2593,13 @@ Angstrom [ out_AA = True ]
             if i.pdb_name == label:
                 at.append(i)
         if len(at) > 1 and not dup:
-            print "Warning: Duplicate with pdb name %s, returning %s" %(label, at[0].label )
+            print("Warning: Duplicate with pdb name %s, returning %s" %(label, at[0].label ))
             return at[0]
         elif len(at) > 1 and dup:
             return at
 
         elif len(at) == 0:
-            print "No %s in %s" %(label, self)
+            print("No %s in %s" %(label, self))
             return
         return at[0]
 
@@ -2785,11 +2788,11 @@ Override list append method, will add up to 3 atoms,
 
 """
         if len(self) > 3:
-            print "tried to add additional atoms to water, exiting"
+            print("tried to add additional atoms to water, exiting")
             raise SystemExit
 
         if not isinstance( atom, Atom ):
-            print "wrong class passed to water append"
+            print("wrong class passed to water append")
             raise SystemExit
 
         if atom.element == "H":
@@ -2813,7 +2816,7 @@ Override list append method, will add up to 3 atoms,
 
         if self.res_id:
             if self.res_id != atom.res_id:
-                print "Tried to add %s to %s, exiting" %(atom, self)
+                print("Tried to add %s to %s, exiting" %(atom, self))
                 raise SystemExit
         else:
 #Initialize water res_id from atomic res_id
@@ -2968,7 +2971,7 @@ Override list append method, will add up to 3 atoms,
             cent_wlist.sort( key= lambda x: x.dist_to_water( center_water) )
 
             if N_waters< 1:
-                print "Please choose at least one water molecule"
+                print("Please choose at least one water molecule")
                 raise SystemExit
             waters = [center_water] + cent_wlist[ 0 : N_waters - 1 ]
 
@@ -3416,7 +3419,7 @@ class Cluster(list):
     >>> c = Cluster()
     >>> c.add( Water.get_standard())
     >>> for at in c.min_dist_atoms():
-            print at
+            print(at)
         O1 0.000000 0.000000 0.000000
         H2 1.430429 0.000000 1.107157
         H3 -1.430429 0.000000 1.107157
@@ -3785,7 +3788,7 @@ Return a cluster of water molecules given file.
 .. code:: python
 
     >>> c = Cluster.get_water_cluster( 'somefile.mol' , in_AA = False, out_AA = False, N_waters = 10 )
-    >>> print len( c )
+    >>> print(len( c ))
     10
 
 """
@@ -3920,7 +3923,7 @@ Return a cluster of water molecules given file.
 
 
         if N_waters < 1:
-            print "WARNING ; chose too few waters in Cluster.get_water_cluster"
+            print("WARNING ; chose too few waters in Cluster.get_water_cluster")
             raise SystemExit
 
 # Ensure that cluster has ordered water structure from first index
@@ -4025,9 +4028,9 @@ Return a cluster of water molecules given file.
             if copy:
                 iat = copymod.deepcopy( iat )
             if iat.chain_id is not 'X':
-                print iat
+                print(iat)
                 self._chain_id = iat.chain_id
-                print self.chain_id
+                print(self.chain_id)
             self.append( iat )
             iat.Cluster = self
 
@@ -4266,10 +4269,10 @@ Translate everythin in cluster by r
     >>> m = Cluster()
     >>> m.append( Atom(element = 'H', z = 1) )
     >>> m.append( Atom(element = 'H', z = 0) )
-    >>> print m.com
+    >>> print(m.com)
     [0, 0, 0.5 ]
     >>> m.translate( [0, 3, 5] )
-    >>> print m.com
+    >>> print(m.com)
     [0, 3, 5.5 ]
     
 """
@@ -4280,4 +4283,4 @@ Translate everythin in cluster by r
 
 
 if __name__ == '__main__':
-    print "no main method for module implemented"
+    print("no main method for module implemented")

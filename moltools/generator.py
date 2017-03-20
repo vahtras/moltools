@@ -3,7 +3,7 @@ __all__ = [ 'Generator' ]
 
 
 import numpy as np
-import molecules 
+from . import molecules 
 
 a0 = 0.52917721092
 class Generator( dict ):

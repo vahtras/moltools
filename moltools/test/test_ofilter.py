@@ -34,7 +34,7 @@ class OFilterrTest( unittest.TestCase ):
         assert len(out) == 0
 
         out = o_filter( files, r = 9.22, vary = 'rho3' )
-        print out
+        print(out)
         assert len(out) == 1
 
 if __name__ == '__main__':

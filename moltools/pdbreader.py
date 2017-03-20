@@ -245,7 +245,7 @@ def run_argparse( args ):
     args = A.parse_args( args[1:] )
 
     if not args.pdbfile:
-        print 'you need to add "-p <pdbfile>" after invoking pdbreader'
+        print('you need to add "-p <pdbfile>" after invoking pdbreader')
         raise SystemExit
     return args
 
@@ -785,7 +785,7 @@ class Residue( Molecule ):
             if i.label.split('-')[-1] == 'XH':
                 ats.append(i)
         if len(ats) == 0:
-            print "Warning, no dummy hydrogens found in %s" % (self)
+            print("Warning, no dummy hydrogens found in %s" % (self))
             return
         return ats
 
@@ -1500,7 +1500,7 @@ Return the sum properties of all properties in System
         for ch in self:
             if ch.chain_id == char:
                 return ch
-        print "No chain with identifier %s in %s" %(char, self )
+        print("No chain with identifier %s in %s" %(char, self ))
         return
 
     @property

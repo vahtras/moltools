@@ -16,10 +16,10 @@ class Property( dict ):
 .. code:: python
     
     >>> p = Property()
-    >>> print p["charge"]
+    >>> print(p["charge"])
     [0.0]
 
-    >>> print p["dipole"]
+    >>> print(p["dipole"])
     [0.0, 0.0, 0.0]
 
 """
@@ -200,7 +200,7 @@ invoking dalton on a supercomputer.
 
         for p in all_props:
             if (at_string, p ) not in template:
-                print "'( %s, %s )' not found in provided template" %(at_string, p)
+                print("'( %s, %s )' not found in provided template" %(at_string, p))
                 warnings.warn("Could not find in provided template" )
                 return Property()
 
